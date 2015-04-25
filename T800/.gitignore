@@ -1,0 +1,8 @@
+*.class
+.gradle
+app/build/
+build/
+libraries/opencv/build/
+
+.idea/workspace.xml
+.idea/vcs.xml
