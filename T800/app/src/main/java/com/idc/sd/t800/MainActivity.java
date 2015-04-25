@@ -9,6 +9,8 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
+import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 
 import android.app.Activity;
@@ -17,11 +19,14 @@ import android.util.Log;
 import android.view.WindowManager;
 
 public class MainActivity extends Activity implements CvCameraViewListener2 {
-    private static final String  TAG                 = "T800::MainActivity";
+    private static final String TAG                 = "T800::MainActivity";
+    private static final Scalar FACE_RECT_COLOR     = new Scalar(255, 255, 255, 255);
 
-    private CameraBridgeViewBase mOpenCvCameraView;
-    private Mat mRedVisionMat;
-
+    private CameraBridgeViewBase    mOpenCvCameraView;
+    private Mat                     mRgba;
+    private Mat                     mGray;
+    private Mat                     mRedVisionMat;
+    private FaceDetector            mFaceDetector;
 
     private BaseLoaderCallback  mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -30,6 +35,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
                 case LoaderCallbackInterface.SUCCESS:
                 {
                     Log.i(TAG, "OpenCV loaded successfully");
+                    mFaceDetector.initFaceDetector();
                     mOpenCvCameraView.enableView();
                 } break;
                 default:
@@ -41,6 +47,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
     };
 
     public MainActivity() {
+        mFaceDetector = new FaceDetector(this);
         Log.i(TAG, "Instantiated new " + this.getClass());
     }
 
@@ -79,23 +86,32 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
     }
 
     public void onCameraViewStarted(int width, int height) {
+        mGray = new Mat();
+        mRgba = new Mat();
         initRedVision();
     }
 
     public void onCameraViewStopped() {
-
+        mGray.release();
+        mRgba.release();
     }
 
     public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
 
-        Mat rgba = inputFrame.rgba();
+        mRgba = inputFrame.rgba();
+        mGray = inputFrame.gray();
 
-
+        /* Detect faces */
+        Rect[] facesArray = mFaceDetector.detectFaces(mRgba, mGray);
 
         /* Apply red vision */
-       applyRedVision(rgba);
+        applyRedVision(mRgba);
 
-        return rgba;
+        /* Color faces rect */
+        for (int i = 0; i < facesArray.length; i++)
+            Core.rectangle(mRgba, facesArray[i].tl(), facesArray[i].br(), FACE_RECT_COLOR, 3);
+
+        return mRgba;
     }
 
     private void initRedVision() {
@@ -115,11 +131,11 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
         int rows = (int) sizeRgba.height;
         int cols = (int) sizeRgba.width;
 
-        int left = cols / 200;
-        int top = rows / 200;
+        int left = 0;//cols / 200;
+        int top = 0;//rows / 200;
 
-        int width = cols * 99 / 100;
-        int height = rows * 99 / 100;
+        int width = cols;// * 99 / 100;
+        int height = rows;// * 99 / 100;
 
         rgbaInnerWindow = rgba.submat(top, top + height, left, left + width);
         Core.transform(rgbaInnerWindow, rgbaInnerWindow, mRedVisionMat);
