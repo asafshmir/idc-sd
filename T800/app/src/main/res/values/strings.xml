@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">T800</string>
+    <string name="title_activity_main">T800</string>
+    <string name="action_settings">Settings</string>
+</resources>
