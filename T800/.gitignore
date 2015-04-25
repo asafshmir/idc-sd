@@ -4,5 +4,6 @@ app/build/
 build/
 libraries/opencv/build/
 
+.idea/libraries/
 .idea/workspace.xml
 .idea/vcs.xml
