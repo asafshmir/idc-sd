@@ -8,16 +8,12 @@ import java.io.InputStream;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Rect;
-import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.objdetect.CascadeClassifier;
 
 import android.content.Context;
 import android.util.Log;
 
-/**
- * Created by Asaf on 4/25/2015.
- */
 public class FaceDetector {
 
     private static final String    TAG                 = "T800::FaceDetector";
@@ -29,7 +25,7 @@ public class FaceDetector {
     private float                   mRelativeFaceSize   = 0.2f;
     private int                     mAbsoluteFaceSize   = 0;
 
-    public void initFaceDetector(){
+    public void init(){
         try {
             // load cascade file from application resources
             InputStream is = mContext.getResources().openRawResource(R.raw.lbpcascade_frontalface);
@@ -74,8 +70,7 @@ public class FaceDetector {
             mJavaDetector.detectMultiScale(gray, faces, 1.1, 2, 2,
                     new Size(mAbsoluteFaceSize, mAbsoluteFaceSize), new Size());
 
-        Rect[] facesArray = faces.toArray();
-        return facesArray;
+        return faces.toArray();
     }
 
     public FaceDetector(Context context) {
