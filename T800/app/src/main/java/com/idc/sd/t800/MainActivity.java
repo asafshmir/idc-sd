@@ -3,6 +3,8 @@ package com.idc.sd.t800;
 import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.WindowManager;
 
 import org.opencv.android.BaseLoaderCallback;
@@ -13,10 +15,9 @@ import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfPoint;
+import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
-import org.opencv.imgproc.Imgproc;
 
 import java.util.List;
 
@@ -26,8 +27,8 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
     private static final Scalar     FACE_RECT_COLOR     = new Scalar(255,255,255,255);
 
     private static final Scalar     MARKER_COLOR        = new Scalar(0,210,210,0);
-    private static final int        MARKER_VERTICES     = 3; // Use a triangle marker
-    private static final Scalar     MARKER_BORDER_COLOR = new Scalar(0,255,0,255);
+    private static final int        POLYGON_VERTICES    = 3; // Use a triangle marker
+    private static final int        MARKER_RADIUS       = 10;
 
 
     private CameraBridgeViewBase    mOpenCvCameraView;
@@ -35,8 +36,14 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
     private Mat                     mGray;
 
     private FaceDetector            mFaceDetector;
-    private PolygonDetector         mPolyDetector;
+    private PolygonTracker          mPolyTracker;
     private RedVisionFilter         mRedFilter;
+
+    private Rect[]                  mFacesRects;
+    private List<Point>             mPolyCenters;
+
+    private MenuItem                mItemEnableRedVision;
+    private Boolean                 mEnableRedVision = false;
 
     private BaseLoaderCallback  mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -47,7 +54,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
 
 
                     mFaceDetector.init();
-                    mPolyDetector.init();
+                    mPolyTracker.init();
                     mRedFilter.init();
 
                     mOpenCvCameraView.enableView();
@@ -61,7 +68,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
 
     public MainActivity() {
         mFaceDetector = new FaceDetector(this);
-        mPolyDetector = new PolygonDetector(MARKER_COLOR, MARKER_VERTICES);
+        mPolyTracker = new PolygonTracker(MARKER_COLOR, POLYGON_VERTICES);
         mRedFilter = new RedVisionFilter();
         Log.i(TAG, "Instantiated new " + this.getClass());
     }
@@ -110,23 +117,51 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
         mRgba = inputFrame.rgba();
         mGray = inputFrame.gray();
 
-        /* Detect faces */
-        Rect[] facesArray = mFaceDetector.detectFaces(mRgba, mGray);
-
-        /* Apply red vision */
-        mRedFilter.process(mRgba);
-
-        /* Color faces rect */
-        for (int i = 0; i < facesArray.length; i++)
-            Core.rectangle(mRgba, facesArray[i].tl(), facesArray[i].br(), FACE_RECT_COLOR, 3);
-
-        showMarkers();
+        this.process();
+        this.drawMarkers();
 
         return mRgba;
     }
 
-    private void showMarkers() {
-        List<MatOfPoint> markers = mPolyDetector.detectPolygons(mRgba);
-        Imgproc.drawContours(mRgba, markers, -1, MARKER_BORDER_COLOR);
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        Log.i(TAG, "called onCreateOptionsMenu");
+        mItemEnableRedVision = menu.add("Toggle Red Vision");
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        Log.i(TAG, "called onOptionsItemSelected; selected item: " + item);
+        if (item == mItemEnableRedVision)
+            mEnableRedVision = !mEnableRedVision;
+        return true;
+    }
+
+    private void process() {
+
+        // Detect faces
+        mFacesRects = mFaceDetector.detectFaces(mRgba, mGray);
+
+        // Detect markers
+        mPolyCenters = mPolyTracker.process(mRgba);
+
+        // Apply red vision
+        if (mEnableRedVision) mRedFilter.process(mRgba);
+    }
+
+    private void drawMarkers() {
+
+        // Draw rectangles around detected faces
+        for (int i = 0; i < mFacesRects.length; i++)
+            Core.rectangle(mRgba, mFacesRects[i].tl(), mFacesRects[i].br(), FACE_RECT_COLOR, 3);
+
+        // Draw the markers centers
+        for (int i = 0; i < mPolyCenters.size(); i++) {
+            Point center = mPolyCenters.get(i);
+            if (center != null) {
+                Core.circle(mRgba, center, MARKER_RADIUS, MARKER_COLOR);
+            }
+        }
     }
 }

@@ -34,7 +34,7 @@ public class PolygonDetector {
         List<MatOfPoint> contours = mDetector.getContours();
         smoothContours(contours);
 
-        // Filter in only the right polygons
+        // Filter in only the polygons with mNumVertices
         return filterContours(contours, mNumVertices);
     }
 
