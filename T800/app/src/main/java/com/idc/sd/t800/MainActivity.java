@@ -12,13 +12,10 @@ import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
-import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
-import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 import java.util.List;
@@ -36,9 +33,10 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
     private CameraBridgeViewBase    mOpenCvCameraView;
     private Mat                     mRgba;
     private Mat                     mGray;
-    private Mat                     mRedVisionMat;
+
     private FaceDetector            mFaceDetector;
     private PolygonDetector         mPolyDetector;
+    private RedVisionFilter         mRedFilter;
 
     private BaseLoaderCallback  mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -46,9 +44,12 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
             switch (status) {
                 case LoaderCallbackInterface.SUCCESS: {
                     Log.i(TAG, "OpenCV loaded successfully");
+
+
                     mFaceDetector.init();
                     mPolyDetector.init();
-                    initRedVision();
+                    mRedFilter.init();
+
                     mOpenCvCameraView.enableView();
                 } break;
                 default: {
@@ -61,6 +62,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
     public MainActivity() {
         mFaceDetector = new FaceDetector(this);
         mPolyDetector = new PolygonDetector(MARKER_COLOR, MARKER_VERTICES);
+        mRedFilter = new RedVisionFilter();
         Log.i(TAG, "Instantiated new " + this.getClass());
     }
 
@@ -112,48 +114,19 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
         Rect[] facesArray = mFaceDetector.detectFaces(mRgba, mGray);
 
         /* Apply red vision */
-        //applyRedVision(mRgba);
+        mRedFilter.process(mRgba);
 
         /* Color faces rect */
         for (int i = 0; i < facesArray.length; i++)
             Core.rectangle(mRgba, facesArray[i].tl(), facesArray[i].br(), FACE_RECT_COLOR, 3);
 
-        //drawText();
-
-
-        findMarker();
-
+        showMarkers();
 
         return mRgba;
     }
 
-    private void findMarker() {
+    private void showMarkers() {
         List<MatOfPoint> markers = mPolyDetector.detectPolygons(mRgba);
         Imgproc.drawContours(mRgba, markers, -1, MARKER_BORDER_COLOR);
-    }
-
-    private void initRedVision() {
-        // Fill red vision conversion matrix
-        mRedVisionMat = new Mat(4, 4, CvType.CV_32F);
-        mRedVisionMat.put(0, 0, /* R */0.999f, 0.999f, 0.999f, 0f);
-        mRedVisionMat.put(1, 0, /* G */0.168f, 0.686f, 0.349f, 0f);
-        mRedVisionMat.put(2, 0, /* B */0.131f, 0.534f, 0.272f, 0f);
-        mRedVisionMat.put(3, 0, /* A */0.000f, 0.000f, 0.000f, 1f);
-    }
-
-    private void applyRedVision(Mat rgba) {
-        Size sizeRgba = rgba.size();
-
-        Mat rgbaInnerWindow;
-
-        int height = (int) sizeRgba.height;
-        int width = (int) sizeRgba.width;
-
-        int left = 0;
-        int top = 0;
-
-        rgbaInnerWindow = rgba.submat(top, top + height, left, left + width);
-        Core.transform(rgbaInnerWindow, rgbaInnerWindow, mRedVisionMat);
-        rgbaInnerWindow.release();
     }
 }
