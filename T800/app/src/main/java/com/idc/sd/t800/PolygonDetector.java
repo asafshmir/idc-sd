@@ -12,7 +12,7 @@ import java.util.List;
 
 public class PolygonDetector {
 
-    private static final Scalar         MARKER_COLOR_TRES   = new Scalar(25,70,70,0);
+    private static final Scalar         MARKER_COLOR_TRES   = new Scalar(50,70,70,0);
     private static final double         APPROX_FACTOR       = 0.3;
 
     private ColorBlobDetector           mDetector;

@@ -153,12 +153,13 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
     private void drawMarkers() {
 
         // Draw rectangles around detected faces
-        for (int i = 0; i < mFacesRects.length; i++)
-            Core.rectangle(mRgba, mFacesRects[i].tl(), mFacesRects[i].br(), FACE_RECT_COLOR, 3);
+        for (Rect facesRect : mFacesRects) {
+            Core.rectangle(mRgba, facesRect.tl(), facesRect.br(), FACE_RECT_COLOR, 3);
+        }
+
 
         // Draw the markers centers
-        for (int i = 0; i < mPolyCenters.size(); i++) {
-            Point center = mPolyCenters.get(i);
+        for (Point center : mPolyCenters) {
             if (center != null) {
                 Core.circle(mRgba, center, MARKER_RADIUS, MARKER_COLOR);
             }
