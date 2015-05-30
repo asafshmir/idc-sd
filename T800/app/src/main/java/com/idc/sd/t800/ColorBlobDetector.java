@@ -1,25 +1,35 @@
 package com.idc.sd.t800;
 
+import android.util.Log;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
 public class ColorBlobDetector {
+    private static final String     TAG                 = "T800::ColorBlobDetector";
+
+    //private static final Scalar     HSV_COLOR = new Scalar(0,179,204,0);
+    //private static final Scalar     COLOR_RADIUS = new Scalar(20,76,51,0);
+    private static final Scalar     HSV_COLOR = new Scalar(0,205,220,0);
+    private static final Scalar     COLOR_RADIUS = new Scalar(15,50,35,0);
+
     // Lower and Upper bounds for range checking in HSV color space
-    private Scalar mLowerBound = new Scalar(0);
-    private Scalar mUpperBound = new Scalar(0);
+    private Scalar mFirstRangeLowerBound = new Scalar(0);
+    private Scalar mFirstRangeUpperBound = new Scalar(0);
+    private Scalar mSecondRangeLowerBound = new Scalar(0);
+    private Scalar mSecondRangeUpperBound = new Scalar(0);
     // Minimum contour area in percent for contours filtering
     private static double mMinContourArea = 0.1;
     // Color radius for range checking in HSV color space
-    private Scalar mColorRadius = new Scalar(25,50,50,0);
-    private Mat mSpectrum = new Mat();
+    private Scalar mColorRadius = new Scalar(0);
+
     private List<MatOfPoint> mContours = new ArrayList<>();
 
     // Cache
@@ -29,9 +39,9 @@ public class ColorBlobDetector {
     Mat mDilatedMask;
     Mat mHierarchy;
 
-    public ColorBlobDetector(Scalar hsvColor, Scalar colorRadius) {
-        this.mColorRadius = colorRadius;
-        setHsvColor(hsvColor);
+    public ColorBlobDetector() {
+        this.mColorRadius = COLOR_RADIUS;
+        setHsvColor(HSV_COLOR);
 
         // Cache
         mPyrDownMat = new Mat();
@@ -42,29 +52,29 @@ public class ColorBlobDetector {
     }
 
     public void setHsvColor(Scalar hsvColor) {
-        double minH = (hsvColor.val[0] >= mColorRadius.val[0]) ? hsvColor.val[0]-mColorRadius.val[0] : 0;
-        double maxH = (hsvColor.val[0]+mColorRadius.val[0] <= 255) ? hsvColor.val[0]+mColorRadius.val[0] : 255;
+        mFirstRangeLowerBound.val[0] = (hsvColor.val[0] - mColorRadius.val[0] + 255) % 255;
+        mFirstRangeUpperBound.val[0] = (hsvColor.val[0] + mColorRadius.val[0] + 255) % 255;
 
-        mLowerBound.val[0] = minH;
-        mUpperBound.val[0] = maxH;
+        mFirstRangeLowerBound.val[1] = hsvColor.val[1] - mColorRadius.val[1];
+        mFirstRangeUpperBound.val[1] = hsvColor.val[1] + mColorRadius.val[1];
 
-        mLowerBound.val[1] = hsvColor.val[1] - mColorRadius.val[1];
-        mUpperBound.val[1] = hsvColor.val[1] + mColorRadius.val[1];
+        mFirstRangeLowerBound.val[2] = hsvColor.val[2] - mColorRadius.val[2];
+        mFirstRangeUpperBound.val[2] = hsvColor.val[2] + mColorRadius.val[2];
 
-        mLowerBound.val[2] = hsvColor.val[2] - mColorRadius.val[2];
-        mUpperBound.val[2] = hsvColor.val[2] + mColorRadius.val[2];
+        mFirstRangeLowerBound.val[3] = 0;
+        mFirstRangeUpperBound.val[3] = 255;
 
-        mLowerBound.val[3] = 0;
-        mUpperBound.val[3] = 255;
+        mSecondRangeLowerBound = mFirstRangeLowerBound.clone();
+        mSecondRangeUpperBound = mFirstRangeUpperBound.clone();
 
-        Mat spectrumHsv = new Mat(1, (int)(maxH-minH), CvType.CV_8UC3);
-
-        for (int j = 0; j < maxH-minH; j++) {
-            byte[] tmp = {(byte)(minH+j), (byte)255, (byte)255};
-            spectrumHsv.put(0, j, tmp);
+        // hsv is a cyclic range, so if the lower bound is higher than the upper bound, we need to
+        // compute two ranges
+        if (mFirstRangeLowerBound.val[0] >= mFirstRangeUpperBound.val[0]) {
+            mFirstRangeUpperBound.val[0] = 255;
+            mSecondRangeLowerBound.val[0] = 0;
+            Log.i(TAG, "Got two ranges: "   + mFirstRangeLowerBound + "-" + mFirstRangeUpperBound + "   "
+                                            + mSecondRangeLowerBound + "-" + mSecondRangeUpperBound);
         }
-
-        Imgproc.cvtColor(spectrumHsv, mSpectrum, Imgproc.COLOR_HSV2RGB_FULL, 4);
     }
 
     public void process(Mat rgbaImage) {
@@ -73,7 +83,12 @@ public class ColorBlobDetector {
 
         Imgproc.cvtColor(mPyrDownMat, mHsvMat, Imgproc.COLOR_RGB2HSV_FULL);
 
-        Core.inRange(mHsvMat, mLowerBound, mUpperBound, mMask);
+        Mat firstRangeMask = new Mat();
+        Mat secondRangeMask = new Mat();
+        Core.inRange(mHsvMat, mFirstRangeLowerBound, mFirstRangeUpperBound, firstRangeMask);
+        Core.inRange(mHsvMat, mSecondRangeLowerBound, mSecondRangeUpperBound, secondRangeMask);
+        Core.bitwise_or(firstRangeMask, secondRangeMask, mMask);
+
         Imgproc.dilate(mMask, mDilatedMask, new Mat());
 
         List<MatOfPoint> contours = new ArrayList<>();
@@ -99,6 +114,11 @@ public class ColorBlobDetector {
                 Core.multiply(contour, new Scalar(4,4), contour);
                 mContours.add(contour);
             }
+        }
+
+        // TODO remove this
+        for (int contourIdx = 0; contourIdx < mContours.size(); contourIdx++) {
+            Imgproc.drawContours(rgbaImage, mContours, contourIdx, new Scalar(0, 0, 255), 2);
         }
     }
 
