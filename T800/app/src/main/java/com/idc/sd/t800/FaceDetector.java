@@ -28,9 +28,9 @@ public class FaceDetector {
     public void init(){
         try {
             // load cascade file from application resources
-            InputStream is = mContext.getResources().openRawResource(R.raw.lbpcascade_frontalface);
+            InputStream is = mContext.getResources().openRawResource(R.raw.haarcascade_frontalface_default);
             File cascadeDir = mContext.getDir("cascade", Context.MODE_PRIVATE);
-            mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
+            mCascadeFile = new File(cascadeDir, "haarcascade_frontalface_default.xml");
             FileOutputStream os = new FileOutputStream(mCascadeFile);
 
             byte[] buffer = new byte[4096];
@@ -66,6 +66,7 @@ public class FaceDetector {
 
         MatOfRect faces = new MatOfRect();
 
+        // TODO use tracker algorithm
         if (mJavaDetector != null)
             mJavaDetector.detectMultiScale(gray, faces, 1.1, 2, 2,
                     new Size(mAbsoluteFaceSize, mAbsoluteFaceSize), new Size());
