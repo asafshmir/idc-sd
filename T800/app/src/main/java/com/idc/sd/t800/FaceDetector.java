@@ -25,12 +25,17 @@ public class FaceDetector {
     private float                   mRelativeFaceSize   = 0.2f;
     private int                     mAbsoluteFaceSize   = 0;
 
+    public FaceDetector(Context context) {
+        mContext = context;
+        Log.i(TAG, "Instantiated new " + this.getClass());
+    }
+
     public void init(){
         try {
             // load cascade file from application resources
-            InputStream is = mContext.getResources().openRawResource(R.raw.haarcascade_frontalface_default);
+            InputStream is = mContext.getResources().openRawResource(R.raw.lbpcascade_frontalface);
             File cascadeDir = mContext.getDir("cascade", Context.MODE_PRIVATE);
-            mCascadeFile = new File(cascadeDir, "haarcascade_frontalface_default.xml");
+            mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
             FileOutputStream os = new FileOutputStream(mCascadeFile);
 
             byte[] buffer = new byte[4096];
@@ -56,7 +61,7 @@ public class FaceDetector {
         }
     }
 
-    public Rect[] detectFaces(Mat rgba, Mat gray) {
+    public Rect[] detectFaces(Mat gray) {
         if (mAbsoluteFaceSize == 0) {
             int height = gray.rows();
             if (Math.round(height * mRelativeFaceSize) > 0) {
@@ -66,17 +71,11 @@ public class FaceDetector {
 
         MatOfRect faces = new MatOfRect();
 
-        // TODO use tracker algorithm
         if (mJavaDetector != null)
             mJavaDetector.detectMultiScale(gray, faces, 1.1, 2, 2,
                     new Size(mAbsoluteFaceSize, mAbsoluteFaceSize), new Size());
 
         return faces.toArray();
-    }
-
-    public FaceDetector(Context context) {
-        mContext = context;
-        Log.i(TAG, "Instantiated new " + this.getClass());
     }
 }
 

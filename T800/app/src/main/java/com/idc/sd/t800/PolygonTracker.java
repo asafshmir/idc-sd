@@ -3,18 +3,21 @@ package com.idc.sd.t800;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
+import org.opencv.core.Rect;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.imgproc.Moments;
 
 import java.util.ArrayList;
 import java.util.List;
 
+// TODO remove class
+
 public class PolygonTracker {
 
-    public static final double      MAX_DIST_FACTOR = 0.25;
+    public static final double          MAX_DIST_FACTOR = 0.15;
 
     private PolygonDetector             mPolyDetector;
-    private List<PointTrackingData>     mTrackingData;
+    private List<PolygonTrackingData>   mTrackingData;
     private double                      mMaxDist;
 
     public PolygonTracker() {
@@ -27,7 +30,7 @@ public class PolygonTracker {
         mPolyDetector.init();
     }
 
-    public List<Point> process(Mat rgbaImage) {
+    public void process(Mat rgbaImage) {
 
         // calc the maximum distance for two consecutive points to be considered the same one.
         // the distance is calculated relatively to the image size
@@ -38,59 +41,70 @@ public class PolygonTracker {
         // detect polygons in the given Mat
         List<MatOfPoint> polygons = mPolyDetector.detectPolygons(rgbaImage);
 
-        // calculate center for each polygon
-        List<Point> centers = new ArrayList<>();
-        for (int i = 0; i < polygons.size(); i++) {
-            centers.add(findCentroid(polygons.get(i)));
-        }
-
-        // track the centers of the found polygons
-        return updateTrackedPoints(centers);
+        // track the polygons
+        updateTrackedPolygons(polygons);
     }
 
-    // get a list of points found by the PolygonDetector, and update the tracking data.
-    // return a list of point that
-    private List<Point> updateTrackedPoints(List<Point> points) {
+    // return the bounding rectangle of all valid polygons
+    public Rect[] getBoundingRectangles() {
 
-        // init all TrackingData
-        for (PointTrackingData pointTrackingData : mTrackingData) {
-            pointTrackingData.mMatched = false;
+        // return only the polygons with high enough score
+        List<Rect> rects = new ArrayList<>();
+        for (PolygonTrackingData trackingData : mTrackingData) {
+            if (trackingData.isValidPolygon()) {
+                // Get bounding rectangle of contour
+                Rect rect = Imgproc.boundingRect(trackingData.mTrackedPolygon);
+                rects.add(rect);
+            }
         }
 
-        // try to match each given point to a previous tracked point
-        for (Point point : points) {
+        return rects.toArray(new Rect[rects.size()]);
+    }
+
+    // return the center of all valid polygons
+    public List<Point> getValidTrackedCenters() {
+        List<Point> centers = new ArrayList<>();
+        for (PolygonTrackingData trackingData : mTrackingData) {
+            if (trackingData.isValidPolygon()) {
+                centers.add(trackingData.mTrackedPolygonCenter);
+            }
+        }
+        return centers;
+    }
+
+    // get a list of polygons found by the PolygonDetector, and update the tracking data.
+    private void updateTrackedPolygons(List<MatOfPoint> polygons) {
+
+        // init all TrackingData
+        for (PolygonTrackingData polygonTrackingData : mTrackingData) {
+            polygonTrackingData.mMatched = false;
+        }
+
+        // try to match each given polygon to a previous tracked polygon
+        for (MatOfPoint polygon : polygons) {
             boolean isMatched = false;
 
-            for (PointTrackingData pointTrackingData : mTrackingData) {
-                if (!pointTrackingData.mMatched) {
-                    isMatched = pointTrackingData.matchPoint(point);
+         for (PolygonTrackingData polygonTrackingData : mTrackingData) {
+                if (!polygonTrackingData.mMatched) {
+                    isMatched = polygonTrackingData.matchPolygon(polygon);
                 }
             }
 
-            // no matched point found - create a new tracked point
+            // no matched polygon found - create a new tracked polygon
             if (!isMatched) {
-                mTrackingData.add(new PointTrackingData(point));
+                mTrackingData.add(new PolygonTrackingData(polygon));
             }
         }
 
-        // remove points that doesn't have high enough score to be tracked
-        List<PointTrackingData> toBeRemoved = new ArrayList<>();
-        for (PointTrackingData pointTrackingData : mTrackingData) {
-            pointTrackingData.handleIfUnmatched();
-            if (!pointTrackingData.isTrackedPoint()) {
-                toBeRemoved.add(pointTrackingData);
+        // remove polygons that doesn't have high enough score to be tracked
+        List<PolygonTrackingData> toBeRemoved = new ArrayList<>();
+        for (PolygonTrackingData polygonTrackingData : mTrackingData) {
+            polygonTrackingData.handleIfUnmatched();
+            if (!polygonTrackingData.isTrackedPolygon()) {
+                toBeRemoved.add(polygonTrackingData);
             }
         }
         mTrackingData.removeAll(toBeRemoved);
-
-        // return only the points with high enough score
-        List<Point> trackedPoints = new ArrayList<>();
-        for (PointTrackingData pointTrackingData : mTrackingData) {
-            if (pointTrackingData.isValidPoint()) {
-                trackedPoints.add(pointTrackingData.mTrackedPoint);
-            }
-        }
-        return trackedPoints;
     }
 
     // calc the centroid of a given polygon
@@ -110,11 +124,11 @@ public class PolygonTracker {
     }
 
     /*
-        Holds relevant data for tracking a single point over several frames.
-        Each point has a current score according to its appearance or lack of appearance in the
-        previous frames. A point is considered to be valid and reported if it has high enough score.
+        Holds relevant data for tracking a single polygon over several frames.
+        Each polygon has a current score according to its appearance or lack of appearance in the
+        previous frames. A polygon is considered to be valid, if it has high enough score.
      */
-    protected class PointTrackingData {
+    protected class PolygonTrackingData {
 
         public static final int INITIAL_SCORE = 0; // Initial score for a new point
         public static final int SINGLE_STEP_SCORE = 1; // Addition to the score if a point is matched
@@ -122,42 +136,48 @@ public class PolygonTracker {
         public static final int VALID_MIN_SCORE = 5; // Minimum score to report the point
         public static final int MIN_TRACK_SCORE = 0; // Minimum score to continue tracking the point
 
-        protected Point     mTrackedPoint;
-        private Integer     mTrackedPointScore;
-        protected boolean   mMatched = true; // Is the point matched in current frame to a previous tracked point
+        protected MatOfPoint    mTrackedPolygon;
+        protected Point         mTrackedPolygonCenter;
+        private Integer         mTrackingScore;
+        protected boolean       mMatched = true; // Is the point matched in current frame to a previous tracked point
 
-        public PointTrackingData(Point point) {
-            this.mTrackedPoint = point;
-            this.mTrackedPointScore = INITIAL_SCORE;
+        public PolygonTrackingData(MatOfPoint polygon) {
+            this.mTrackedPolygon = polygon;
+            this.mTrackedPolygonCenter = findCentroid(mTrackedPolygon);
+            this.mTrackingScore = INITIAL_SCORE;
         }
 
-        // check if the new point matches the current point, meaning they are close enough
-        public boolean matchPoint(Point newPoint) {
-            if (pointDistance(mTrackedPoint, newPoint) < mMaxDist) {
+        // check if the new polygon matches the current polygon, meaning their centers are close enough
+        public boolean matchPolygon(MatOfPoint newPolygon) {
+
+            Point newPolygonCenter = findCentroid(newPolygon);
+
+            if (pointDistance(mTrackedPolygonCenter, newPolygonCenter) < mMaxDist) {
                 mMatched = true;
-                mTrackedPoint = newPoint;
-                Integer newScore = mTrackedPointScore + SINGLE_STEP_SCORE;
-                mTrackedPointScore = (newScore > VALID_MAX_SCORE) ? VALID_MAX_SCORE : newScore;
+                mTrackedPolygon = newPolygon;
+                mTrackedPolygonCenter = newPolygonCenter;
+                Integer newScore = mTrackingScore + SINGLE_STEP_SCORE;
+                mTrackingScore = (newScore > VALID_MAX_SCORE) ? VALID_MAX_SCORE : newScore;
                 return true;
             }
             return false;
         }
 
-        // if a point is not matched in current frame, decrease score
+        // if a polygon is not matched in current frame, decrease score
         public void handleIfUnmatched() {
             if (!mMatched) {
-                mTrackedPointScore -= SINGLE_STEP_SCORE;
+                mTrackingScore -= SINGLE_STEP_SCORE;
             }
         }
 
-        // check if the point should be continued to be tracked, or it's not there anymore
-        public boolean isTrackedPoint() {
-            return (mTrackedPointScore >= MIN_TRACK_SCORE);
+        // check if the polygon should be continued to be tracked, or it's not there anymore
+        public boolean isTrackedPolygon() {
+            return (mTrackingScore >= MIN_TRACK_SCORE);
         }
 
-        // check if the point has appeared "enough times" in lase previous frames, and should be reported
-        public boolean isValidPoint() {
-            return (mTrackedPointScore >= VALID_MIN_SCORE);
+        // check if the polygon has appeared "enough times" in lase previous frames, and should be reported
+        public boolean isValidPolygon() {
+            return (mTrackingScore >= VALID_MIN_SCORE);
         }
     }
 }

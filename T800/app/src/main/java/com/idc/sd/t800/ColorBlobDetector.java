@@ -15,10 +15,10 @@ import org.opencv.imgproc.Imgproc;
 public class ColorBlobDetector {
     private static final String     TAG                 = "T800::ColorBlobDetector";
 
-    //private static final Scalar     HSV_COLOR = new Scalar(0,179,204,0);
-    //private static final Scalar     COLOR_RADIUS = new Scalar(20,76,51,0);
-    private static final Scalar     HSV_COLOR = new Scalar(0,205,220,0);
-    private static final Scalar     COLOR_RADIUS = new Scalar(15,50,35,0);
+    private static final Scalar     HSV_COLOR = new Scalar(0,179,204,0);
+    private static final Scalar     COLOR_RADIUS = new Scalar(20,76,51,0);
+    //private static final Scalar     HSV_COLOR = new Scalar(0,205,220,0);
+    //private static final Scalar     COLOR_RADIUS = new Scalar(15,50,35,0);
 
     // Lower and Upper bounds for range checking in HSV color space
     private Scalar mFirstRangeLowerBound = new Scalar(0);
