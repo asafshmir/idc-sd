@@ -24,7 +24,9 @@ import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
+import java.util.Date;
 import java.util.List;
+import java.util.Random;
 
 public class MainActivity extends Activity implements CvCameraViewListener2, View.OnTouchListener {
     private static final String     TAG                 = "T800::MainActivity";
@@ -44,6 +46,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
     private RedVisionFilter         mRedFilter;
     private Boolean                 mEnableRedVision = false;
 
+    private Random                  mRand;
     private Scalar                  mBlobColorHsv;
     private Scalar                  mBlobColorRgba;
 
@@ -73,6 +76,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
         mFaceTracker = new FaceTracker(this);
         mPolyDetector = new PolygonDetector();
         mRedFilter = new RedVisionFilter();
+        mRand = new Random(new Date().getTime());
         Log.i(TAG, "Instantiated new " + this.getClass());
     }
 
@@ -156,7 +160,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
         // TODO match faces with markers
 
         // Apply red vision
-        if (mEnableRedVision) mRedFilter.process(mRgba);
+        //if (mEnableRedVision) mRedFilter.process(mRgba);
     }
 
     private void draw() {
@@ -164,14 +168,66 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
         // TODO remove change of colors
         Scalar color = new Scalar(FACE_DRAW_COLOR.val[0], FACE_DRAW_COLOR.val[1],
                                     FACE_DRAW_COLOR.val[2], FACE_DRAW_COLOR.val[3]);
-
+        int[] baseline = new int[1];
         // Draw rectangles around detected faces
         for (Rect facesRect : mFacesRects) {
             Core.rectangle(mRgba, facesRect.tl(), facesRect.br(), color, 3);
             color.val[0] -= 20;
             color.val[1] -= 20;
+            drawText(facesRect);
+
         }
 
+
+    }
+
+    private void drawText(Rect face) {
+
+        // Default values for text drawing
+        int font = Core.FONT_HERSHEY_PLAIN;
+        Scalar white = new Scalar(255,255,255);
+        double scale = 1.0;
+
+        String matchText = new String("Match");
+
+        String[] leftText = new String[] {"Thread Assesment",
+                                String.valueOf(mRand.nextInt(8999) + 1000),
+                                String.valueOf(mRand.nextInt(8999) + 1000),
+                                String.valueOf(mRand.nextInt(8999) + 1000)};
+
+        String[] rightText = new String[]{"Analysis",
+                                          "HEAD " + String.valueOf(mRand.nextInt(8999) + 1000)};
+
+        Point matchPoint = new Point(face.tl().x + (face.size().width / 2) - (matchText.length()*10/2),
+                                     face.br().y + 20);
+        Point leftPoint = new Point((face.tl().x - getTextSize(leftText[0])) > 0 ? face.tl().x - getTextSize(leftText[0]) : 0,
+                                     face.br().y - (face.size().height / 2));
+        Point rightPoint = new Point(face.br().x + 12,
+                                     face.br().y - (face.size().height / 2));
+
+
+        if (matchPoint.y < mRgba.rows() - 20) {
+            Core.putText(mRgba, matchText, matchPoint, font, scale, white);
+        }
+
+        if (leftPoint.x > 0)
+            for (int i = 0; i < leftText.length; i++ ) {
+                Core.putText(mRgba, leftText[i],leftPoint, font,scale,white);
+                leftPoint = new Point(leftPoint.x,leftPoint.y+20);
+            }
+
+
+        if (rightPoint.x < mRgba.cols() - getTextSize(rightText[0]) )
+            for (int i = 0; i < rightText.length; i++ ) {
+                Core.putText(mRgba, rightText[i],rightPoint, font,scale,white);
+                rightPoint = new Point(rightPoint.x,rightPoint.y+20);
+            }
+
+    }
+
+    private int getTextSize(String text) {
+        // Assuming 11 pixels per character
+        return text.length()*11;
     }
 
     // TODO remove this
