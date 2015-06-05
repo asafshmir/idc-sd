@@ -15,7 +15,7 @@ public class RedVisionFilter {
 
     public void init() {
         // Fill red vision conversion matrix
-        // TODO remove this
+        // TODO remove unused
         //mRedVisionMat = new Mat(4, 4, CvType.CV_32F);
         //mRedVisionMat.put(0, 0, /* R */0.999f, 0.999f, 0.999f, 0f);
         //mRedVisionMat.put(1, 0, /* G */0.168f, 0.686f, 0.349f, 0f);

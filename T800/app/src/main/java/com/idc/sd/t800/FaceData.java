@@ -24,38 +24,47 @@ class FaceData {
     public static final int INITIAL_MARKER_SCORE = 0; // Initial matching score
     public static final int MIN_MARKER_MATCH_SCORE = 5; // Minimum score for marker matching
 
+    // minimal overlap percentage between two consecutive frames
+    public static final double      MIN_OVERLAP_FACTOR = 0.15;
+
     private Rect            mFaceRect;
     private Point           mFaceCenter;
     private Integer         mTrackingScore;
     private boolean         mMatched; // Is the point matched in current frame to a previous tracked point
     private int             mMarkerScore;
     private boolean         mMarked;
+    private boolean         mIsAlive;
     private int             mFrames;
     private UUID            mUUID;
 
     public FaceData(Rect face) {
         this.mFaceRect = face;
-        this.mFaceCenter = FaceTracker.findCenter(mFaceRect);
+        this.mFaceCenter = ProcessUtils.findCenter(mFaceRect);
         this.mTrackingScore = INITIAL_SCORE;
         this.mMatched = true;
         this.mMarkerScore = INITIAL_MARKER_SCORE;
         this.mMarked = false;
+        this.mIsAlive = true;
         this.mFrames = 0;
         this.mUUID = UUID.randomUUID();
     }
 
     public void setUnmatched() { this.mMatched = false; }
     public boolean isMatched() { return mMatched; }
+    // determines if the person represented by the FaceData is dead or alive
+    public boolean isAlive() { return mIsAlive; }
+    public void kill() { mIsAlive = false; }
     public boolean isMarked() { return mMarked; }
     public Rect getFaceRect() { return mFaceRect; }
-    public Point getFaceCenter() { return mFaceCenter; }
 
     // check if the new face matches the current face, meaning their centers are close enough
-    public boolean matchFace(Rect newFace, double maxDist) {
+    public boolean matchFace(Rect newFace) {
 
-        Point newFaceCenter = FaceTracker.findCenter(newFace);
+        Point newFaceCenter = ProcessUtils.findCenter(newFace);
 
-        if (FaceTracker.pointDistance(mFaceCenter, newFaceCenter) < maxDist) {
+        // calculate the overlapping percentage of the current rectangle with the given rectangle
+        Rect interRect = ProcessUtils.intersection(mFaceRect, newFace);
+        if ((interRect != null) && (interRect.area() > mFaceRect.area() * MIN_OVERLAP_FACTOR)) {
             mMatched = true;
             mFaceRect = newFace;
             mFaceCenter = newFaceCenter;
@@ -72,7 +81,7 @@ class FaceData {
         // don't check for already marked (forever) faces or for "old" faces
         if(mMarked || (mFrames > PROCESS_FRAMES)) { return; }
 
-        if (FaceTracker.pointDistance(mFaceCenter, markerCenter) < maxDist) {
+        if (ProcessUtils.pointDistance(mFaceCenter, markerCenter) < maxDist) {
             // matched
             mMarkerScore++;
             if(mMarkerScore > MIN_MARKER_MATCH_SCORE) {

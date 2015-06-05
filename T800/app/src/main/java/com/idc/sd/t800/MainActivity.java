@@ -3,6 +3,7 @@ package com.idc.sd.t800;
 import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.Pair;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -15,6 +16,7 @@ import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -22,8 +24,12 @@ import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
+import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
@@ -38,8 +44,9 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
     private Mat                     mGray;
 
     private FaceTracker             mFaceTracker;
-    private List<Point>             mFaceCenters;
-    private Rect[]                  mFacesRects;
+    private Rect[]                  mAliveFacesRects;
+    private Rect[]                  mDeadFacesRects;
+    private Mat                     mDeadFaceImg;
 
     private PolygonDetector         mPolyDetector;
 
@@ -47,9 +54,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
     private Boolean                 mEnableRedVision = false;
 
     private Random                  mRand;
-    private Scalar                  mBlobColorHsv;
-    private Scalar                  mBlobColorRgba;
-
+ 
     private BaseLoaderCallback  mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
         public void onManagerConnected(int status) {
@@ -57,10 +62,10 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
                 case LoaderCallbackInterface.SUCCESS: {
                     Log.i(TAG, "OpenCV loaded successfully");
 
-
                     mFaceTracker.init();
                     mPolyDetector.init();
                     mRedFilter.init();
+                    initResources();
 
                     mOpenCvCameraView.setOnTouchListener(MainActivity.this);
                     mOpenCvCameraView.enableView();
@@ -80,7 +85,17 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
         Log.i(TAG, "Instantiated new " + this.getClass());
     }
 
-    /** Called when the activity is first created. */
+    // TODO remove unused code
+    private void initResources() {
+        try {
+            mDeadFaceImg = Utils.loadResource(MainActivity.this, R.raw.skull2, CvType.CV_8UC4);
+        } catch (IOException e) {
+            Log.e(TAG, "Can't find image resource");
+            System.exit(1);
+        }
+    }
+
+    // called when the activity is first created
     @Override
     public void onCreate(Bundle savedInstanceState) {
         Log.i(TAG, "called onCreate");
@@ -115,8 +130,8 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
     public void onCameraViewStarted(int width, int height) {}
 
     public void onCameraViewStopped() {
-        mGray.release();
-        mRgba.release();
+        if (mGray != null) { mGray.release(); }
+        if (mRgba != null) { mRgba.release(); }
     }
 
     public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
@@ -130,6 +145,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
         return mRgba;
     }
 
+    // TODO remove menu?
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         Log.i(TAG, "called onCreateOptionsMenu");
@@ -145,42 +161,47 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
         return true;
     }
 
+    public boolean onTouch(View v, MotionEvent event) {
+        float x = event.getX();
+        float y = event.getY();
+        mFaceTracker.handleScreenTouch(new Point(x, y));
+        return true;
+    }
+
     private void process() {
 
         // TODO use tone mapping to fix colors?
-
-        // Detect markers
+        // Apply red vision
+        if (mEnableRedVision) mRedFilter.process(mRgba);
+        
+        // detect markers
         List<MatOfPoint> markers = mPolyDetector.detectPolygons(mRgba);
 
-        // Detect faces
+        // detect faces and store data
         mFaceTracker.process(mGray, markers);
-        mFaceCenters = mFaceTracker.getValidTrackedCenters();
-        mFacesRects = mFaceTracker.getBoundingRectangles();
-
-        // TODO match faces with markers
-
-        // Apply red vision
-        //if (mEnableRedVision) mRedFilter.process(mRgba);
+        Pair<Rect[], Rect[]> facesRects = mFaceTracker.getFaceRectangles();
+        mAliveFacesRects =  facesRects.first;
+        mDeadFacesRects =  facesRects.second;
     }
 
     private void draw() {
+        // apply red vision
+        if (mEnableRedVision) mRedFilter.process(mRgba);
 
-        // TODO remove change of colors
-        Scalar color = new Scalar(FACE_DRAW_COLOR.val[0], FACE_DRAW_COLOR.val[1],
-                                    FACE_DRAW_COLOR.val[2], FACE_DRAW_COLOR.val[3]);
-        int[] baseline = new int[1];
-        // Draw rectangles around detected faces
-        for (Rect facesRect : mFacesRects) {
-            Core.rectangle(mRgba, facesRect.tl(), facesRect.br(), color, 3);
-            color.val[0] -= 20;
-            color.val[1] -= 20;
-            drawText(facesRect);
-
+        // Draw rectangles around detected faces that are 'alive'
+        for (Rect faceRect : mAliveFacesRects) {
+            Core.rectangle(mRgba, faceRect.tl(), faceRect.br(), FACE_DRAW_COLOR, 3);
+            drawText(faceRect);
         }
 
-
+        // Draw a skull on-top of detected faces that are 'dead'
+        for (Rect faceRect : mDeadFacesRects) {
+            drawDeadFace(faceRect);
+            drawText(faceRect);
+        }
     }
 
+    // TODO use constants
     private void drawText(Rect face) {
 
         // Default values for text drawing
@@ -190,22 +211,22 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
 
         String matchText = new String("Match");
 
-        String[] leftText = new String[] {"Thread Assesment",
-                                String.valueOf(mRand.nextInt(8999) + 1000),
-                                String.valueOf(mRand.nextInt(8999) + 1000),
-                                String.valueOf(mRand.nextInt(8999) + 1000)};
+        String[] leftText = new String[] {"Threat Assesment",
+                String.valueOf(mRand.nextInt(8999) + 1000),
+                String.valueOf(mRand.nextInt(8999) + 1000),
+                String.valueOf(mRand.nextInt(8999) + 1000)};
 
         String[] rightText = new String[]{"Analysis",
-                                          "HEAD " + String.valueOf(mRand.nextInt(8999) + 1000)};
+                "HEAD " + String.valueOf(mRand.nextInt(8999) + 1000)};
 
         Point matchPoint = new Point(face.tl().x + (face.size().width / 2) - (matchText.length()*10/2),
-                                     face.br().y + 20);
+                face.br().y + 20);
         Point leftPoint = new Point((face.tl().x - getTextSize(leftText[0])) > 0 ? face.tl().x - getTextSize(leftText[0]) : 0,
-                                     face.br().y - (face.size().height / 2));
+                face.br().y - (face.size().height / 2));
         Point rightPoint = new Point(face.br().x + 12,
-                                     face.br().y - (face.size().height / 2));
+                face.br().y - (face.size().height / 2));
 
-
+        // TODO use match string only if matched
         if (matchPoint.y < mRgba.rows() - 20) {
             Core.putText(mRgba, matchText, matchPoint, font, scale, white);
         }
@@ -230,58 +251,23 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
         return text.length()*11;
     }
 
-    // TODO remove this
-    public boolean onTouch(View v, MotionEvent event) {
-        int cols = mRgba.cols();
-        int rows = mRgba.rows();
+    private void drawDeadFace(Rect faceRect) {
 
-        int xOffset = (mOpenCvCameraView.getWidth() - cols) / 2;
-        int yOffset = (mOpenCvCameraView.getHeight() - rows) / 2;
+        // TODO remove unused code
+        // resize the dead face Mat
+        //Size size = new Size(faceRect.width, faceRect.height);
+        //Mat resizedImgMat = new Mat(size, CvType.CV_8UC4);
+        //Imgproc.resize(mDeadFaceImg, resizedImgMat, size);
 
-        int x = (int)event.getX() - xOffset;
-        int y = (int)event.getY() - yOffset;
+        // draw the face
+        //ProcessUtils.overlayImage(mRgba, mDeadFaceImg, mRgba, new Point(faceRect.x, faceRect.y));
 
-        Log.i(TAG, "Touch image coordinates: (" + x + ", " + y + ")");
+        List<MatOfPoint> pts = new ArrayList<>();
+        pts.add(new MatOfPoint( new Point(faceRect.x, faceRect.y),
+                new Point(faceRect.x, faceRect.y + faceRect.height),
+                new Point(faceRect.x + faceRect.width, faceRect.y + faceRect.height),
+                new Point(faceRect.x + faceRect.width, faceRect.y)));
 
-        if ((x < 0) || (y < 0) || (x > cols) || (y > rows)) return false;
-
-        Rect touchedRect = new Rect();
-
-        touchedRect.x = (x>4) ? x-4 : 0;
-        touchedRect.y = (y>4) ? y-4 : 0;
-
-        touchedRect.width = (x+4 < cols) ? x + 4 - touchedRect.x : cols - touchedRect.x;
-        touchedRect.height = (y+4 < rows) ? y + 4 - touchedRect.y : rows - touchedRect.y;
-
-        Mat touchedRegionRgba = mRgba.submat(touchedRect);
-
-        Mat touchedRegionHsv = new Mat();
-        Imgproc.cvtColor(touchedRegionRgba, touchedRegionHsv, Imgproc.COLOR_RGB2HSV_FULL);
-
-        // Calculate average color of touched region
-        mBlobColorHsv = Core.sumElems(touchedRegionHsv);
-        int pointCount = touchedRect.width*touchedRect.height;
-        for (int i = 0; i < mBlobColorHsv.val.length; i++)
-            mBlobColorHsv.val[i] /= pointCount;
-
-        mBlobColorRgba = converScalarHsv2Rgba(mBlobColorHsv);
-
-        Log.i(TAG, "Touched rgba color: (" + mBlobColorRgba.val[0] + ", " + mBlobColorRgba.val[1] +
-                ", " + mBlobColorRgba.val[2] + ", " + mBlobColorRgba.val[3] + ")");
-        Log.i(TAG, "Touched hsv color: (" + mBlobColorHsv.val[0] + ", " + mBlobColorHsv.val[1] +
-                ", " + mBlobColorHsv.val[2] + ", " + mBlobColorHsv.val[3] + ")");
-
-        touchedRegionRgba.release();
-        touchedRegionHsv.release();
-
-        return false; // don't need subsequent touch events
-    }
-
-    private Scalar converScalarHsv2Rgba(Scalar hsvColor) {
-        Mat pointMatRgba = new Mat();
-        Mat pointMatHsv = new Mat(1, 1, CvType.CV_8UC3, hsvColor);
-        Imgproc.cvtColor(pointMatHsv, pointMatRgba, Imgproc.COLOR_HSV2RGB_FULL, 4);
-
-        return new Scalar(pointMatRgba.get(0, 0));
+        Core.fillPoly(mRgba, pts, new Scalar(255,0,0,255)); //TODO color constant
     }
 }
