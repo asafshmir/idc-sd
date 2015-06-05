@@ -24,12 +24,9 @@ import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
-import org.opencv.core.Size;
-import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
@@ -160,8 +157,13 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
     }
 
     public boolean onTouch(View v, MotionEvent event) {
-        float x = event.getX();
-        float y = event.getY();
+        // translate touch point from screen coordinates to frame coordinates
+        int cols = mRgba.cols();
+        int rows = mRgba.rows();
+        int xOffset = (mOpenCvCameraView.getWidth() - cols) / 2;
+        int yOffset = (mOpenCvCameraView.getHeight() - rows) / 2;
+        int x = (int)event.getX() - xOffset;
+        int y = (int)event.getY() - yOffset;
         mFaceTracker.handleScreenTouch(new Point(x, y));
         return true;
     }
@@ -184,6 +186,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
 
     private void draw() {
         // apply red vision
+        // TODO when using this, on the next frame we detect the red area that we created!
         if (mEnableRedVision) mRedFilter.process(mRgba);
 
         // Draw rectangles around detected faces that are 'alive'
@@ -260,12 +263,20 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
         // draw the face
         //ProcessUtils.overlayImage(mRgba, mDeadFaceImg, mRgba, new Point(faceRect.x, faceRect.y));
 
-        List<MatOfPoint> pts = new ArrayList<>();
+        /*List<MatOfPoint> pts = new ArrayList<>();
         pts.add(new MatOfPoint( new Point(faceRect.x, faceRect.y),
                 new Point(faceRect.x, faceRect.y + faceRect.height),
                 new Point(faceRect.x + faceRect.width, faceRect.y + faceRect.height),
                 new Point(faceRect.x + faceRect.width, faceRect.y)));
 
-        Core.fillPoly(mRgba, pts, new Scalar(255,0,0,255)); //TODO color constant
+        Core.fillPoly(mRgba, pts, new Scalar(255,0,0,255)); //TODO color constant*/
+
+        Mat faceMat = mRgba.submat(faceRect);
+        Mat faceMatGray = new Mat();
+        Imgproc.cvtColor(faceMat, faceMatGray, Imgproc.COLOR_RGBA2GRAY);
+        Imgproc.threshold(faceMatGray, faceMatGray, -1, 255, Imgproc.THRESH_BINARY_INV + Imgproc.THRESH_OTSU);
+        Mat faceMatThresh = new Mat();
+        Imgproc.cvtColor(faceMatGray, faceMatThresh, Imgproc.COLOR_GRAY2RGBA);
+        faceMatThresh.copyTo(faceMat);
     }
 }
