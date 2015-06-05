@@ -39,23 +39,21 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
 
     private static final Scalar     FACE_DRAW_COLOR = new Scalar(255,255,255,255);
 
-    private CameraBridgeViewBase    mOpenCvCameraView;
-    private Mat                     mRgba;
-    private Mat                     mGray;
-
+    private PolygonDetector         mPolyDetector;
     private FaceTracker             mFaceTracker;
     private Rect[]                  mAliveFacesRects;
     private Rect[]                  mDeadFacesRects;
     private Mat                     mDeadFaceImg;
-
-    private PolygonDetector         mPolyDetector;
+    private Random                  mRand;
 
     private RedVisionFilter         mRedFilter;
     private Boolean                 mEnableRedVision = false;
 
-    private Random                  mRand;
- 
-    private BaseLoaderCallback  mLoaderCallback = new BaseLoaderCallback(this) {
+    private Mat                     mRgba;
+    private Mat                     mGray;
+
+    private CameraBridgeViewBase    mOpenCvCameraView;
+    private BaseLoaderCallback      mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
         public void onManagerConnected(int status) {
             switch (status) {
@@ -88,7 +86,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
     // TODO remove unused code
     private void initResources() {
         try {
-            mDeadFaceImg = Utils.loadResource(MainActivity.this, R.raw.skull2, CvType.CV_8UC4);
+            mDeadFaceImg = Utils.loadResource(MainActivity.this, R.raw.skull1, CvType.CV_8UC4);
         } catch (IOException e) {
             Log.e(TAG, "Can't find image resource");
             System.exit(1);
