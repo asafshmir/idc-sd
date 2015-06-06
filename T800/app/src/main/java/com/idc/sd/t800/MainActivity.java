@@ -24,6 +24,7 @@ import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 import java.io.IOException;
@@ -48,6 +49,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
 
     private Mat                     mRgba;
     private Mat                     mGray;
+    private Size                    mFrameSize;
 
     private CameraBridgeViewBase    mOpenCvCameraView;
     private BaseLoaderCallback      mLoaderCallback = new BaseLoaderCallback(this) {
@@ -122,7 +124,9 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
             mOpenCvCameraView.disableView();
     }
 
-    public void onCameraViewStarted(int width, int height) {}
+    public void onCameraViewStarted(int width, int height) {
+        mFrameSize = new Size(width, height);
+    }
 
     public void onCameraViewStopped() {
         if (mGray != null) { mGray.release(); }
@@ -203,14 +207,16 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
     }
 
     // TODO use constants
+    // TODO move to another class
+    // TODO use different text for bad guy, good guys and dead guys
     private void drawText(Rect face) {
 
         // Default values for text drawing
         int font = Core.FONT_HERSHEY_PLAIN;
-        Scalar white = new Scalar(255,255,255);
+        Scalar white = new Scalar(255, 255, 255);
         double scale = 1.0;
 
-        String matchText = new String("Match");
+        String matchText = "Match";
 
         String[] leftText = new String[] {"Threat Assesment",
                 String.valueOf(mRand.nextInt(8999) + 1000),
@@ -232,21 +238,22 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
             Core.putText(mRgba, matchText, matchPoint, font, scale, white);
         }
 
-        if (leftPoint.x > 0)
-            for (int i = 0; i < leftText.length; i++ ) {
-                Core.putText(mRgba, leftText[i],leftPoint, font,scale,white);
-                leftPoint = new Point(leftPoint.x,leftPoint.y+20);
+        if (leftPoint.x > 0) {
+            for (String s : leftText) {
+                Core.putText(mRgba, s, leftPoint, font, scale, white);
+                leftPoint = new Point(leftPoint.x, leftPoint.y + 20);
             }
+        }
 
-
-        if (rightPoint.x < mRgba.cols() - getTextSize(rightText[0]) )
-            for (int i = 0; i < rightText.length; i++ ) {
-                Core.putText(mRgba, rightText[i],rightPoint, font,scale,white);
-                rightPoint = new Point(rightPoint.x,rightPoint.y+20);
+        if (rightPoint.x < mRgba.cols() - getTextSize(rightText[0])) {
+            for (String s : leftText) {
+                Core.putText(mRgba, s, rightPoint, font, scale, white);
+                rightPoint = new Point(rightPoint.x, rightPoint.y + 20);
             }
-
+        }
     }
 
+    // TODO set text size according to mFrameSize
     private int getTextSize(String text) {
         // Assuming 11 pixels per character
         return text.length()*11;
@@ -263,6 +270,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
         // draw the face
         //ProcessUtils.overlayImage(mRgba, mDeadFaceImg, mRgba, new Point(faceRect.x, faceRect.y));
 
+        // TODO choose which dead face indicator to use (red rectangle or thresholded face)
         /*List<MatOfPoint> pts = new ArrayList<>();
         pts.add(new MatOfPoint( new Point(faceRect.x, faceRect.y),
                 new Point(faceRect.x, faceRect.y + faceRect.height),
@@ -271,6 +279,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
 
         Core.fillPoly(mRgba, pts, new Scalar(255,0,0,255)); //TODO color constant*/
 
+        // threshold the part in the frame where the face appears
         Mat faceMat = mRgba.submat(faceRect);
         Mat faceMatGray = new Mat();
         Imgproc.cvtColor(faceMat, faceMatGray, Imgproc.COLOR_RGBA2GRAY);
