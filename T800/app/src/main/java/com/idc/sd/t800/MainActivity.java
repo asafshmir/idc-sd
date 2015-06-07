@@ -1,7 +1,6 @@
 package com.idc.sd.t800;
 
 import android.app.Activity;
-import android.opengl.GLES20;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.Pair;
@@ -25,9 +24,11 @@ import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
+import org.opencv.highgui.Highgui;
+import org.opencv.imgproc.Imgproc;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -46,7 +47,6 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
     private Rect[]                  mAliveFacesRects;
     private Rect[]                  mDeadFacesRects;
     private Mat                     mDeadFaceImg;
-    private int[]                   mTextures;
 
     private PolygonDetector         mPolyDetector;
 
@@ -88,27 +88,12 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
     // TODO remove unused code
     private void initResources() {
         try {
-            mDeadFaceImg = Utils.loadResource(MainActivity.this, R.raw.skull1, CvType.CV_8UC4);
-            mTextures = new int[1];
-            GLES20.glGenTextures ( 1, mTextures, 0 );
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextures[0]);
-            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
-            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
-            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
-            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
-            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
-
+            mDeadFaceImg = Utils.loadResource(MainActivity.this, R.raw.skull2, CvType.CV_8UC4);
         } catch (IOException e) {
             Log.e(TAG, "Can't find image resource");
             System.exit(1);
         }
     }
-
-
-    private void initTextures() {
-
-    }
-
 
     // called when the activity is first created
     @Override
@@ -200,7 +185,6 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
     }
 
     private void draw() {
-        matToTexture(mRgba);
         // apply red vision
         if (mEnableRedVision) mRedFilter.process(mRgba);
 
@@ -215,28 +199,6 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
             drawDeadFace(faceRect);
             drawText(faceRect);
         }
-    }
-
-    private void matToTexture(Mat mat) {
-
-
-            int size = (int) mat.total() * mat.channels();
-            byte[] buff = new byte[size];
-            mat.get(0, 0, buff);
-
-
-            // Create the texture
-            GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D,     // Type of texture
-                    0,                 // Pyramid level (for mip-mapping) - 0 is the top level
-                    GLES20.GL_RGB,            // Internal colour format to convert to
-                    mat.cols(),          // Image width  i.e. 640 for Kinect in standard mode
-                    mat.rows(),          // Image height i.e. 480 for Kinect in standard mode
-                    0,                 // Border width in pixels (can either be 1 or 0)
-                    GLES20.GL_RGB, // Input image format (i.e. GL_RGB, GL_RGBA, GL_BGR etc.)
-                    GLES20.GL_UNSIGNED_BYTE,  // Image data type
-                    ByteBuffer.wrap(buff));        // The actual image data itself
-
-
     }
 
     // TODO use constants
