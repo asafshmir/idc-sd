@@ -4,6 +4,7 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
 import java.util.ArrayList;
@@ -28,6 +29,10 @@ public class PolygonDetector {
 
         // Filter in only the polygons with mNumVertices
         return filterContours(contours);
+    }
+
+    public void setHsvColor(Scalar hsvColor) {
+        mDetector.setHsvColor(hsvColor);
     }
 
     private void smoothContours(List<MatOfPoint> contours) {

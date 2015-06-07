@@ -53,6 +53,7 @@ public class FaceTracker {
         for (Rect face : faces) {
             boolean foundDup = false;
             for (Rect finalFace : noDups) {
+                // TODO use ProcessUtils.intersection to determines if two rectangles are the same
                 double dist = ProcessUtils.pointDistance
                         (ProcessUtils.findCenter(face), ProcessUtils.findCenter(finalFace));
                 if (dist < (finalFace.width / 2)) {
@@ -63,7 +64,8 @@ public class FaceTracker {
                 noDups.add(face);
             }
         }
-        return noDups.toArray(new Rect[noDups.size()]);
+
+       return noDups.toArray(new Rect[noDups.size()]);
     }
 
     // get an array list of rectangles found by the FaceDetector, and update the tracking data.
@@ -74,6 +76,7 @@ public class FaceTracker {
             trackedFace.setUnmatched();
         }
 
+        // sort both new faces and already tracked faces (according to x axis), in order to improve matching
         Arrays.sort(faces, new Comparator<Rect>() {
             @Override
             public int compare(Rect lhs, Rect rhs) {
@@ -95,10 +98,11 @@ public class FaceTracker {
             for (FaceData trackedFace : mTrackedFaces) {
                 if (!trackedFace.isMatched()) {
                     isRectMatched = trackedFace.matchFace(faceRect);
+                    break; // stop matching a tracked face to the given face
                 }
             }
 
-            // no matched polygon found - create a new tracked polygon
+            // no matched face found - create a new tracked face
             if (!isRectMatched) {
                 mTrackedFaces.add(new FaceData(faceRect));
             }
@@ -129,7 +133,6 @@ public class FaceTracker {
 
     // return the bounding rectangle of all valid faces which are also 'alive'
     private Rect[] getRectanglesOfAliveFaces() {
-        // return only the polygons with high enough score
         List<Rect> rects = new ArrayList<>();
         for (FaceData faceTrackingData : mTrackedFaces) {
             if (faceTrackingData.isValidFace() && faceTrackingData.isAlive()) {
@@ -142,7 +145,6 @@ public class FaceTracker {
 
     // return the bounding rectangle of all valid faces which are also 'dead'
     private Rect[] getRectanglesOfDeadFaces() {
-        // return only the polygons with high enough score
         List<Rect> rects = new ArrayList<>();
         for (FaceData faceTrackingData : mTrackedFaces) {
             if (faceTrackingData.isValidFace() && !faceTrackingData.isAlive()) {
@@ -163,7 +165,7 @@ public class FaceTracker {
     public void handleScreenTouch(Point touchedPoint) {
         for (FaceData faceData : mTrackedFaces) {
             if (faceData.getFaceRect().contains(touchedPoint) && faceData.isValidFace()
-                  && faceData.isMarked()) {
+                 && faceData.isMarked()) {
                 faceData.kill();
                 return;
             }

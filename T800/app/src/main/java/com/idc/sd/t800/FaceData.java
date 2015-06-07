@@ -60,14 +60,12 @@ class FaceData {
     // check if the new face matches the current face, meaning their centers are close enough
     public boolean matchFace(Rect newFace) {
 
-        Point newFaceCenter = ProcessUtils.findCenter(newFace);
-
         // calculate the overlapping percentage of the current rectangle with the given rectangle
         Rect interRect = ProcessUtils.intersection(mFaceRect, newFace);
         if ((interRect != null) && (interRect.area() > mFaceRect.area() * MIN_OVERLAP_FACTOR)) {
             mMatched = true;
             mFaceRect = newFace;
-            mFaceCenter = newFaceCenter;
+            mFaceCenter = ProcessUtils.findCenter(newFace);
             Integer newScore = mTrackingScore + SINGLE_STEP_SCORE;
             mTrackingScore = (newScore > VALID_MAX_SCORE) ? VALID_MAX_SCORE : newScore;
             return true;

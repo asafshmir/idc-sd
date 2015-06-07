@@ -1,6 +1,10 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools" tools:context="com.idc.sd.t800.MainActivity">
-    <item android:id="@+id/action_red_vision" android:title="Toggle Red Vision"
-        android:orderInCategory="100"/>
+    <item android:id="@+id/action_red_vision"
+        android:icon="@drawable/ic_visibility_black_24dp"
+        app:showAsAction="always"/>
+    <item android:id="@+id/action_touch_mode"
+        android:icon="@drawable/ic_cached_black_24dp"
+        app:showAsAction="always"/>
 </menu>

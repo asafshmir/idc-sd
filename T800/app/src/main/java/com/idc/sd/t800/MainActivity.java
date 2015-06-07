@@ -1,7 +1,7 @@
 package com.idc.sd.t800;
 
-import android.app.Activity;
 import android.os.Bundle;
+import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.util.Pair;
 import android.view.Menu;
@@ -16,9 +16,7 @@ import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
-import org.opencv.android.Utils;
 import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
@@ -27,25 +25,29 @@ import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
 
-public class MainActivity extends Activity implements CvCameraViewListener2, View.OnTouchListener {
+public class MainActivity extends ActionBarActivity
+        implements CvCameraViewListener2, View.OnTouchListener  {
     private static final String     TAG                 = "T800::MainActivity";
 
-    private static final Scalar     FACE_DRAW_COLOR = new Scalar(255,255,255,255);
+    private static final Scalar     FACE_RECT_COLOR = new Scalar(255,255,255,255);
 
     private PolygonDetector         mPolyDetector;
     private FaceTracker             mFaceTracker;
     private Rect[]                  mAliveFacesRects;
     private Rect[]                  mDeadFacesRects;
-    private Mat                     mDeadFaceImg;
+    private List<Point>             mMarkersCenters;
     private Random                  mRand;
 
     private RedVisionFilter         mRedFilter;
     private Boolean                 mEnableRedVision = false;
+    private Boolean                 mTouchModeKill = true;
+    private Scalar                  mSelectedColorRgba = new Scalar(255);
+    private Scalar                  mSelectedColorHsv = new Scalar(0,205,220,0);
 
     private Mat                     mRgba;
     private Mat                     mGray;
@@ -62,7 +64,6 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
                     mFaceTracker.init();
                     mPolyDetector.init();
                     mRedFilter.init();
-                    initResources();
 
                     mOpenCvCameraView.setOnTouchListener(MainActivity.this);
                     mOpenCvCameraView.enableView();
@@ -78,18 +79,9 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
         mFaceTracker = new FaceTracker(this);
         mPolyDetector = new PolygonDetector();
         mRedFilter = new RedVisionFilter();
+        mMarkersCenters = new ArrayList<>();
         mRand = new Random(new Date().getTime());
         Log.i(TAG, "Instantiated new " + this.getClass());
-    }
-
-    // TODO remove unused code
-    private void initResources() {
-        try {
-            mDeadFaceImg = Utils.loadResource(MainActivity.this, R.raw.skull1, CvType.CV_8UC4);
-        } catch (IOException e) {
-            Log.e(TAG, "Can't find image resource");
-            System.exit(1);
-        }
     }
 
     // called when the activity is first created
@@ -144,67 +136,150 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
         return mRgba;
     }
 
-    // TODO remove menu?
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         Log.i(TAG, "called onCreateOptionsMenu");
         getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
+
+        // set initial icons according to parameters
+        (menu.findItem(R.id.action_red_vision)).setIcon(
+                mEnableRedVision ?  R.drawable.ic_visibility_off_black_24dp :
+                                    R.drawable.ic_visibility_black_24dp);
+        (menu.findItem(R.id.action_touch_mode)).setIcon(
+                mTouchModeKill ?    R.drawable.ic_colorize_black_24dp :
+                                    R.drawable.ic_location_searching_black_24dp);
+        return super.onCreateOptionsMenu(menu);
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        Log.i(TAG, "called onOptionsItemSelected; selected item: " + item);
-        if (item.getItemId() == R.id.action_red_vision)
-            mEnableRedVision = !mEnableRedVision;
-        return true;
+        // Handle presses on the action bar items
+        switch (item.getItemId()) {
+            // toggle red vision mode and change icon accordingly
+            case R.id.action_red_vision:
+                mEnableRedVision = !mEnableRedVision;
+                item.setIcon(mEnableRedVision ? R.drawable.ic_visibility_off_black_24dp :
+                                                R.drawable.ic_visibility_black_24dp);
+                return true;
+            // toggle touch mode and change icon accordingly
+            case R.id.action_touch_mode:
+                mTouchModeKill = !mTouchModeKill;
+                item.setIcon(mTouchModeKill ?   R.drawable.ic_colorize_black_24dp :
+                                                R.drawable.ic_location_searching_black_24dp);
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     public boolean onTouch(View v, MotionEvent event) {
-        // translate touch point from screen coordinates to frame coordinates
+        // if touch mode is set to kill, handle kill action
+        if (mTouchModeKill) {
+            return handleTouchKill(event);
+        // else, touch mode is set to adjust marker colors
+        } else {
+            return handleTouchAdjustMarker(event);
+        }
+    }
+
+    private boolean handleTouchKill(MotionEvent event) {
+        mFaceTracker.handleScreenTouch(extractCoordinates(event));
+        return true;
+    }
+
+    private boolean handleTouchAdjustMarker(MotionEvent event) {
+        Point point = extractCoordinates(event);
+        int x = (int)point.x;
+        int y = (int)point.y;
+
+        // find the 10X10 rectangle around the touched point
+        Rect touchedRegion = new Rect();
+        touchedRegion.x = (x > 5) ? x - 5 : 0;
+        touchedRegion.y = (y > 5) ? y - 5 : 0;
+        touchedRegion.width = (x + 5 < mRgba.cols()) ?
+                x + 5 - touchedRegion.x : mRgba.width() - touchedRegion.x;
+        touchedRegion.height = (y + 5 < mRgba.rows()) ?
+                y + 5 - touchedRegion.y : mRgba.height() - touchedRegion.y;
+
+        Mat touchedRegionMatRgba = mRgba.submat(touchedRegion);
+        Mat touchedRegionMatHsv = new Mat();
+        Imgproc.cvtColor(touchedRegionMatRgba, touchedRegionMatHsv, Imgproc.COLOR_RGB2HSV_FULL);
+
+        // calc the mean color (hsv color space) in the selected area
+        mSelectedColorHsv = Core.sumElems(touchedRegionMatHsv);
+        int pointCount = touchedRegion.width * touchedRegion.height;
+        for (int i = 0; i < mSelectedColorHsv.val.length; i++) {
+            mSelectedColorHsv.val[i] /= pointCount;
+        }
+
+        // TODO remove this?
+        /*Mat pointMapRgba = new Mat();
+        Mat pointMatHsv = new Mat(1, 1, CvType.CV_8UC3);
+
+        byte[] buf = {(byte)mSelectedColorHsv.val[0], (byte)mSelectedColorHsv.val[1], (byte)mSelectedColorHsv.val[2]};
+
+        pointMatHsv.put(0, 0, buf);
+        Imgproc.cvtColor(pointMatHsv, pointMapRgba, Imgproc.COLOR_HSV2RGB_FULL, 4);
+        mSelectedColorRgba.val = pointMapRgba.get(0, 0);
+        Log.i(TAG, "Touched rgba color: (" + mSelectedColorRgba.val[0] + ", " + mSelectedColorRgba.val[1] +
+                ", " + mSelectedColorRgba.val[2] + ", " + mSelectedColorRgba.val[3] + ")");*/
+
+        mPolyDetector.setHsvColor(mSelectedColorHsv);
+        return true;
+    }
+
+    // translate touch point from screen coordinates to frame coordinates
+    private Point extractCoordinates(MotionEvent event) {
         int cols = mRgba.cols();
         int rows = mRgba.rows();
         int xOffset = (mOpenCvCameraView.getWidth() - cols) / 2;
         int yOffset = (mOpenCvCameraView.getHeight() - rows) / 2;
         int x = (int)event.getX() - xOffset;
         int y = (int)event.getY() - yOffset;
-        mFaceTracker.handleScreenTouch(new Point(x, y));
-        return true;
+        return new Point(x, y);
     }
 
     private void process() {
 
         // TODO use tone mapping to fix colors?
-        // Apply red vision
-        if (mEnableRedVision) mRedFilter.process(mRgba);
-        
+
         // detect markers
         List<MatOfPoint> markers = mPolyDetector.detectPolygons(mRgba);
+        mMarkersCenters.removeAll(mMarkersCenters);
+        for (MatOfPoint marker : markers) {
+            mMarkersCenters.add(ProcessUtils.findCentroid(marker));
+        }
 
-        // detect faces and store data
+        // detect faces, classify them using the detected markers, and store data
         mFaceTracker.process(mGray, markers);
         Pair<Rect[], Rect[]> facesRects = mFaceTracker.getFaceRectangles();
         mAliveFacesRects =  facesRects.first;
         mDeadFacesRects =  facesRects.second;
     }
 
+    // TODO remove to different class?
     private void draw() {
-        // apply red vision
-        // TODO when using this, on the next frame we detect the red area that we created!
-        if (mEnableRedVision) mRedFilter.process(mRgba);
-
-        // Draw rectangles around detected faces that are 'alive'
-        for (Rect faceRect : mAliveFacesRects) {
-            Core.rectangle(mRgba, faceRect.tl(), faceRect.br(), FACE_DRAW_COLOR, 3);
-            drawText(faceRect);
-        }
 
         // Draw a skull on-top of detected faces that are 'dead'
         for (Rect faceRect : mDeadFacesRects) {
             drawDeadFace(faceRect);
             drawText(faceRect);
         }
-    }
+
+        // apply red vision
+        if (mEnableRedVision) mRedFilter.process(mRgba);
+
+        // draw rectangles around detected faces that are 'alive'
+        for (Rect faceRect : mAliveFacesRects) {
+            Core.rectangle(mRgba, faceRect.tl(), faceRect.br(), FACE_RECT_COLOR, 3);
+            drawText(faceRect);
+        }
+
+        // draw markers centers
+        for (Point center : mMarkersCenters) {
+            Core.circle(mRgba, center, 3, FACE_RECT_COLOR);
+        }
+   }
 
     // TODO use constants
     // TODO move to another class
@@ -270,20 +345,13 @@ public class MainActivity extends Activity implements CvCameraViewListener2, Vie
         // draw the face
         //ProcessUtils.overlayImage(mRgba, mDeadFaceImg, mRgba, new Point(faceRect.x, faceRect.y));
 
-        // TODO choose which dead face indicator to use (red rectangle or thresholded face)
-        /*List<MatOfPoint> pts = new ArrayList<>();
-        pts.add(new MatOfPoint( new Point(faceRect.x, faceRect.y),
-                new Point(faceRect.x, faceRect.y + faceRect.height),
-                new Point(faceRect.x + faceRect.width, faceRect.y + faceRect.height),
-                new Point(faceRect.x + faceRect.width, faceRect.y)));
-
-        Core.fillPoly(mRgba, pts, new Scalar(255,0,0,255)); //TODO color constant*/
-
         // threshold the part in the frame where the face appears
         Mat faceMat = mRgba.submat(faceRect);
         Mat faceMatGray = new Mat();
         Imgproc.cvtColor(faceMat, faceMatGray, Imgproc.COLOR_RGBA2GRAY);
-        Imgproc.threshold(faceMatGray, faceMatGray, -1, 255, Imgproc.THRESH_BINARY_INV + Imgproc.THRESH_OTSU);
+        //Imgproc.threshold(faceMatGray, faceMatGray, -1, 255, Imgproc.THRESH_BINARY_INV + Imgproc.THRESH_OTSU);
+        double mean = Core.mean(faceMatGray).val[0];
+        Imgproc.Canny(faceMatGray, faceMatGray, 0.66*mean, 1.33*mean);
         Mat faceMatThresh = new Mat();
         Imgproc.cvtColor(faceMatGray, faceMatThresh, Imgproc.COLOR_GRAY2RGBA);
         faceMatThresh.copyTo(faceMat);

@@ -39,6 +39,5 @@ public class RedVisionFilter {
         Core.merge(mChannels, rgba);
 
         //Core.transform(rgba, rgba, mRedVisionMat);
-
     }
 }
