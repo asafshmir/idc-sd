@@ -3,7 +3,6 @@ package com.idc.sd.t800;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
-import android.util.Pair;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -26,9 +25,7 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Random;
 
 public class MainActivity extends ActionBarActivity
         implements CvCameraViewListener2, View.OnTouchListener  {
@@ -38,10 +35,12 @@ public class MainActivity extends ActionBarActivity
 
     private PolygonDetector         mPolyDetector;
     private FaceTracker             mFaceTracker;
+    private TextDrawer              mTextDrawer;
     private Rect[]                  mAliveFacesRects;
     private Rect[]                  mDeadFacesRects;
+    private Rect[]                  mTargetFacesRects;
     private List<Point>             mMarkersCenters;
-    private Random                  mRand;
+
 
     private RedVisionFilter         mRedFilter;
     private Boolean                 mEnableRedVision = false;
@@ -77,10 +76,11 @@ public class MainActivity extends ActionBarActivity
 
     public MainActivity() {
         mFaceTracker = new FaceTracker(this);
+        mTextDrawer = new TextDrawer();
         mPolyDetector = new PolygonDetector();
         mRedFilter = new RedVisionFilter();
         mMarkersCenters = new ArrayList<>();
-        mRand = new Random(new Date().getTime());
+
         Log.i(TAG, "Instantiated new " + this.getClass());
     }
 
@@ -118,6 +118,7 @@ public class MainActivity extends ActionBarActivity
 
     public void onCameraViewStarted(int width, int height) {
         mFrameSize = new Size(width, height);
+        mTextDrawer.setFrameSize(mFrameSize);
     }
 
     public void onCameraViewStopped() {
@@ -252,9 +253,11 @@ public class MainActivity extends ActionBarActivity
 
         // detect faces, classify them using the detected markers, and store data
         mFaceTracker.process(mGray, markers);
-        Pair<Rect[], Rect[]> facesRects = mFaceTracker.getFaceRectangles();
-        mAliveFacesRects =  facesRects.first;
-        mDeadFacesRects =  facesRects.second;
+        ArrayList<Rect[]> facesRects = mFaceTracker.getFaceRectangles();
+        mAliveFacesRects =  facesRects.get(0);
+        mDeadFacesRects =  facesRects.get(1);
+        mTargetFacesRects = facesRects.get(2);
+
     }
 
     // TODO remove to different class?
@@ -263,7 +266,7 @@ public class MainActivity extends ActionBarActivity
         // Draw a skull on-top of detected faces that are 'dead'
         for (Rect faceRect : mDeadFacesRects) {
             drawDeadFace(faceRect);
-            drawText(faceRect);
+            mTextDrawer.drawDead(mRgba,faceRect);
         }
 
         // apply red vision
@@ -272,7 +275,11 @@ public class MainActivity extends ActionBarActivity
         // draw rectangles around detected faces that are 'alive'
         for (Rect faceRect : mAliveFacesRects) {
             Core.rectangle(mRgba, faceRect.tl(), faceRect.br(), FACE_RECT_COLOR, 3);
-            drawText(faceRect);
+            mTextDrawer.drawInnocent(mRgba,faceRect);
+        }
+        for (Rect faceRect : mTargetFacesRects) {
+            Core.rectangle(mRgba, faceRect.tl(), faceRect.br(), FACE_RECT_COLOR, 3);
+            mTextDrawer.drawTarget(mRgba,faceRect);
         }
 
         // draw markers centers
@@ -280,59 +287,6 @@ public class MainActivity extends ActionBarActivity
             Core.circle(mRgba, center, 3, FACE_RECT_COLOR);
         }
    }
-
-    // TODO use constants
-    // TODO move to another class
-    // TODO use different text for bad guy, good guys and dead guys
-    private void drawText(Rect face) {
-
-        // Default values for text drawing
-        int font = Core.FONT_HERSHEY_PLAIN;
-        Scalar white = new Scalar(255, 255, 255);
-        double scale = 1.0;
-
-        String matchText = "Match";
-
-        String[] leftText = new String[] {"Threat Assesment",
-                String.valueOf(mRand.nextInt(8999) + 1000),
-                String.valueOf(mRand.nextInt(8999) + 1000),
-                String.valueOf(mRand.nextInt(8999) + 1000)};
-
-        String[] rightText = new String[]{"Analysis",
-                "HEAD " + String.valueOf(mRand.nextInt(8999) + 1000)};
-
-        Point matchPoint = new Point(face.tl().x + (face.size().width / 2) - (matchText.length()*10/2),
-                face.br().y + 20);
-        Point leftPoint = new Point((face.tl().x - getTextSize(leftText[0])) > 0 ? face.tl().x - getTextSize(leftText[0]) : 0,
-                face.br().y - (face.size().height / 2));
-        Point rightPoint = new Point(face.br().x + 12,
-                face.br().y - (face.size().height / 2));
-
-        // TODO use match string only if matched
-        if (matchPoint.y < mRgba.rows() - 20) {
-            Core.putText(mRgba, matchText, matchPoint, font, scale, white);
-        }
-
-        if (leftPoint.x > 0) {
-            for (String s : leftText) {
-                Core.putText(mRgba, s, leftPoint, font, scale, white);
-                leftPoint = new Point(leftPoint.x, leftPoint.y + 20);
-            }
-        }
-
-        if (rightPoint.x < mRgba.cols() - getTextSize(rightText[0])) {
-            for (String s : leftText) {
-                Core.putText(mRgba, s, rightPoint, font, scale, white);
-                rightPoint = new Point(rightPoint.x, rightPoint.y + 20);
-            }
-        }
-    }
-
-    // TODO set text size according to mFrameSize
-    private int getTextSize(String text) {
-        // Assuming 11 pixels per character
-        return text.length()*11;
-    }
 
     private void drawDeadFace(Rect faceRect) {
 
@@ -351,7 +305,7 @@ public class MainActivity extends ActionBarActivity
         Imgproc.cvtColor(faceMat, faceMatGray, Imgproc.COLOR_RGBA2GRAY);
         //Imgproc.threshold(faceMatGray, faceMatGray, -1, 255, Imgproc.THRESH_BINARY_INV + Imgproc.THRESH_OTSU);
         double mean = Core.mean(faceMatGray).val[0];
-        Imgproc.Canny(faceMatGray, faceMatGray, 0.66*mean, 1.33*mean);
+        Imgproc.Canny(faceMatGray, faceMatGray, 0.66 * mean, 1.33 * mean);
         Mat faceMatThresh = new Mat();
         Imgproc.cvtColor(faceMatGray, faceMatThresh, Imgproc.COLOR_GRAY2RGBA);
         faceMatThresh.copyTo(faceMat);
