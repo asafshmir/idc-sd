@@ -2,4 +2,12 @@
     <string name="app_name">T800</string>
     <string name="title_activity_main">T800</string>
     <string name="action_settings">Settings</string>
+
+    <string name="tooltip_red_vision_on">Red Vision On</string>
+    <string name="tooltip_red_vision_off">Red Vision Off</string>
+    <string name="tooltip_touch_mode_kill">Threat Elimination Mode On</string>
+    <string name="tooltip_touch_mode_color_pick">Color Adjustment Mode On</string>
+    <string name="tooltip_poly_marker">Threat Marker: Polygon</string>
+    <string name="tooltip_target_marker">Threat Marker: Target</string>
+
 </resources>

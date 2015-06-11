@@ -34,7 +34,7 @@ public class FaceTracker {
         mFaceDetector.init();
     }
 
-    public void process(Mat gray, List<MatOfPoint> markers) {
+    public void process(Mat gray, List<Point> markers) {
 
         // detect faces in the given Mat
         Rect[] faces = mFaceDetector.detectFaces(gray);
@@ -53,7 +53,6 @@ public class FaceTracker {
         for (Rect face : faces) {
             boolean foundDup = false;
             for (Rect finalFace : noDups) {
-                // TODO use ProcessUtils.intersection to determines if two rectangles are the same
                 double dist = ProcessUtils.pointDistance
                         (ProcessUtils.findCenter(face), ProcessUtils.findCenter(finalFace));
                 if (dist < (finalFace.width / 2)) {
@@ -119,14 +118,12 @@ public class FaceTracker {
         mTrackedFaces.removeAll(toBeRemoved);
     }
 
-    private void matchMarkers(List<MatOfPoint> markers) {
+    private void matchMarkers(List<Point> markers) {
 
         // try to match each given marker to a face
-        for (MatOfPoint marker : markers) {
-
+        for (Point marker : markers) {
             for (FaceData trackedFace : mTrackedFaces) {
-                trackedFace.matchMarker(ProcessUtils.findCentroid(marker),
-                        trackedFace.getFaceRect().height * MAX_MARKER_DIST_FACTOR);
+                trackedFace.matchMarker(marker, trackedFace.getFaceRect().height * MAX_MARKER_DIST_FACTOR);
             }
         }
     }
