@@ -1,18 +1,14 @@
 package com.idc.sd.t800;
 
 import android.content.Context;
-import android.util.Pair;
 
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
-import org.opencv.imgproc.Imgproc;
-import org.opencv.imgproc.Moments;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -132,10 +128,11 @@ public class FaceTracker {
     }
 
     // return the bounding rectangle of all valid faces which are also 'alive'
-    private Rect[] getRectanglesOfAliveFaces() {
+    private Rect[] getRectanglesOfInnocentFaces() {
         List<Rect> rects = new ArrayList<>();
         for (FaceData faceTrackingData : mTrackedFaces) {
-            if (faceTrackingData.isValidFace() && faceTrackingData.isAlive()) {
+            if (faceTrackingData.isValidFace() && faceTrackingData.isAlive()
+                    && !faceTrackingData.isMarked()) {
                 rects.add(faceTrackingData.getFaceRect());
             }
         }
@@ -155,11 +152,27 @@ public class FaceTracker {
         return rects.toArray(new Rect[rects.size()]);
     }
 
+    // return the bounding rectangle of all valid faces which are also 'dead'
+    private Rect[] getRectanglesOfTargetFaces() {
+        List<Rect> rects = new ArrayList<>();
+        for (FaceData faceTrackingData : mTrackedFaces) {
+            if (faceTrackingData.isValidFace() && faceTrackingData.isAlive()
+                    && faceTrackingData.isMarked()) {
+                rects.add(faceTrackingData.getFaceRect());
+            }
+        }
+
+        return rects.toArray(new Rect[rects.size()]);
+    }
+
     // return a Pair - first is the rectangles representing the faces of the 'alive' faces,
     // second is the rectangles representing the faces of the 'dead' faces
-    public Pair<Rect[], Rect[]> getFaceRectangles() {
-        Pair<Rect[], Rect[]> deadOrAliveFaces = new Pair<>(getRectanglesOfAliveFaces(), getRectanglesOfDeadFaces());
-        return deadOrAliveFaces;
+    public ArrayList<Rect[]> getFaceRectangles() {
+        ArrayList<Rect[]> allFaces = new ArrayList<Rect[]>();
+        allFaces.add(getRectanglesOfInnocentFaces());
+        allFaces.add(getRectanglesOfDeadFaces());
+        allFaces.add(getRectanglesOfTargetFaces());
+        return allFaces;
     }
 
     public void handleScreenTouch(Point touchedPoint) {
