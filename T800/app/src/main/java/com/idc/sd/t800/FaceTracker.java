@@ -3,7 +3,6 @@ package com.idc.sd.t800;
 import android.content.Context;
 
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 
@@ -162,10 +161,12 @@ public class FaceTracker {
         return rects.toArray(new Rect[rects.size()]);
     }
 
-    // return a Pair - first is the rectangles representing the faces of the 'alive' faces,
+    // return a list with 3 items -
+    // first is the rectangles representing the faces of the 'alive' faces,
     // second is the rectangles representing the faces of the 'dead' faces
+    // third is the rectangles representing the faces of the target faces which are alive
     public ArrayList<Rect[]> getFaceRectangles() {
-        ArrayList<Rect[]> allFaces = new ArrayList<Rect[]>();
+        ArrayList<Rect[]> allFaces = new ArrayList<>();
         allFaces.add(getRectanglesOfInnocentFaces());
         allFaces.add(getRectanglesOfDeadFaces());
         allFaces.add(getRectanglesOfTargetFaces());

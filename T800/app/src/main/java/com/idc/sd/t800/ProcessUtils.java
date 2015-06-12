@@ -1,9 +1,11 @@
 package com.idc.sd.t800;
 
+import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.imgproc.Moments;
 
@@ -60,6 +62,17 @@ public class ProcessUtils {
             else
                 return new Rect(xL, yL, xR-xL, yR-yL);
         }
+    }
+
+
+    // calc the mean color in the given Mat (works both on RGB and HSV space)
+    public static Scalar findMeanColor(Mat mat) {
+        Scalar meanColor = Core.sumElems(mat);
+        int pixels = mat.width() * mat.height();
+        for (int i = 0; i < meanColor.val.length; i++) {
+            meanColor.val[i] /= pixels;
+        }
+        return meanColor;
     }
 }
 

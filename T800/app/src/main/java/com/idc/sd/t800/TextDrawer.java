@@ -10,20 +10,17 @@ import org.opencv.core.Size;
 import java.util.Date;
 import java.util.Random;
 
-/**
- * Created by jonatan on 6/7/15.
- */
 public class TextDrawer {
 
     // Assuming 11 pixels per character on 320*240 frame size
-    private final int               PIXEL_SIZE = 11;
-    private final int               BOTTOM_MARGIN = 20;
-    private final int               TEXT_MARGIN = 20;
-    private final int               DEFAULT_WIDTH = 320;
-    private final int               DEFAULT_HEIGHT = 240;
-    private final double            DEFAULT_SCALE = 1.0;
-    private final int               MAX_RAND = 8999;
-    private final int               MIN_RAND = 1000;
+    private static final int        PIXEL_SIZE = 11;
+    private static final int        BOTTOM_MARGIN = 20;
+    private static final int        TEXT_MARGIN = 20;
+    private static final int        DEFAULT_WIDTH = 320;
+    private static final int        DEFAULT_HEIGHT = 240;
+    private static final double     DEFAULT_SCALE = 1.0;
+    private static final int        MAX_RAND = 8999;
+    private static final int        MIN_RAND = 1000;
 
     private Random                  mRand;
     private int                     mFont;
@@ -80,8 +77,6 @@ public class TextDrawer {
         drawText(mRgba,face,bottomText,leftText,rightText);
     }
 
-
-
     private void drawText(Mat mRgba, Rect face, String bottomText,String[] leftText, String[] rightText ) {
         mScale = calcScale(face);
         Point bottomPoint = new Point(face.tl().x + (face.size().width / 2) - (bottomText.length()*10*mScale/2),
@@ -129,16 +124,15 @@ public class TextDrawer {
 
     private int getTextSize(String[] texts) {
         int maxTextSize = 0;
-        for (int i = 0; i < texts.length; i++) {
-            if (getTextSize(texts[i])>maxTextSize)
-                maxTextSize = getTextSize(texts[i]);
+        for (String text : texts) {
+            if (getTextSize(text) > maxTextSize) {
+                maxTextSize = getTextSize(text);
+            }
         }
         return maxTextSize;
     }
 
-
     private int getTextSize(String text) {
         return (int)(text.length()*PIXEL_SIZE*mScale);
     }
-
 }

@@ -51,12 +51,9 @@ public class MainActivity extends ActionBarActivity
     private RedVisionFilter         mRedFilter;
     private Boolean                 mEnableRedVision = false;
     private Boolean                 mTouchModeKill = true;
-    private Scalar                  mSelectedColorRgba = new Scalar(255);
-    private Scalar                  mSelectedColorHsv = new Scalar(0,205,220,0);
 
     private Mat                     mRgba;
     private Mat                     mGray;
-    private Size                    mFrameSize;
 
     private CameraBridgeViewBase    mOpenCvCameraView;
     private BaseLoaderCallback      mLoaderCallback = new BaseLoaderCallback(this) {
@@ -128,8 +125,7 @@ public class MainActivity extends ActionBarActivity
     }
 
     public void onCameraViewStarted(int width, int height) {
-        mFrameSize = new Size(width, height);
-        mTextDrawer.setFrameSize(mFrameSize);
+        mTextDrawer.setFrameSize(new Size(width, height));
     }
 
     public void onCameraViewStopped() {
@@ -250,16 +246,11 @@ public class MainActivity extends ActionBarActivity
         Imgproc.cvtColor(touchedRegionMatRgba, touchedRegionMatHsv, Imgproc.COLOR_RGB2HSV_FULL);
 
         // calc the mean color (hsv color space) in the selected area
-        mSelectedColorHsv = Core.sumElems(touchedRegionMatHsv);
-        int pointCount = touchedRegion.width * touchedRegion.height;
-        for (int i = 0; i < mSelectedColorHsv.val.length; i++) {
-            mSelectedColorHsv.val[i] /= pointCount;
-        }
+        Scalar selectedColorHsv = ProcessUtils.findMeanColor(touchedRegionMatHsv);
+        mDetector.setHsvColor(selectedColorHsv);
+        Log.i(TAG, "HSV: (" + selectedColorHsv.val[0] + ", " + selectedColorHsv.val[1] +
+                ", " + selectedColorHsv.val[2] + ", " + selectedColorHsv.val[3] + ")");
 
-        mDetector.setHsvColor(mSelectedColorHsv);
-
-        Log.i(TAG, "HSV: (" + mSelectedColorHsv.val[0] + ", " + mSelectedColorHsv.val[1] +
-                ", " + mSelectedColorHsv.val[2] + ", " + mSelectedColorHsv.val[3] + ")");
         return true;
     }
 
@@ -283,16 +274,13 @@ public class MainActivity extends ActionBarActivity
         mMarkersCenters = mDetector.detect(mRgba);
 
         // detect faces, classify them using the detected markers, and store data
-
         mFaceTracker.process(mGray, mMarkersCenters);
         ArrayList<Rect[]> facesRects = mFaceTracker.getFaceRectangles();
         mAliveFacesRects =  facesRects.get(0);
         mDeadFacesRects =  facesRects.get(1);
         mTargetFacesRects = facesRects.get(2);
-
     }
 
-    // TODO remove to different class?
     private void draw() {
 
         // Draw a skull on-top of detected faces that are 'dead'
@@ -321,10 +309,8 @@ public class MainActivity extends ActionBarActivity
         }
    }
 
-
+    // add canny effect to the part in the frame where the face appears
     private void drawDeadFace(Rect faceRect) {
-
-        // add canny effect to the part in the frame where the face appears
         Mat faceMat = mRgba.submat(faceRect);
         Mat faceMatGray = new Mat();
         Imgproc.cvtColor(faceMat, faceMatGray, Imgproc.COLOR_RGBA2GRAY);
@@ -334,11 +320,4 @@ public class MainActivity extends ActionBarActivity
         Imgproc.cvtColor(faceMatGray, faceMatThresh, Imgproc.COLOR_GRAY2RGBA);
         faceMatThresh.copyTo(faceMat);
     }
-
-    // TODO white balance
-    /*  capture white paper
-        calculate its mean RGBA
-        calc:
-        tranform matrix = (real white)^(-1) * (mean capture pixel)
-     */
 }
