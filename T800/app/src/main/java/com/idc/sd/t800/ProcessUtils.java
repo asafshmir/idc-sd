@@ -1,9 +1,11 @@
 package com.idc.sd.t800;
 
-import org.opencv.core.Mat;
+import android.graphics.Color;
+
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.imgproc.Moments;
 
@@ -61,5 +63,34 @@ public class ProcessUtils {
                 return new Rect(xL, yL, xR-xL, yR-yL);
         }
     }
+
+    // convert RGB value to HSV values
+    public Scalar rgbToHsv(int red, int green, int blue) {
+        float[] hsv = new float[3];
+        Color.RGBToHSV(red, green, blue, hsv);
+        return new Scalar(hsv[0],hsv[1],hsv[2]);
+    }
+
+    // convert HSV value to RGB values
+    public Scalar hsvToRgb(float hue, float saturation, float value) {
+
+        int h = (int)(hue * 6);
+        float f = hue * 6 - h;
+        float p = value * (1 - saturation);
+        float q = value * (1 - f * saturation);
+        float t = value * (1 - (1 - f) * saturation);
+
+        switch (h) {
+            case 0: return new Scalar(value, t, p);
+            case 1: return new Scalar(q, value, p);
+            case 2: return new Scalar(p, value, t);
+            case 3: return new Scalar(p, q, value);
+            case 4: return new Scalar(t, p, value);
+            case 5: return new Scalar(value, p, q);
+            default: throw new RuntimeException("Something went wrong when converting from HSV to RGB. Input was " + hue + ", " + saturation + ", " + value);
+        }
+    }
+
+
 }
 
