@@ -12,9 +12,9 @@ import java.util.List;
 
 public class TargetDetector extends ColoredMarkerDetector {
 
-    private static final Scalar         OUTER_HSV_COLOR = new Scalar(0,132,192,0);
+    private static final Scalar         DEFAULT_OUTER_HSV_COLOR = new Scalar(0,132,192,0);
     private static final Scalar         OUTER_COLOR_RADIUS = new Scalar(5,123,64,0);
-    private static final Scalar         INNER_HSV_COLOR = new Scalar(145,170,155,0);
+    private static final Scalar         DEFAULT_INNER_HSV_COLOR = new Scalar(145,170,155,0);
     private static final Scalar         INNER_COLOR_RADIUS = new Scalar(10,255-170,255-155,0);
 
     private ColorBlobDetector           mOuterCircleDetector;
@@ -24,8 +24,8 @@ public class TargetDetector extends ColoredMarkerDetector {
     private List<Rect>                  mInnerRects;
 
     public TargetDetector() {
-        this.mOuterCircleDetector = new ColorBlobDetector(OUTER_HSV_COLOR, OUTER_COLOR_RADIUS);
-        this.mInnerCircleDetector = new ColorBlobDetector(INNER_HSV_COLOR, INNER_COLOR_RADIUS);
+        this.mOuterCircleDetector = new ColorBlobDetector(DEFAULT_OUTER_HSV_COLOR, OUTER_COLOR_RADIUS);
+        this.mInnerCircleDetector = new ColorBlobDetector(DEFAULT_INNER_HSV_COLOR, INNER_COLOR_RADIUS);
         mTargets = new ArrayList<>();
         mOuterCenters = new ArrayList<>();
         mInnerRects = new ArrayList<>();
