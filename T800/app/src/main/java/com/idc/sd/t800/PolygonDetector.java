@@ -18,8 +18,8 @@ public class PolygonDetector extends ColoredMarkerDetector {
     private static final int            POLYGON_VERTICES    = 3; // Use a triangle marker
     private static final double         APPROX_FACTOR       = 0.3;
 
-    private static final Scalar         HSV_COLOR = new Scalar(0,132,192,0);
-    private static final Scalar         COLOR_RADIUS = new Scalar(5,123,64,0);
+    private static final Scalar         HSV_COLOR = new Scalar(247.0,232.0,158.0,0);
+    private static final Scalar         COLOR_RADIUS = new Scalar(5,70,70,0);
 
     private ColorBlobDetector           mDetector;
     private List<MatOfPoint>            mPolygons;
@@ -53,6 +53,10 @@ public class PolygonDetector extends ColoredMarkerDetector {
 
     public void setHsvColor(Scalar hsvColor) {
         mDetector.setHsvColor(hsvColor);
+    }
+    public void adjustWhiteBalance(Scalar rgbColor) {
+        mDetector.adjustWhiteBalance(rgbColor);
+        mDetector.setHsvColor(HSV_COLOR);
     }
 
     // gets a list of contours and returns only the valid polygons

@@ -12,10 +12,11 @@ import java.util.List;
 
 public class TargetDetector extends ColoredMarkerDetector {
 
-    private static final Scalar         DEFAULT_OUTER_HSV_COLOR = new Scalar(0,132,192,0);
-    private static final Scalar         OUTER_COLOR_RADIUS = new Scalar(5,123,64,0);
-    private static final Scalar         DEFAULT_INNER_HSV_COLOR = new Scalar(145,170,155,0);
-    private static final Scalar         INNER_COLOR_RADIUS = new Scalar(10,255-170,255-155,0);
+    private static final Scalar         DEFAULT_OUTER_HSV_COLOR = new Scalar(1.0,188.0,204.0,0);
+    private static final Scalar         OUTER_COLOR_RADIUS = new Scalar(10,70,70,0);
+    //private static final Scalar         DEFAULT_INNER_HSV_COLOR = new Scalar(154.0,211.0,105.0,0);
+    private static final Scalar         DEFAULT_INNER_HSV_COLOR = new Scalar(160.0,211.0,105.0,0);
+    private static final Scalar         INNER_COLOR_RADIUS = new Scalar(15,70,70,0);
 
     private ColorBlobDetector           mOuterCircleDetector;
     private ColorBlobDetector           mInnerCircleDetector;
@@ -67,4 +68,10 @@ public class TargetDetector extends ColoredMarkerDetector {
         mOuterCircleDetector.setHsvColor(hsvColor);
     }
 
+    public void adjustWhiteBalance(Scalar rgbColor) {
+        mOuterCircleDetector.adjustWhiteBalance(rgbColor);
+        mOuterCircleDetector.setHsvColor(DEFAULT_OUTER_HSV_COLOR);
+        mInnerCircleDetector.adjustWhiteBalance(rgbColor);
+        mInnerCircleDetector.setHsvColor(DEFAULT_INNER_HSV_COLOR);
+    }
 }

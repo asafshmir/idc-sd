@@ -2,27 +2,27 @@ package com.idc.sd.t800;
 
 import android.util.Log;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
-import org.opencv.core.Point;
 import org.opencv.core.Scalar;
-import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class ColorBlobDetector {
     private static final String     TAG                 = "T800::ColorBlobDetector";
 
     private static final double     MIN_CONTOUR_AREA_FACTOR = 0.1;
+    private static final Scalar     WHITE_COLOR = new Scalar(190.0,190.0,190.0);
 
     // Lower and Upper bounds for range checking in HSV color space
     private Scalar mFirstRangeLowerBound = new Scalar(0);
     private Scalar mFirstRangeUpperBound = new Scalar(0);
     private Scalar mSecondRangeLowerBound = new Scalar(0);
     private Scalar mSecondRangeUpperBound = new Scalar(0);
+    private Scalar mWhiteBalanceAdjuster = new Scalar(1,1,1);
 
     private Scalar mColorRadius;
     private List<MatOfPoint> mContours = new ArrayList<>();
@@ -51,15 +51,30 @@ public class ColorBlobDetector {
         setHsvColor(hsvColor);
     }
 
+
+    public void adjustWhiteBalance(Scalar whiteSample) {
+        mWhiteBalanceAdjuster = new Scalar( whiteSample.val[0] / WHITE_COLOR.val[0],
+                                            whiteSample.val[1] / WHITE_COLOR.val[1],
+                                            whiteSample.val[2] / WHITE_COLOR.val[2]);
+    }
+
     public void setHsvColor(Scalar hsvColor) {
-        mFirstRangeLowerBound.val[0] = (hsvColor.val[0] - mColorRadius.val[0] + 255) % 255;
-        mFirstRangeUpperBound.val[0] = (hsvColor.val[0] + mColorRadius.val[0] + 255) % 255;
 
-        mFirstRangeLowerBound.val[1] = hsvColor.val[1] - mColorRadius.val[1];
-        mFirstRangeUpperBound.val[1] = hsvColor.val[1] + mColorRadius.val[1];
+        Log.i(TAG, "HSV (orig): " + hsvColor);
+        // Adjust HSV Color according to white balance sample
+        Scalar adjustedRgbColor = ProcessUtils.hsvToRgb(hsvColor).mul(mWhiteBalanceAdjuster);
+        Log.i(TAG, "RGB (adjusted): " + adjustedRgbColor);
+        Scalar adjustedHsvColor = ProcessUtils.rgbToHsv(adjustedRgbColor);
+        Log.i(TAG, "HSV (adjusted): " + adjustedHsvColor);
 
-        mFirstRangeLowerBound.val[2] = hsvColor.val[2] - mColorRadius.val[2];
-        mFirstRangeUpperBound.val[2] = hsvColor.val[2] + mColorRadius.val[2];
+        mFirstRangeLowerBound.val[0] = (adjustedHsvColor.val[0] - mColorRadius.val[0] + 255) % 255;
+        mFirstRangeUpperBound.val[0] = (adjustedHsvColor.val[0] + mColorRadius.val[0] + 255) % 255;
+
+        mFirstRangeLowerBound.val[1] = adjustedHsvColor.val[1] - mColorRadius.val[1];
+        mFirstRangeUpperBound.val[1] = adjustedHsvColor.val[1] + mColorRadius.val[1];
+
+        mFirstRangeLowerBound.val[2] = adjustedHsvColor.val[2] - mColorRadius.val[2];
+        mFirstRangeUpperBound.val[2] = adjustedHsvColor.val[2] + mColorRadius.val[2];
 
         mFirstRangeLowerBound.val[3] = 0;
         mFirstRangeUpperBound.val[3] = 255;

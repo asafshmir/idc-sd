@@ -50,7 +50,7 @@ public class MainActivity extends ActionBarActivity
 
     private RedVisionFilter         mRedFilter;
     private Boolean                 mEnableRedVision = false;
-    private Boolean                 mTouchModeKill = true;
+    private Boolean                 mTouchModeKill = false;
 
     private Mat                     mRgba;
     private Mat                     mGray;
@@ -64,6 +64,8 @@ public class MainActivity extends ActionBarActivity
                     Log.i(TAG, "OpenCV loaded successfully");
 
                     init();
+
+
 
                     mOpenCvCameraView.setOnTouchListener(MainActivity.this);
                     mOpenCvCameraView.enableView();
@@ -103,6 +105,8 @@ public class MainActivity extends ActionBarActivity
 
         mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.main_activity_surface_view);
         mOpenCvCameraView.setCvCameraViewListener(this);
+
+
     }
 
     @Override
@@ -240,17 +244,20 @@ public class MainActivity extends ActionBarActivity
                 x + COLOR_WIN_SIZE - touchedRegion.x : mRgba.width() - touchedRegion.x;
         touchedRegion.height = (y + COLOR_WIN_SIZE < mRgba.rows()) ?
                 y + COLOR_WIN_SIZE - touchedRegion.y : mRgba.height() - touchedRegion.y;
-
         Mat touchedRegionMatRgba = mRgba.submat(touchedRegion);
-        Mat touchedRegionMatHsv = new Mat();
-        Imgproc.cvtColor(touchedRegionMatRgba, touchedRegionMatHsv, Imgproc.COLOR_RGB2HSV_FULL);
-
-        // calc the mean color (hsv color space) in the selected area
-        Scalar selectedColorHsv = ProcessUtils.findMeanColor(touchedRegionMatHsv);
-        mDetector.setHsvColor(selectedColorHsv);
-        Log.i(TAG, "HSV: (" + selectedColorHsv.val[0] + ", " + selectedColorHsv.val[1] +
-                ", " + selectedColorHsv.val[2] + ", " + selectedColorHsv.val[3] + ")");
-
+        if (true) {
+            // calc the mean color (rgb color space) in the selected area
+            Scalar selectedColorRgb = ProcessUtils.findMeanColor(touchedRegionMatRgba);
+            mDetector.adjustWhiteBalance(selectedColorRgb);
+            Log.i(TAG, "RGB white: " + selectedColorRgb);
+        } else {
+            Mat touchedRegionMatHsv = new Mat();
+            Imgproc.cvtColor(touchedRegionMatRgba, touchedRegionMatHsv, Imgproc.COLOR_RGB2HSV_FULL);
+            // calc the mean color (hsv color space) in the selected area
+            Scalar selectedColorHsv = ProcessUtils.findMeanColor(touchedRegionMatHsv);
+            mDetector.setHsvColor(selectedColorHsv);
+            Log.i(TAG, "HSV: " + selectedColorHsv);
+        }
         return true;
     }
 

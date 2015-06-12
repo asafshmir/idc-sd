@@ -10,4 +10,5 @@ import java.util.List;
 public abstract class ColoredMarkerDetector {
     abstract public List<Point> detect(Mat rgbaImage);
     abstract public void setHsvColor(Scalar hsvColor);
+    abstract public void adjustWhiteBalance(Scalar rgbColor);
 }
