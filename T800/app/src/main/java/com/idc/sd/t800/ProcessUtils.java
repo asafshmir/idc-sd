@@ -2,6 +2,8 @@ package com.idc.sd.t800;
 
 import android.graphics.Color;
 
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
@@ -64,21 +66,34 @@ public class ProcessUtils {
         }
     }
 
+
+    public static Scalar rgbToHsv(Scalar rgbColor) {
+        return rgbToHsv((int) rgbColor.val[0], (int) rgbColor.val[1], (int) rgbColor.val[2]);
+    }
+
     // convert RGB value to HSV values
-    public Scalar rgbToHsv(int red, int green, int blue) {
+    // the returned hsv value is in range: (0-255, 0-255, 0-255)
+    public static Scalar rgbToHsv(int red, int green, int blue) {
         float[] hsv = new float[3];
         Color.RGBToHSV(red, green, blue, hsv);
-        return new Scalar(hsv[0],hsv[1],hsv[2]);
+        return new Scalar(hsv[0] * 255.0 / 360.0, hsv[1] * 255.0, hsv[2] * 255.0);
+    }
+
+    // Wrapper to work with Scalar - assume the hsv is given in range: (0-255, 0-255, 0-255)
+    public static Scalar hsvToRgb(Scalar hsvColor) {
+        Scalar NormalizedRgb = hsvToRgb(hsvColor.val[0] / 255.0, hsvColor.val[1] / 255.0, hsvColor.val[2] / 255.0);
+        return new Scalar(NormalizedRgb.val[0]*255.0, NormalizedRgb.val[1]*255.0, NormalizedRgb.val[2]*255.0);
     }
 
     // convert HSV value to RGB values
-    public Scalar hsvToRgb(float hue, float saturation, float value) {
+    // taken from http://stackoverflow.com/questions/7896280/converting-from-hsv-hsb-in-java-to-rgb-without-using-java-awt-color-disallowe
+    private static Scalar hsvToRgb(double hue, double saturation, double value) {
 
         int h = (int)(hue * 6);
-        float f = hue * 6 - h;
-        float p = value * (1 - saturation);
-        float q = value * (1 - f * saturation);
-        float t = value * (1 - (1 - f) * saturation);
+        double f = hue * 6 - h;
+        double p = value * (1 - saturation);
+        double q = value * (1 - f * saturation);
+        double t = value * (1 - (1 - f) * saturation);
 
         switch (h) {
             case 0: return new Scalar(value, t, p);
@@ -91,6 +106,14 @@ public class ProcessUtils {
         }
     }
 
-
+    // calc the mean color in the given Mat (works both on RGB and HSV space)
+    public static Scalar findMeanColor(Mat mat) {
+        Scalar meanColor = Core.sumElems(mat);
+        int pixels = mat.width() * mat.height();
+        for (int i = 0; i < meanColor.val.length; i++) {
+            meanColor.val[i] /= pixels;
+        }
+        return meanColor;
+    }
 }
 
