@@ -15,7 +15,7 @@ public class ColorBlobDetector {
     private static final String     TAG                 = "T800::ColorBlobDetector";
 
     private static final double     MIN_CONTOUR_AREA_FACTOR = 0.1;
-    private static final Scalar     WHITE_COLOR = new Scalar(190.0,190.0,190.0);
+    private static final Scalar     WHITE_COLOR = new Scalar(255.0,255.0,255.0);
 
     // Lower and Upper bounds for range checking in HSV color space
     private Scalar mFirstRangeLowerBound = new Scalar(0);
@@ -53,6 +53,7 @@ public class ColorBlobDetector {
 
 
     public void adjustWhiteBalance(Scalar whiteSample) {
+        Log.i(TAG, "HSV white : " + ProcessUtils.rgbToHsv(whiteSample));
         mWhiteBalanceAdjuster = new Scalar( whiteSample.val[0] / WHITE_COLOR.val[0],
                                             whiteSample.val[1] / WHITE_COLOR.val[1],
                                             whiteSample.val[2] / WHITE_COLOR.val[2]);

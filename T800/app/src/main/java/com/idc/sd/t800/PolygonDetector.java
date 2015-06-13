@@ -18,8 +18,9 @@ public class PolygonDetector extends ColoredMarkerDetector {
     private static final int            POLYGON_VERTICES    = 3; // Use a triangle marker
     private static final double         APPROX_FACTOR       = 0.3;
 
-    private static final Scalar         HSV_COLOR = new Scalar(247.0,232.0,158.0,0);
-    private static final Scalar         COLOR_RADIUS = new Scalar(5,70,70,0);
+    private static final Scalar         HSV_COLOR = new Scalar(245.0,237.0,250.0,0);
+
+    private static final Scalar         COLOR_RADIUS = new Scalar(10,70,70,0);
 
     private ColorBlobDetector           mDetector;
     private List<MatOfPoint>            mPolygons;
