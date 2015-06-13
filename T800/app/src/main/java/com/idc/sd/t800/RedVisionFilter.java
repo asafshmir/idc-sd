@@ -1,16 +1,13 @@
 package com.idc.sd.t800;
 
 import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 
 import java.util.ArrayList;
 
 public class RedVisionFilter {
 
-    private Mat                     mRedVisionMat;
     private ArrayList<Mat>          mChannels;
-
 
     public RedVisionFilter() {
         mChannels = new ArrayList<>();

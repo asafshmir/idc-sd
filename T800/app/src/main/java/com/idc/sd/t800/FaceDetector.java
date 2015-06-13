@@ -19,7 +19,6 @@ public class FaceDetector {
     private static final String    TAG                 = "T800::FaceDetector";
 
     private Context                 mContext;
-    private File                    mCascadeFile;
     private CascadeClassifier       mJavaDetector;
 
     private float                   mRelativeFaceSize   = 0.2f;
@@ -35,8 +34,8 @@ public class FaceDetector {
             // load cascade file from application resources
             InputStream is = mContext.getResources().openRawResource(R.raw.lbpcascade_frontalface);
             File cascadeDir = mContext.getDir("cascade", Context.MODE_PRIVATE);
-            mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
-            FileOutputStream os = new FileOutputStream(mCascadeFile);
+            File cascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
+            FileOutputStream os = new FileOutputStream(cascadeFile);
 
             byte[] buffer = new byte[4096];
             int bytesRead;
@@ -46,13 +45,13 @@ public class FaceDetector {
             is.close();
             os.close();
 
-            mJavaDetector = new CascadeClassifier(mCascadeFile.getAbsolutePath());
+            mJavaDetector = new CascadeClassifier(cascadeFile.getAbsolutePath());
             if (mJavaDetector.empty()) {
                 Log.e(TAG, "Failed to load cascade classifier");
                 mJavaDetector = null;
-            } else
-                Log.i(TAG, "Loaded cascade classifier from " + mCascadeFile.getAbsolutePath());
-
+            } else {
+                Log.i(TAG, "Loaded cascade classifier from " + cascadeFile.getAbsolutePath());
+            }
             cascadeDir.delete();
 
         } catch (IOException e) {
