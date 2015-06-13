@@ -303,8 +303,6 @@ public class MainActivity extends ActionBarActivity
 
     private void process() {
 
-        // TODO use tone mapping to fix colors?
-
         // detect markers
         mDetector = mIsTargetDetector ? mTargetDetector : mPolyDetector;
         mMarkersCenters = mDetector.detect(mRgba);
