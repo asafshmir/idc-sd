@@ -1,7 +1,5 @@
 package org.opencv.android;
 
-import java.util.List;
-
 import android.content.Context;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
@@ -16,6 +14,8 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
+
+import java.util.List;
 
 /**
  * This class is an implementation of the Bridge View between OpenCV and Java Camera.
@@ -145,6 +145,14 @@ public class JavaCameraView extends CameraBridgeViewBase implements PreviewCallb
                     Size frameSize = calculateCameraFrameSize(sizes, new JavaCameraSizeAccessor(), width, height);
 
                     params.setPreviewFormat(ImageFormat.NV21);
+                    //params.setWhiteBalance(Camera.Parameters.WHITE_BALANCE_DAYLIGHT);
+
+                    params.setFocusMode(Camera.Parameters.FOCUS_MODE_FIXED);
+                    if (params.isAutoExposureLockSupported())
+                        params.setAutoExposureLock(true);
+                    if (params.isAutoWhiteBalanceLockSupported())
+                        params.setAutoWhiteBalanceLock(true);
+
                     Log.d(TAG, "Set preview size to " + Integer.valueOf((int)frameSize.width) + "x" + Integer.valueOf((int)frameSize.height));
                     params.setPreviewSize((int)frameSize.width, (int)frameSize.height);
 
@@ -194,6 +202,7 @@ public class JavaCameraView extends CameraBridgeViewBase implements PreviewCallb
                         mCamera.setPreviewTexture(mSurfaceTexture);
                     } else
                        mCamera.setPreviewDisplay(null);
+
 
                     /* Finally we are ready to start the preview */
                     Log.d(TAG, "startPreview");
