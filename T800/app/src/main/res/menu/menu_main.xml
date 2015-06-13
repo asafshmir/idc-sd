@@ -3,8 +3,10 @@
     xmlns:tools="http://schemas.android.com/tools" tools:context="com.idc.sd.t800.MainActivity">
     <item android:id="@+id/action_red_vision"
         app:showAsAction="always"/>
+    <item android:id="@+id/action_marker_type"
+        app:showAsAction="always"/>
     <item android:id="@+id/action_touch_mode"
         app:showAsAction="always"/>
-    <item android:id="@+id/action_marker_type"
+    <item android:id="@+id/action_color_pick_mode"
         app:showAsAction="always"/>
 </menu>

@@ -9,5 +9,7 @@
     <string name="tooltip_touch_mode_color_pick">Color Adjustment Mode On</string>
     <string name="tooltip_poly_marker">Threat Marker: Polygon</string>
     <string name="tooltip_target_marker">Threat Marker: Target</string>
+    <string name="tooltip_white_balance">Mode: White Balance</string>
+    <string name="tooltip_color_picker">Mode: Color Picker</string>
 
 </resources>
