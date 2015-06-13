@@ -39,6 +39,7 @@ public class MainActivity extends ActionBarActivity
     private PolygonDetector         mPolyDetector;
     private TargetDetector          mTargetDetector;
     private boolean                 mIsTargetDetector = true;
+    private boolean                 mIsWhiteBalance = true;
 
     private FaceTracker             mFaceTracker;
     private TextDrawer              mTextDrawer;
@@ -163,6 +164,11 @@ public class MainActivity extends ActionBarActivity
         (menu.findItem(R.id.action_marker_type)).setIcon(
                 mIsTargetDetector ?     R.drawable.ic_details_black_24dp :
                                         R.drawable.ic_album_black_24dp);
+
+        (menu.findItem(R.id.action_color_pick_mode)).setIcon(
+                mIsWhiteBalance ?     R.drawable.ic_palette_black_24dp :
+                        R.drawable.ic_settings_brightness_black_24dp );
+
         return super.onCreateOptionsMenu(menu);
     }
 
@@ -194,6 +200,17 @@ public class MainActivity extends ActionBarActivity
                 showTooltip(mIsTargetDetector ?     getString(R.string.tooltip_target_marker) :
                                                     getString(R.string.tooltip_poly_marker));
                 return true;
+
+            case R.id.action_color_pick_mode:
+                mIsWhiteBalance = !mIsWhiteBalance;
+                item.setIcon(mIsWhiteBalance ?    R.drawable.ic_palette_black_24dp :
+                                                  R.drawable.ic_settings_brightness_black_24dp);
+                showTooltip(mIsWhiteBalance ?     getString(R.string.tooltip_white_balance) :
+                                                  getString(R.string.tooltip_color_picker));
+                return true;
+
+
+
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -240,21 +257,27 @@ public class MainActivity extends ActionBarActivity
         Rect touchedRegion = new Rect();
         touchedRegion.x = (x > COLOR_WIN_SIZE) ? x - COLOR_WIN_SIZE : 0;
         touchedRegion.y = (y > COLOR_WIN_SIZE) ? y - COLOR_WIN_SIZE : 0;
-        touchedRegion.width = (x + COLOR_WIN_SIZE < mRgba.cols()) ?
+        touchedRegion.width = (x + COLOR_WIN_SIZE < mRgba.width()) ?
                 x + COLOR_WIN_SIZE - touchedRegion.x : mRgba.width() - touchedRegion.x;
-        touchedRegion.height = (y + COLOR_WIN_SIZE < mRgba.rows()) ?
+        touchedRegion.height = (y + COLOR_WIN_SIZE < mRgba.height()) ?
                 y + COLOR_WIN_SIZE - touchedRegion.y : mRgba.height() - touchedRegion.y;
         Mat touchedRegionMatRgba = mRgba.submat(touchedRegion);
-        if (true) {
+        if (mIsWhiteBalance) {
             // calc the mean color (rgb color space) in the selected area
             Scalar selectedColorRgb = ProcessUtils.findMeanColor(touchedRegionMatRgba);
-            mDetector.adjustWhiteBalance(selectedColorRgb);
+            mTargetDetector.adjustWhiteBalance(selectedColorRgb);
+            mPolyDetector.adjustWhiteBalance(selectedColorRgb);
+
             Log.i(TAG, "RGB white: " + selectedColorRgb);
+
         } else {
             Mat touchedRegionMatHsv = new Mat();
             Imgproc.cvtColor(touchedRegionMatRgba, touchedRegionMatHsv, Imgproc.COLOR_RGB2HSV_FULL);
             // calc the mean color (hsv color space) in the selected area
             Scalar selectedColorHsv = ProcessUtils.findMeanColor(touchedRegionMatHsv);
+            mTargetDetector.adjustWhiteBalance(new Scalar(255.0,255.0,255.0));
+            mPolyDetector.adjustWhiteBalance(new Scalar(255.0,255.0,255.0));
+
             mDetector.setHsvColor(selectedColorHsv);
             Log.i(TAG, "HSV: " + selectedColorHsv);
         }
@@ -263,12 +286,18 @@ public class MainActivity extends ActionBarActivity
 
     // translate touch point from screen coordinates to frame coordinates
     private Point extractCoordinates(MotionEvent event) {
-        int cols = mRgba.cols();
-        int rows = mRgba.rows();
+        int cols = mRgba.width();
+        int rows = mRgba.height();
         int xOffset = (mOpenCvCameraView.getWidth() - cols) / 2;
         int yOffset = (mOpenCvCameraView.getHeight() - rows) / 2;
         int x = (int)event.getX() - xOffset;
         int y = (int)event.getY() - yOffset;
+
+        // avoid out of screen points
+        x = x > cols ? cols : x;
+        x = x < 0 ? 0 : x;
+        y = y > rows ? rows : y;
+        y = y < 0 ? 0 : y;
         return new Point(x, y);
     }
 

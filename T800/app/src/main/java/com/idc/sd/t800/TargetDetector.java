@@ -17,7 +17,7 @@ public class TargetDetector extends ColoredMarkerDetector {
     private static final Scalar         OUTER_COLOR_RADIUS = new Scalar(10,70,70,0);
 
     private static final Scalar         DEFAULT_INNER_HSV_COLOR = new Scalar(172.0,242.0,148.0,0);
-    private static final Scalar         INNER_COLOR_RADIUS = new Scalar(10,70,70,0);
+    private static final Scalar         INNER_COLOR_RADIUS = new Scalar(15,150,150,0);
 
     private ColorBlobDetector           mOuterCircleDetector;
     private ColorBlobDetector           mInnerCircleDetector;

@@ -15,7 +15,7 @@ import java.util.List;
 public class FaceTracker {
 
     // maximal distance (relative to face size) for marker matching
-    public static final double MAX_MARKER_DIST_FACTOR = 2;
+    public static final double MAX_MARKER_DIST_FACTOR = 1.5;
 
     private FaceDetector mFaceDetector;
     private List<FaceData> mTrackedFaces;
