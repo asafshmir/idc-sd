@@ -10,6 +10,13 @@ import org.opencv.imgproc.Imgproc;
 import java.util.ArrayList;
 import java.util.List;
 
+/*
+    TargetDetector is a ColoredMarkerDetector used for detecting a target-like object consisting of
+    a blue circle inside a red circle. The detection algorithm uses two ColorBlobDetector for
+    detecting the relevant blue and red blobs, and then tries to match them - if it founds a blue
+    blob surrounded by a red blob, it marks it as a detected target.
+    The detector is configured to detect a target with certain colors, but can easily be modified.
+ */
 public class TargetDetector extends ColoredMarkerDetector {
 
 

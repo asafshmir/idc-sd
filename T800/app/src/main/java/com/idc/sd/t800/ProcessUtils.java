@@ -11,7 +11,9 @@ import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.imgproc.Moments;
 
-
+/*
+    A utilities class for processing - color space conversion, geometrical operations etc.
+ */
 public class ProcessUtils {
 
     // calc euclidean distance between two given points
@@ -66,7 +68,7 @@ public class ProcessUtils {
         }
     }
 
-
+    // wrapper to work with Scalar
     public static Scalar rgbToHsv(Scalar rgbColor) {
         return rgbToHsv((int) rgbColor.val[0], (int) rgbColor.val[1], (int) rgbColor.val[2]);
     }
@@ -79,7 +81,7 @@ public class ProcessUtils {
         return new Scalar(hsv[0] * 255.0 / 360.0, hsv[1] * 255.0, hsv[2] * 255.0);
     }
 
-    // Wrapper to work with Scalar - assume the hsv is given in range: (0-255, 0-255, 0-255)
+    // wrapper to work with Scalar - assume the hsv is given in range: (0-255, 0-255, 0-255)
     public static Scalar hsvToRgb(Scalar hsvColor) {
         Scalar NormalizedRgb = hsvToRgb(hsvColor.val[0] / 255.0, hsvColor.val[1] / 255.0, hsvColor.val[2] / 255.0);
         return new Scalar(NormalizedRgb.val[0]*255.0, NormalizedRgb.val[1]*255.0, NormalizedRgb.val[2]*255.0);

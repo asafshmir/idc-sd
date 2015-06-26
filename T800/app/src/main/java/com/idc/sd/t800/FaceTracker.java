@@ -12,6 +12,12 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+/*
+    The face tracker is used for tracking all the faces and handling different actions regarding
+    the faces. It uses a FaceDetector to detect faces in a given frame, and track each on of them
+    using the FaceData class. On each frame, the FaceTracker tries to match the detected faces to
+    the previous detected faces, and tries to match detected markers received from outside.
+ */
 public class FaceTracker {
 
     // maximal distance (relative to face size) for marker matching
@@ -42,7 +48,7 @@ public class FaceTracker {
         matchMarkers(markers);
     }
 
-    // remove rectangles that overlap
+    // remove rectangles that are too close, meaning that they are the same face
     private Rect[] removeDuplicates(Rect[] faces) {
         List<Rect> noDups = new ArrayList<>();
         for (Rect face : faces) {
@@ -113,9 +119,8 @@ public class FaceTracker {
         mTrackedFaces.removeAll(toBeRemoved);
     }
 
+    // try to match each given marker to a face
     private void matchMarkers(List<Point> markers) {
-
-        // try to match each given marker to a face
         for (Point marker : markers) {
             for (FaceData trackedFace : mTrackedFaces) {
                 trackedFace.matchMarker(marker, trackedFace.getFaceRect().height * MAX_MARKER_DIST_FACTOR);
@@ -173,6 +178,7 @@ public class FaceTracker {
         return allFaces;
     }
 
+    // check if the touched zone is inside a face, and if so - kill it
     public void handleScreenTouch(Point touchedPoint) {
         for (FaceData faceData : mTrackedFaces) {
             if (faceData.getFaceRect().contains(touchedPoint) && faceData.isValidFace()

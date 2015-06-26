@@ -3,12 +3,15 @@ package com.idc.sd.t800;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 
-import java.util.UUID;
-
 /*
-    Holds relevant data for tracking a single polygon over several frames.
-    Each polygon has a current score according to its appearance or lack of appearance in the
-    previous frames. A polygon is considered to be valid, if it has high enough score.
+    Holds relevant data for tracking and handling a single face.
+    When a face is detected, we start tracking it by matching faces in the following frames.
+    On each frame, we try to match each already detected face to the new discovered face, by
+    measuring the distance between the centers.
+    A face is considered to be 'valid' if it has appeared in enough frames (we use a scoring system
+    to determine what is enough).
+    A face is considered to be 'marked' if one of the detected markers is close enough to it.
+    A face is considered to be 'alive' if it is marked (i.e bad guy) and the player killed it.
 */
 class FaceData {
 
@@ -30,12 +33,11 @@ class FaceData {
     private Rect            mFaceRect;
     private Point           mFaceCenter;
     private Integer         mTrackingScore;
-    private boolean         mMatched; // Is the point matched in current frame to a previous tracked point
+    private boolean         mMatched;
     private int             mMarkerScore;
     private boolean         mMarked;
     private boolean         mIsAlive;
     private int             mFrames;
-    private UUID            mUUID;
 
     public FaceData(Rect face) {
         this.mFaceRect = face;
@@ -46,14 +48,15 @@ class FaceData {
         this.mMarked = false;
         this.mIsAlive = true;
         this.mFrames = 0;
-        this.mUUID = UUID.randomUUID();
     }
 
     public void setUnmatched() { this.mMatched = false; }
+    // determines if the face detected in current frame matches a face in previous frames
     public boolean isMatched() { return mMatched; }
     // determines if the person represented by the FaceData is dead or alive
     public boolean isAlive() { return mIsAlive; }
     public void kill() { mIsAlive = false; }
+    // determines if the face is close enough to a marker
     public boolean isMarked() { return mMarked; }
     public Rect getFaceRect() { return mFaceRect; }
 
@@ -108,5 +111,4 @@ class FaceData {
     public boolean isValidFace() {
         return (mTrackingScore >= VALID_MIN_SCORE);
     }
-
 }

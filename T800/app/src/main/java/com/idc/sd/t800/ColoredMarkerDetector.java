@@ -6,9 +6,12 @@ import org.opencv.core.Scalar;
 
 import java.util.List;
 
-// a detector of colored markers
+/*
+    An abstract class representing a detector of colored markers in an image.
+    The main method - detect - is given a RGBA image, and returns a list of points representing
+    the detected markers in the image.
+ */
 public abstract class ColoredMarkerDetector {
     abstract public List<Point> detect(Mat rgbaImage);
     abstract public void setHsvColor(Scalar hsvColor);
-    abstract public void adjustWhiteBalance(Scalar rgbColor);
 }

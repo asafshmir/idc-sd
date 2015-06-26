@@ -14,14 +14,22 @@ import org.opencv.objdetect.CascadeClassifier;
 import android.content.Context;
 import android.util.Log;
 
+/*
+    This class is used for detecting faces in a gray scale image. The class uses opencv's
+    CascadeClassifier to detect face-alike objects. The cascade classifier is base on the
+    Viola-Jones object detection algorithm, which boost up the face detection (by first using simple
+    classifiers which reject most of the false positives).
+    This class is based on opencv's face detection example:
+    https://github.com/Itseez/opencv/blob/master/samples/android/face-detection/src/org/opencv/samples/facedetect/FdActivity.java
+ */
 public class FaceDetector {
 
-    private static final String    TAG                 = "T800::FaceDetector";
+    private static final String     TAG                 = "T800::FaceDetector";
+
+    private static final float      RELATIVE_FACE_SIZE = 0.2f; // minimal face size relative to screen height
 
     private Context                 mContext;
     private CascadeClassifier       mJavaDetector;
-
-    private float                   mRelativeFaceSize   = 0.2f;
     private int                     mAbsoluteFaceSize   = 0;
 
     public FaceDetector(Context context) {
@@ -63,8 +71,8 @@ public class FaceDetector {
     public Rect[] detectFaces(Mat gray) {
         if (mAbsoluteFaceSize == 0) {
             int height = gray.rows();
-            if (Math.round(height * mRelativeFaceSize) > 0) {
-                mAbsoluteFaceSize = Math.round(height * mRelativeFaceSize);
+            if (Math.round(height * RELATIVE_FACE_SIZE) > 0) {
+                mAbsoluteFaceSize = Math.round(height * RELATIVE_FACE_SIZE);
             }
         }
 

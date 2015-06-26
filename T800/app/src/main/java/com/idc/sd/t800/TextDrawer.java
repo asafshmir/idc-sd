@@ -10,6 +10,14 @@ import org.opencv.core.Size;
 import java.util.Date;
 import java.util.Random;
 
+/*
+    The TextDrawer class is a utility class used for drawing texts on top of the frame according
+    to the detected faces. The following texts are applied:
+    Bad guy's face - "Match"
+    Dead guy's face - "Target Destroyed"
+    Innocent guy's face - "No Match"
+    In addition, random numbers are added beside each detected face.
+ */
 public class TextDrawer {
 
     // Assuming 11 pixels per character on 320*240 frame size
@@ -37,16 +45,15 @@ public class TextDrawer {
         mFrameSize = new Size(320,240);
     }
 
+    // draw text for a dead face
     public  void drawDead(Mat mRgba, Rect face) {
-
         String bottomText = "Target Destroyed";
-
         String[] leftText = new String[] {};
-
         String[] rightText = new String[]{};
         drawText(mRgba,face,bottomText,leftText,rightText);
     }
 
+    // draw text for a targeted face (i.e bad guy)
     public  void drawTarget(Mat mRgba, Rect face) {
 
         String bottomText = "Match";
@@ -62,6 +69,7 @@ public class TextDrawer {
         drawText(mRgba,face,bottomText,leftText,rightText);
     }
 
+    // draw text for an innocent guy's face
     public  void drawInnocent(Mat mRgba, Rect face) {
 
         String bottomText = "No Match";
@@ -77,6 +85,7 @@ public class TextDrawer {
         drawText(mRgba,face,bottomText,leftText,rightText);
     }
 
+    // main method for drawing a given text with a specific pattern
     private void drawText(Mat mRgba, Rect face, String bottomText,String[] leftText, String[] rightText ) {
         mScale = calcScale(face);
         Point bottomPoint = new Point(face.tl().x + (face.size().width / 2) - (bottomText.length()*10*mScale/2),
@@ -109,6 +118,7 @@ public class TextDrawer {
         mFrameSize = size;
     }
 
+    // used for scaling the text size according to the detected face size
     private double calcScale(Rect faceRect) {
         double scale = DEFAULT_SCALE;
         if ((int)(mFrameSize.width / DEFAULT_WIDTH) > 0) {
@@ -122,6 +132,7 @@ public class TextDrawer {
 
     }
 
+    // used for adjusting text size according to the text length
     private int getTextSize(String[] texts) {
         int maxTextSize = 0;
         for (String text : texts) {
@@ -132,7 +143,8 @@ public class TextDrawer {
         return maxTextSize;
     }
 
+    // used for adjusting text size according to the text length
     private int getTextSize(String text) {
-        return (int)(text.length()*PIXEL_SIZE*mScale);
+        return (int)(text.length() * PIXEL_SIZE * mScale);
     }
 }

@@ -12,8 +12,16 @@ import org.opencv.imgproc.Imgproc;
 import java.util.ArrayList;
 import java.util.List;
 
+/*
+    PolygonDetector is a ColoredMarkerDetector used for detecting specific polygons with
+    a specific color in an image. PolygonDetector uses ColorBlobDetector to find all the blobs
+    with in the given color range. Then, it uses opencv's approxPolyDP to smooth the contours
+    and filter in only the ones which are in the shape of the wanted polygon.
+    The approxPolyDP method uses the Ramer–Douglas–Peucker algorithm to reduce the number of points
+    in a curve that is approximated by a series of points, according to a given precision.
+    The detector is configured to detect a certain red we tested, but can easily be modified.
+ */
 public class PolygonDetector extends ColoredMarkerDetector {
-
 
     private static final int            POLYGON_VERTICES    = 3; // Use a triangle marker
     private static final double         APPROX_FACTOR       = 0.3;
@@ -55,6 +63,7 @@ public class PolygonDetector extends ColoredMarkerDetector {
     public void setHsvColor(Scalar hsvColor) {
         mDetector.setHsvColor(hsvColor);
     }
+
     public void adjustWhiteBalance(Scalar rgbColor) {
         mDetector.adjustWhiteBalance(rgbColor);
         mDetector.setHsvColor(HSV_COLOR);

@@ -28,6 +28,33 @@ import org.opencv.imgproc.Imgproc;
 import java.util.ArrayList;
 import java.util.List;
 
+/*
+    The main class of the app - uses to initialize all the game's components, control the general
+    flow of the game and handling event.
+
+    The main flow of the game is as follows:
+    - Capture a frame using opencv's CameraBridgeViewBase
+    - Detect faces and markers in the captured frame
+    - Draw relevant outlines and effects according to detected objects
+
+    The game has different modes which can be controlled by the menu buttons:
+    - Touch mode:
+        - Color adjust mode - screen touch events are used for adjusting colors:
+                - White balance -   touched color is interpreted as white, and all detected colors
+                                    are changed accordingly
+                - Color Pick    -   touched color is used for changing the detected marker's color
+        - Kill mode         - screen touch events are used for killing targeted faces
+    - Vision mode:
+        - Red Vision On  -  Red vision filter is applied
+        - Red Vision Off -  Red vision filter is not applied
+    - Marker mode:
+        - Target Marker  -   use a TargetDetector for detecting markers
+        - Polygon Marker -   use a PolygonDetector for detecting markers
+
+    For proper use, the player first needs to apply white balancing in order to make the detected
+    colors more accurate, and then switch to kill mode in order to start the game.
+
+ */
 public class MainActivity extends ActionBarActivity
         implements CvCameraViewListener2, View.OnTouchListener  {
     private static final String     TAG                 = "T800::MainActivity";
@@ -35,23 +62,26 @@ public class MainActivity extends ActionBarActivity
     private static final Scalar     DRAW_COLOR = new Scalar(255,255,255,255);
     private static final int        COLOR_WIN_SIZE = 15;
 
+    // initial configuration
+    private boolean                 mIsTargetDetector = true;
+    private boolean                 mIsWhiteBalance = true;
+    private boolean                 mTouchModeKill = false;
+    private boolean                 mEnableRedVision = false;
+
+    // detectors
     private ColoredMarkerDetector   mDetector;
     private PolygonDetector         mPolyDetector;
     private TargetDetector          mTargetDetector;
-    private boolean                 mIsTargetDetector = true;
-    private boolean                 mIsWhiteBalance = true;
-
     private FaceTracker             mFaceTracker;
     private TextDrawer              mTextDrawer;
+
+    // detected objects
     private Rect[]                  mAliveFacesRects;
     private Rect[]                  mDeadFacesRects;
     private Rect[]                  mTargetFacesRects;
     private List<Point>             mMarkersCenters;
 
-
     private RedVisionFilter         mRedFilter;
-    private Boolean                 mEnableRedVision = false;
-    private Boolean                 mTouchModeKill = false;
 
     private Mat                     mRgba;
     private Mat                     mGray;
@@ -66,8 +96,6 @@ public class MainActivity extends ActionBarActivity
 
                     init();
 
-
-
                     mOpenCvCameraView.setOnTouchListener(MainActivity.this);
                     mOpenCvCameraView.enableView();
                 } break;
@@ -80,8 +108,6 @@ public class MainActivity extends ActionBarActivity
 
     public MainActivity() {
         mMarkersCenters = new ArrayList<>();
-
-        Log.i(TAG, "Instantiated new " + this.getClass());
     }
 
     // init the rest of the members, called when opencv manager is ready
@@ -106,8 +132,6 @@ public class MainActivity extends ActionBarActivity
 
         mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.main_activity_surface_view);
         mOpenCvCameraView.setCvCameraViewListener(this);
-
-
     }
 
     @Override
@@ -138,6 +162,7 @@ public class MainActivity extends ActionBarActivity
         if (mRgba != null) { mRgba.release(); }
     }
 
+    // handles a new captured frame
     public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
 
         mRgba = inputFrame.rgba();
@@ -232,6 +257,7 @@ public class MainActivity extends ActionBarActivity
         }.start();
     }
 
+    // handle touch event according to current touch mode (kill mode or color adjusting mode)
     public boolean onTouch(View v, MotionEvent event) {
         // if touch mode is set to kill, handle kill action
         if (mTouchModeKill) {
@@ -242,6 +268,7 @@ public class MainActivity extends ActionBarActivity
         }
     }
 
+    // pass the touched coordinated to the FaceTracker in order to handle kill event
     private boolean handleTouchKill(MotionEvent event) {
         mFaceTracker.handleScreenTouch(extractCoordinates(event));
         return true;
@@ -301,6 +328,7 @@ public class MainActivity extends ActionBarActivity
         return new Point(x, y);
     }
 
+    // process the captured frame - detect faces and markers
     private void process() {
 
         // detect markers
@@ -315,6 +343,7 @@ public class MainActivity extends ActionBarActivity
         mTargetFacesRects = facesRects.get(2);
     }
 
+    // draw relevant outlines and effects according to detected objects
     private void draw() {
 
         // Draw a skull on-top of detected faces that are 'dead'
