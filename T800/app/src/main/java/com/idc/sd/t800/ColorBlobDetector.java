@@ -11,6 +11,16 @@ import org.opencv.imgproc.Imgproc;
 import java.util.ArrayList;
 import java.util.List;
 
+/*
+    ColorBlobDetector is responsible for detecting blobs in a given color range.
+    In order to do so, the given image is down-sampled for efficiency matter, then
+    transferred to HSV color space, and filtered according to the pre-configured hsv color range.
+    Then, the filtered image is passed through some image morphology operators (dilation) in order
+    to emphasise the blobs. Then, we use opencv's findContours to find all the relevant blobs.
+    The defined HSV color can be adjusted according to the white balance, using the Von Kries Adaptation.
+    This class is based on opencv's color blob detection example:
+    https://github.com/Itseez/opencv/blob/master/samples/android/color-blob-detection/src/org/opencv/samples/colorblobdetect/ColorBlobDetector.java
+*/
 public class ColorBlobDetector {
     private static final String     TAG                 = "T800::ColorBlobDetector";
 

@@ -5,6 +5,11 @@ import org.opencv.core.Mat;
 
 import java.util.ArrayList;
 
+/*
+    Modifies a given RGBA image to be more reddish, by decreasing the blue and green channels.
+    The red filter is applied on each channel separately in order to achieve better performance
+    and be able to process in real time rate.
+ */
 public class RedVisionFilter {
 
     private ArrayList<Mat>          mChannels;
