@@ -67,7 +67,7 @@ public class EncryptedLocalCalendar extends LocalCollection<EncryptedEvent> {
     @Getter protected String url;
 
     protected static String COLLECTION_COLUMN_CTAG = CalendarContract.Calendars.CAL_SYNC1;
-
+    protected byte[] key;
 
 	/* database fields */
 
@@ -163,10 +163,14 @@ public class EncryptedLocalCalendar extends LocalCollection<EncryptedEvent> {
         super(account, providerClient);
         this.id = id;
         this.url = url;
+        this.key = getKey();
         sqlFilter = "ORIGINAL_ID IS NULL";
     }
 
 
+    protected byte[] getKey() {
+        return "this is a key".getBytes();
+    }
 	/* collection operations */
 
     @Override
@@ -603,12 +607,12 @@ public class EncryptedLocalCalendar extends LocalCollection<EncryptedEvent> {
 
     @Override
     protected void addDataRows(Resource resource, long localID, int backrefIdx) {
-        EncryptedEvent event = (EncryptedEvent)resource;
+        Event event = (Event)resource;
         // add exceptions
         // TODO - support exceptions
-        //for (EncryptedEvent exception : event.getExceptions())
-        //    pendingOperations.add(buildException(newDataInsertBuilder(CalendarContract.Events.CONTENT_URI, CalendarContract.Events.ORIGINAL_ID, localID, backrefIdx), event, exception).build());
-        
+        for (Event exception : event.getExceptions())
+            pendingOperations.add(buildException(newDataInsertBuilder(CalendarContract.Events.CONTENT_URI, CalendarContract.Events.ORIGINAL_ID, localID, backrefIdx), event, exception).build());
+
         // add attendees
         for (Attendee attendee : event.getAttendees())
             pendingOperations.add(buildAttendee(newDataInsertBuilder(CalendarContract.Attendees.CONTENT_URI, CalendarContract.Attendees.EVENT_ID, localID, backrefIdx), attendee).build());
@@ -632,7 +636,7 @@ public class EncryptedLocalCalendar extends LocalCollection<EncryptedEvent> {
     }
 
 
-    protected ContentProviderOperation.Builder buildException(ContentProviderOperation.Builder builder, EncryptedEvent master, EncryptedEvent exception) {
+    protected ContentProviderOperation.Builder buildException(ContentProviderOperation.Builder builder, Event master, Event exception) {
         buildEntry(builder, exception);
         builder.withValue(CalendarContract.Events.ORIGINAL_SYNC_ID, exception.getName());
 

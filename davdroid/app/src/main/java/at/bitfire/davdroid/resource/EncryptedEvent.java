@@ -31,14 +31,14 @@ public class EncryptedEvent extends Event {
 
     protected byte[] key;
 
-    public EncryptedEvent(String name, String ETag) {
+    public EncryptedEvent(String name, String ETag,byte[] key) {
         super(name, ETag);
-        key = generateKey("this is a key");
+        this.key = key ;
     }
 
-    public EncryptedEvent(long localID, String name, String ETag) {
+    public EncryptedEvent(long localID, String name, String ETag, byte[] key) {
         super(localID, name, ETag);
-        key = generateKey("this is a key");
+        this.key = key;
     }
 
 
