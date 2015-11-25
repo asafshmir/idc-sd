@@ -60,7 +60,7 @@ import lombok.Getter;
  */
 public class EncryptedLocalCalendar extends LocalCollection<EncryptedEvent> {
 
-    private static final String TAG = "davdroid.LocalCalendar";
+    private static final String TAG = "davdroid.EncryptedLocalCalendar";
 
     @Getter
     protected long id;
@@ -148,15 +148,15 @@ public class EncryptedLocalCalendar extends LocalCollection<EncryptedEvent> {
         }
     }
 
-    public static LocalCalendar[] findAll(Account account, ContentProviderClient providerClient) throws RemoteException {
+    public static EncryptedLocalCalendar[] findAll(Account account, ContentProviderClient providerClient) throws RemoteException {
         @Cleanup Cursor cursor = providerClient.query(calendarsURI(account),
                 new String[] { CalendarContract.Calendars._ID, CalendarContract.Calendars.NAME },
                 CalendarContract.Calendars.DELETED + "=0 AND " + CalendarContract.Calendars.SYNC_EVENTS + "=1", null, null);
 
-        LinkedList<LocalCalendar> calendars = new LinkedList<LocalCalendar>();
+        LinkedList<EncryptedLocalCalendar> calendars = new LinkedList<EncryptedLocalCalendar>();
         while (cursor != null && cursor.moveToNext())
-            calendars.add(new LocalCalendar(account, providerClient, cursor.getInt(0), cursor.getString(1)));
-        return calendars.toArray(new LocalCalendar[0]);
+            calendars.add(new EncryptedLocalCalendar(account, providerClient, cursor.getInt(0), cursor.getString(1)));
+        return calendars.toArray(new EncryptedLocalCalendar[0]);
     }
 
     public EncryptedLocalCalendar(Account account, ContentProviderClient providerClient, long id, String url) throws RemoteException {
@@ -221,7 +221,7 @@ public class EncryptedLocalCalendar extends LocalCollection<EncryptedEvent> {
 	/* create/update/delete */
 
     public EncryptedEvent newResource(long localID, String resourceName, String eTag) {
-        return new EncryptedEvent(localID, resourceName, eTag);
+        return new EncryptedEvent(localID, resourceName, eTag,key);
     }
 
     public void deleteAllExceptRemoteNames(Resource[] remoteResources) {
@@ -436,7 +436,7 @@ public class EncryptedLocalCalendar extends LocalCollection<EncryptedEvent> {
             long exceptionId = c.getLong(0);
             String exceptionRemoteName = c.getString(1);
             try {
-                EncryptedEvent exception = new EncryptedEvent(exceptionId, exceptionRemoteName, null);
+                EncryptedEvent exception = new EncryptedEvent(exceptionId, exceptionRemoteName, null, key);
                 populate(exception);
                 e.getExceptions().add(exception);
             } catch (LocalStorageException ex) {

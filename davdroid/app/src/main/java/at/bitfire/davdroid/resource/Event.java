@@ -57,6 +57,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.lang.reflect.Constructor;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.Calendar;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -64,6 +67,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
+
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 import at.bitfire.davdroid.Constants;
 import at.bitfire.davdroid.DateUtils;
@@ -77,6 +85,8 @@ public class Event extends Resource {
 	private final static String TAG = "davdroid.Event";
 	
 	private final static TimeZoneRegistry tzRegistry = new DefaultTimeZoneRegistryFactory().createRegistry();
+
+    @Getter protected byte[] key;
 
 	@Getter @Setter protected RecurrenceId recurrenceId;
 
@@ -124,6 +134,7 @@ public class Event extends Resource {
 	public void initialize() {
 		generateUID();
 		name = uid.replace("@", "_") + ".ics";
+        key = "this is the key".getBytes();
 	}
 	
 	protected void generateUID() {
@@ -289,7 +300,7 @@ public class Event extends Resource {
 		}
 		return os;
 	}
-
+/*
 	protected VEvent toVEvent() {
 		VEvent event = new VEvent();
 		PropertyList props = event.getProperties();
@@ -338,9 +349,99 @@ public class Event extends Resource {
 		props.add(new LastModified());
 		return event;
 	}
+*/
 
-	
-	public long getDtStartInMillis() {
+
+    private byte[] encrypt(byte[] raw, byte[] clear) throws Exception {
+        Log.d(TAG, "skeySpec");
+        SecretKeySpec skeySpec = new SecretKeySpec(raw, "AES");
+        Cipher cipher = Cipher.getInstance("AES");
+        Log.d(TAG,"initCipher");
+        cipher.init(Cipher.ENCRYPT_MODE, skeySpec);
+        Log.d(TAG,"doFinal");
+        byte[] encrypted = cipher.doFinal(clear);
+        return encrypted;
+    }
+
+    private byte[] decrypt(byte[] raw, byte[] encrypted) throws Exception {
+        SecretKeySpec skeySpec = new SecretKeySpec(raw, "AES");
+        Cipher cipher = Cipher.getInstance("AES");
+        cipher.init(Cipher.DECRYPT_MODE, skeySpec);
+        byte[] decrypted = cipher.doFinal(encrypted);
+        return decrypted;
+    }
+
+
+    protected boolean encryptProperty(PropertyList props, byte[] key, String value, Class c) {
+
+        if (value != null && !value.isEmpty()) {
+            try {
+                Constructor constructor = c.getConstructor(String.class);
+                props.add(constructor.newInstance(encrypt(key, value.getBytes())));
+
+            } catch (Exception e) {
+                try {
+                    Constructor constructor = c.getConstructor(String.class);
+                    // Falling back to not encrypting
+                    props.add(constructor.newInstance(value));
+                } catch (Exception ex) {
+                }
+            }
+        }
+
+        // TODO - change this
+        return true;
+    }
+    protected VEvent toVEvent() {
+        Log.i(TAG, "toVEvent: Encrypting event with key '" + StringUtils. key + "'");
+        VEvent event = new VEvent();
+        PropertyList props = event.getProperties();
+
+        if (uid != null)
+            props.add(new Uid(uid));
+        if (recurrenceId != null)
+            props.add(recurrenceId);
+
+        props.add(dtStart);
+        if (dtEnd != null)
+            props.add(dtEnd);
+        if (duration != null)
+            props.add(duration);
+
+        if (rrule != null)
+            props.add(rrule);
+        if (rdate != null)
+            props.add(rdate);
+        if (exrule != null)
+            props.add(exrule);
+        if (exdate != null)
+            props.add(exdate);
+
+        encryptProperty(props, key, summary, Summary.class);
+        encryptProperty(props, key, location, Location.class);
+        encryptProperty(props, key, description, Description.class);
+
+
+        if (status != null)
+            props.add(status);
+        if (!opaque)
+            props.add(Transp.TRANSPARENT);
+
+        encryptProperty(props, key, description, Organizer.class);
+
+        props.addAll(attendees);
+
+        if (forPublic != null)
+            event.getProperties().add(forPublic ? Clazz.PUBLIC : Clazz.PRIVATE);
+
+        event.getAlarms().addAll(alarms);
+
+        props.add(new LastModified());
+        return event;
+    }
+
+
+    public long getDtStartInMillis() {
 		return dtStart.getDate().getTime();
 	}
 	
