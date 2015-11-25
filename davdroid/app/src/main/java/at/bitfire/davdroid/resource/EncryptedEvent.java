@@ -28,12 +28,17 @@ import javax.crypto.spec.SecretKeySpec;
 public class EncryptedEvent extends Event {
     private final static String TAG = "davdroid.EncryptedEvent";
 
+
+    protected byte[] key;
+
     public EncryptedEvent(String name, String ETag) {
         super(name, ETag);
+        key = generateKey("this is a key");
     }
 
     public EncryptedEvent(long localID, String name, String ETag) {
         super(localID, name, ETag);
+        key = generateKey("this is a key");
     }
 
 
@@ -75,12 +80,12 @@ public class EncryptedEvent extends Event {
 
         if (value != null && !value.isEmpty()) {
             try {
-                Constructor constructor = c.getConstructor(String.class)
+                Constructor constructor = c.getConstructor(String.class);
                 props.add(constructor.newInstance(encrypt(key, value.getBytes())));
 
             } catch (Exception e) {
                 try {
-                    Constructor constructor = c.getConstructor(String.class)
+                    Constructor constructor = c.getConstructor(String.class);
                     // Falling back to not encrypting
                     props.add(constructor.newInstance(value));
                 } catch (Exception ex) {
@@ -88,12 +93,12 @@ public class EncryptedEvent extends Event {
             }
         }
 
+        // TODO - change this
+        return true;
     }
     protected VEvent toVEvent() {
         VEvent event = new VEvent();
         PropertyList props = event.getProperties();
-
-        byte[] key = generateKey("this is a key");
 
         if (uid != null)
             props.add(new Uid(uid));
