@@ -76,6 +76,7 @@ import javax.crypto.spec.SecretKeySpec;
 import at.bitfire.davdroid.Constants;
 import at.bitfire.davdroid.DateUtils;
 import at.bitfire.davdroid.syncadapter.DavSyncAdapter;
+import ezvcard.util.org.apache.commons.codec.binary.Hex;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -123,10 +124,12 @@ public class Event extends Resource {
 
 	public Event(String name, String ETag) {
 		super(name, ETag);
+        key = generateKey("this is the key");
 	}
 	
 	public Event(long localID, String name, String ETag) {
 		super(localID, name, ETag);
+        key = generateKey("this is the key");
 	}
 
 	
@@ -134,7 +137,7 @@ public class Event extends Resource {
 	public void initialize() {
 		generateUID();
 		name = uid.replace("@", "_") + ".ics";
-        key = "this is the key".getBytes();
+
 	}
 	
 	protected void generateUID() {
@@ -352,11 +355,25 @@ public class Event extends Resource {
 */
 
 
+    protected byte[] generateKey(String key) {
+        try {
+            byte[] keyStart = key.getBytes();
+            KeyGenerator kgen = KeyGenerator.getInstance("AES");
+            SecureRandom sr = SecureRandom.getInstance("SHA1PRNG");
+            sr.setSeed(keyStart);
+            kgen.init(128, sr); // 192 and 256 bits may not be available
+            SecretKey skey = kgen.generateKey();
+            return skey.getEncoded();
+        } catch (NoSuchAlgorithmException e) {
+            return "FallBackKey".getBytes();
+        }
+    }
+
     private byte[] encrypt(byte[] raw, byte[] clear) throws Exception {
         Log.d(TAG, "skeySpec");
         SecretKeySpec skeySpec = new SecretKeySpec(raw, "AES");
         Cipher cipher = Cipher.getInstance("AES");
-        Log.d(TAG,"initCipher");
+        Log.d(TAG,"initCipher " + skeySpec.toString());
         cipher.init(Cipher.ENCRYPT_MODE, skeySpec);
         Log.d(TAG,"doFinal");
         byte[] encrypted = cipher.doFinal(clear);
@@ -376,10 +393,14 @@ public class Event extends Resource {
 
         if (value != null && !value.isEmpty()) {
             try {
+                Log.i(TAG, "Value: " + value);
                 Constructor constructor = c.getConstructor(String.class);
-                props.add(constructor.newInstance(encrypt(key, value.getBytes())));
+                String encrypted = Hex.encodeHexString(encrypt(key, value.getBytes()));
+                props.add(constructor.newInstance(encrypted));
 
             } catch (Exception e) {
+                Log.i(TAG, "Value Failed!");
+                e.printStackTrace();
                 try {
                     Constructor constructor = c.getConstructor(String.class);
                     // Falling back to not encrypting
@@ -387,13 +408,17 @@ public class Event extends Resource {
                 } catch (Exception ex) {
                 }
             }
+        } else {
+            Log.i(TAG, "Value is null!");
         }
 
         // TODO - change this
         return true;
     }
+
+
     protected VEvent toVEvent() {
-        Log.i(TAG, "toVEvent: Encrypting event with key '" + StringUtils. key + "'");
+        Log.i(TAG, "toVEvent: Encrypting event with key '" + Hex.encodeHexString(key) + "'");
         VEvent event = new VEvent();
         PropertyList props = event.getProperties();
 
@@ -417,6 +442,7 @@ public class Event extends Resource {
         if (exdate != null)
             props.add(exdate);
 
+
         encryptProperty(props, key, summary, Summary.class);
         encryptProperty(props, key, location, Location.class);
         encryptProperty(props, key, description, Description.class);
@@ -427,7 +453,7 @@ public class Event extends Resource {
         if (!opaque)
             props.add(Transp.TRANSPARENT);
 
-        encryptProperty(props, key, description, Organizer.class);
+        encryptProperty(props, key, description, Description.class);
 
         props.addAll(attendees);
 
