@@ -246,7 +246,11 @@ public class Event extends Resource {
 
 		this.alarms = event.getAlarms();
 
-	}
+        // Decrypt all encrypted properties
+        summary = decryptProperty(key, summary);
+        location = decryptProperty(key, location);
+        description = decryptProperty(key, description);
+    }
 
 
 	@Override
@@ -372,7 +376,7 @@ public class Event extends Resource {
     private byte[] encrypt(byte[] raw, byte[] clear) throws Exception {
         Log.d(TAG, "skeySpec");
         SecretKeySpec skeySpec = new SecretKeySpec(raw, "AES");
-        Cipher cipher = Cipher.getInstance("AES");
+        Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING");
         Log.d(TAG,"initCipher " + skeySpec.toString());
         cipher.init(Cipher.ENCRYPT_MODE, skeySpec);
         Log.d(TAG,"doFinal");
@@ -382,12 +386,26 @@ public class Event extends Resource {
 
     private byte[] decrypt(byte[] raw, byte[] encrypted) throws Exception {
         SecretKeySpec skeySpec = new SecretKeySpec(raw, "AES");
-        Cipher cipher = Cipher.getInstance("AES");
+        Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING");
         cipher.init(Cipher.DECRYPT_MODE, skeySpec);
         byte[] decrypted = cipher.doFinal(encrypted);
         return decrypted;
     }
 
+    protected String decryptProperty(byte[] key, String value) {
+        if(value == null) {
+            return null;
+        }
+
+        try {
+            String decrypted = Hex.encodeHexString(decrypt(key, value.getBytes()));
+            return  decrypted;
+        } catch (Exception e) {
+            Log.i(TAG, "Value Failed!");
+            e.printStackTrace();
+            return null;
+        }
+    }
 
     protected boolean encryptProperty(PropertyList props, byte[] key, String value, Class c) {
 
@@ -452,8 +470,6 @@ public class Event extends Resource {
             props.add(status);
         if (!opaque)
             props.add(Transp.TRANSPARENT);
-
-        encryptProperty(props, key, description, Description.class);
 
         props.addAll(attendees);
 
