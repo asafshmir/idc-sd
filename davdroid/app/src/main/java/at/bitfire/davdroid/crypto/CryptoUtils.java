@@ -12,8 +12,10 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
+import javax.crypto.Mac;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 public class CryptoUtils {
 
@@ -31,6 +33,9 @@ public class CryptoUtils {
 
     /** The symmetric crypto algorithm key size */
     public static final int SYMMETRIC_KEY_SIZE = 128;
+
+    /** The secure hashing algorithm */
+    private static final String SIGNATURE_ALGORITHM = "HmacSHA1";
 
     /**
      * Generate a random pair (public, private) of keys for the algorithm
@@ -117,6 +122,26 @@ public class CryptoUtils {
         } catch(IllegalBlockSizeException se) {
             return null;
         } catch(BadPaddingException be) {
+            return null;
+        }
+    }
+
+    /**
+     * Calculate the hashed signature of the given data
+     * @param data The data
+     * @param symmetricKeyBytes The key for the secure hash
+     * @return The signature
+     */
+    public static byte[] calculateSignature(String data, byte[] symmetricKeyBytes) {
+
+        try {
+            SecretKeySpec signingKey = new SecretKeySpec(symmetricKeyBytes, SIGNATURE_ALGORITHM);
+            Mac mac = Mac.getInstance(SIGNATURE_ALGORITHM);
+            mac.init(signingKey);
+            return mac.doFinal(data.getBytes());
+        } catch(NoSuchAlgorithmException ae) {
+            return null;
+        } catch (InvalidKeyException ke) {
             return null;
         }
     }
