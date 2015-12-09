@@ -22,7 +22,10 @@ import android.util.Log;
 
 import java.util.ArrayList;
 
+import ezvcard.util.org.apache.commons.codec.DecoderException;
+import ezvcard.util.org.apache.commons.codec.binary.Hex;
 import lombok.Cleanup;
+import lombok.Getter;
 
 /**
  * Represents a locally-stored synchronizable collection (for instance, the
@@ -37,7 +40,7 @@ public abstract class LocalCollection<T extends Resource> {
 	protected Account account;
 	protected ContentProviderClient providerClient;
 	protected ArrayList<ContentProviderOperation> pendingOperations = new ArrayList<ContentProviderOperation>();
-
+    @Getter public byte[] key;
 	
 	// database fields
 	
@@ -75,7 +78,16 @@ public abstract class LocalCollection<T extends Resource> {
 		this.account = account;
 		this.providerClient = providerClient;
 	}
-	
+
+    LocalCollection(Account account, ContentProviderClient providerClient, String key) {
+        this.account = account;
+        this.providerClient = providerClient;
+        try {
+            this.key = Hex.decodeHex(key.toCharArray());
+        } catch (DecoderException e) {
+            // TODO - Russo Handle decoder exception
+        }
+    }
 
 	// collection operations
 	
@@ -205,7 +217,7 @@ public abstract class LocalCollection<T extends Resource> {
 			@Cleanup Cursor cursor = providerClient.query(ContentUris.withAppendedId(entriesURI(), localID),
 					new String[] { entryColumnRemoteName(), entryColumnETag() }, sqlFilter, null, null);
 			if (cursor != null && cursor.moveToNext()) {
-				T resource = newResource(localID, cursor.getString(0), cursor.getString(1));
+                T resource = newResource(localID, cursor.getString(0), cursor.getString(1));
 				if (populate)
 					populate(resource);
 				return resource;
@@ -258,7 +270,7 @@ public abstract class LocalCollection<T extends Resource> {
 	 * @param ETag of the resource
 	 * @return the new resource object */
 	abstract public T newResource(long localID, String resourceName, String eTag);
-	
+
 	/** Enqueues adding the resource (including all data) to the local collection. Requires commit(). */
 	public void add(Resource resource) {
 		int idx = pendingOperations.size();
@@ -269,7 +281,7 @@ public abstract class LocalCollection<T extends Resource> {
 		
 		addDataRows(resource, -1, idx);
 	}
-	
+
 	/** Enqueues updating an existing resource in the local collection. The resource will be found by 
 	 * the remote file name and all data will be updated. Requires commit(). */
 	public void updateByRemoteName(Resource remoteResource) throws LocalStorageException {

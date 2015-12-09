@@ -124,14 +124,12 @@ public class Event extends Resource {
 
 	public Event(String name, String ETag) {
 		super(name, ETag);
-        key = generateKey("this is the key");
 	}
 	
-	public Event(long localID, String name, String ETag) {
+	public Event(long localID, String name, String ETag, byte[] key) {
 		super(localID, name, ETag);
-        key = generateKey("this is the key");
+        this.key = key;
 	}
-
 	
 	@Override
 	public void initialize() {

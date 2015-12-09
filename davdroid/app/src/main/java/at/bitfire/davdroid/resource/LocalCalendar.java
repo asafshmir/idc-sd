@@ -64,13 +64,20 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.text.ParseException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+
 import at.bitfire.davdroid.DateUtils;
+import ezvcard.util.org.apache.commons.codec.DecoderException;
+import ezvcard.util.org.apache.commons.codec.binary.Hex;
 import lombok.Cleanup;
 import lombok.Getter;
 
@@ -84,6 +91,7 @@ public class LocalCalendar extends LocalCollection<Event> {
 
 	@Getter protected long id;
 	@Getter protected String url;
+
 	
 	protected static String COLLECTION_COLUMN_CTAG = Calendars.CAL_SYNC1;
 
@@ -112,6 +120,19 @@ public class LocalCalendar extends LocalCollection<Event> {
 			Events.UID_2445 : Events.SYNC_DATA2;
 	}
 
+    protected static byte[] generateKey(String key) {
+        try {
+            byte[] keyStart = key.getBytes();
+            KeyGenerator kgen = KeyGenerator.getInstance("AES");
+            SecureRandom sr = SecureRandom.getInstance("SHA1PRNG");
+            sr.setSeed(keyStart);
+            kgen.init(128, sr); // 192 and 256 bits may not be available
+            SecretKey skey = kgen.generateKey();
+            return skey.getEncoded();
+        } catch (NoSuchAlgorithmException e) {
+            return "FallBackKey".getBytes();
+        }
+    }
 	
 	/* class methods, constructor */
 
@@ -135,10 +156,10 @@ public class LocalCalendar extends LocalCollection<Event> {
 		ContentValues values = new ContentValues();
 		values.put(Calendars.ACCOUNT_NAME, account.name);
 		values.put(Calendars.ACCOUNT_TYPE, account.type);
+        values.put(Calendars.OWNER_ACCOUNT, Hex.encodeHexString(generateKey("This is the key")));
 		values.put(Calendars.NAME, info.getURL());
 		values.put(Calendars.CALENDAR_DISPLAY_NAME, info.getTitle());
 		values.put(Calendars.CALENDAR_COLOR, color);
-		values.put(Calendars.OWNER_ACCOUNT, account.name);
 		values.put(Calendars.SYNC_EVENTS, 1);
 		values.put(Calendars.VISIBLE, 1);
 		values.put(Calendars.ALLOWED_REMINDERS, Reminders.METHOD_ALERT);
@@ -169,19 +190,25 @@ public class LocalCalendar extends LocalCollection<Event> {
 	
 	public static LocalCalendar[] findAll(Account account, ContentProviderClient providerClient) throws RemoteException {
 		@Cleanup Cursor cursor = providerClient.query(calendarsURI(account),
-				new String[] { Calendars._ID, Calendars.NAME },
+				new String[] { Calendars._ID, Calendars.NAME, Calendars.OWNER_ACCOUNT },
 				Calendars.DELETED + "=0 AND " + Calendars.SYNC_EVENTS + "=1", null, null);
 		
 		LinkedList<LocalCalendar> calendars = new LinkedList<LocalCalendar>();
 		while (cursor != null && cursor.moveToNext())
-			calendars.add(new LocalCalendar(account, providerClient, cursor.getInt(0), cursor.getString(1)));
+			calendars.add(new LocalCalendar(account, providerClient, cursor.getInt(0), cursor.getString(1), cursor.getString(2)));
+
 		return calendars.toArray(new LocalCalendar[0]);
 	}
 
-	public LocalCalendar(Account account, ContentProviderClient providerClient, long id, String url) throws RemoteException {
+	public LocalCalendar(Account account, ContentProviderClient providerClient, long id, String url, String key) throws RemoteException {
 		super(account, providerClient);
 		this.id = id;
 		this.url = url;
+        try {
+            this.key = Hex.decodeHex(key.toCharArray());
+        } catch (DecoderException e) {
+            // TODO - Russo Handle decoder exception
+        }
 		sqlFilter = "ORIGINAL_ID IS NULL";
 	}
 
@@ -236,7 +263,7 @@ public class LocalCalendar extends LocalCollection<Event> {
 	/* create/update/delete */
 	
 	public Event newResource(long localID, String resourceName, String eTag) {
-		return new Event(localID, resourceName, eTag);
+		return new Event(localID, resourceName, eTag, this.key);
 	}
 	
 	public void deleteAllExceptRemoteNames(Resource[] remoteResources) {
@@ -451,7 +478,7 @@ public class LocalCalendar extends LocalCollection<Event> {
 			long exceptionId = c.getLong(0);
 			String exceptionRemoteName = c.getString(1);
 			try {
-				Event exception = new Event(exceptionId, exceptionRemoteName, null);
+				Event exception = new Event(exceptionId, exceptionRemoteName, null, this.key);
 				populate(exception);
 				e.getExceptions().add(exception);
 			} catch (LocalStorageException ex) {
