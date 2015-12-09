@@ -18,10 +18,19 @@ import javax.crypto.SecretKey;
 public class CryptoUtils {
 
     /** The asymmetric crypto algorithm */
-    public static final String ALGORITHM = "RSA";
+    public static final String ASYMMETRIC_ALGORITHM = "RSA";
 
     /** The asymmetric crypto algorithm key size */
-    public static final int KEY_SIZE = 1024;
+    public static final int ASYMMETRIC_KEY_SIZE = 1024;
+
+    /** The symmetric crypto algorithm */
+    public static final String SYMMETRIC_ALGORITHM = "AES";
+
+    /** The secure random algorithm */
+    public static final String SECURE_RANDOM_ALGORITHM = "SHA1PRNG";
+
+    /** The symmetric crypto algorithm key size */
+    public static final int SYMMETRIC_KEY_SIZE = 128;
 
     /**
      * Generate a random pair (public, private) of keys for the algorithm
@@ -30,8 +39,8 @@ public class CryptoUtils {
     public static KeyPair generateRandomKeyPair() {
 
         try {
-            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM);
-            keyPairGenerator.initialize(KEY_SIZE);
+            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(ASYMMETRIC_ALGORITHM);
+            keyPairGenerator.initialize(ASYMMETRIC_KEY_SIZE);
             return keyPairGenerator.genKeyPair();
         } catch (NoSuchAlgorithmException e) {
             return null;
@@ -40,14 +49,24 @@ public class CryptoUtils {
 
     /**
      * Generate a random symmetric encryption key
-     * @param size The wanted key size
      * @return The key
      */
-    public static byte[] generateRandomSymmetricKey(int size) {
-        byte[] key = new byte[size];
+    public static byte[] generateRandomSymmetricKey() {
+        byte[] keyStart = new byte[SYMMETRIC_KEY_SIZE];
         Random rand = new Random();
-        rand.nextBytes(key);
-        return key;
+        rand.nextBytes(keyStart);
+
+        try {
+
+            KeyGenerator generator = KeyGenerator.getInstance(SYMMETRIC_ALGORITHM);
+            SecureRandom sr = SecureRandom.getInstance(SECURE_RANDOM_ALGORITHM);
+            sr.setSeed(keyStart);
+            generator.init(SYMMETRIC_KEY_SIZE, sr);
+            SecretKey secret = generator.generateKey();
+            return secret.getEncoded();
+        } catch (NoSuchAlgorithmException e) {
+            return null;
+        }
     }
 
     /**
@@ -59,7 +78,7 @@ public class CryptoUtils {
     public static byte[] encryptSymmetricKey(byte[] symmetricKeyBytes, PublicKey key) {
 
         try {
-            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            Cipher cipher = Cipher.getInstance(ASYMMETRIC_ALGORITHM);
             // encrypt the plain text using the public key
             cipher.init(Cipher.ENCRYPT_MODE, key);
             return cipher.doFinal(symmetricKeyBytes);
@@ -85,7 +104,7 @@ public class CryptoUtils {
     public static byte[] decryptSymmetricKey(byte[] symmetricKeyBytes, PublicKey key) {
 
         try {
-            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            Cipher cipher = Cipher.getInstance(ASYMMETRIC_ALGORITHM);
             // encrypt the plain text using the public key
             cipher.init(Cipher.DECRYPT_MODE, key);
             return cipher.doFinal(symmetricKeyBytes);
@@ -99,20 +118,6 @@ public class CryptoUtils {
             return null;
         } catch(BadPaddingException be) {
             return null;
-        }
-    }
-
-    public static byte[] generateKey(byte[] keyStart) {
-        try {
-
-            KeyGenerator kgen = KeyGenerator.getInstance("AES");
-            SecureRandom sr = SecureRandom.getInstance("SHA1PRNG");
-            sr.setSeed(keyStart);
-            kgen.init(128, sr); // 192 and 256 bits may not be available
-            SecretKey skey = kgen.generateKey();
-            return skey.getEncoded();
-        } catch (NoSuchAlgorithmException e) {
-            return "FallBackKey".getBytes();
         }
     }
 }
