@@ -145,4 +145,18 @@ public class CryptoUtils {
             return null;
         }
     }
+
+    /**
+     * Return the signature size
+     * @return The signature size
+     */
+    public static int signatureSize() {
+        try {
+            Mac mac = Mac.getInstance(SIGNATURE_ALGORITHM);
+            return mac.getMacLength();
+
+        } catch(NoSuchAlgorithmException ae) {
+            return -1;
+        }
+    }
 }
