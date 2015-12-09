@@ -5,12 +5,15 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.util.Random;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
 
 public class CryptoUtils {
 
@@ -99,4 +102,17 @@ public class CryptoUtils {
         }
     }
 
+    public static byte[] generateKey(byte[] keyStart) {
+        try {
+
+            KeyGenerator kgen = KeyGenerator.getInstance("AES");
+            SecureRandom sr = SecureRandom.getInstance("SHA1PRNG");
+            sr.setSeed(keyStart);
+            kgen.init(128, sr); // 192 and 256 bits may not be available
+            SecretKey skey = kgen.generateKey();
+            return skey.getEncoded();
+        } catch (NoSuchAlgorithmException e) {
+            return "FallBackKey".getBytes();
+        }
+    }
 }

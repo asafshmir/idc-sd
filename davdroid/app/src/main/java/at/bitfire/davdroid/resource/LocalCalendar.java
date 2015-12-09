@@ -28,7 +28,6 @@ import android.provider.CalendarContract.Attendees;
 import android.provider.CalendarContract.Calendars;
 import android.provider.CalendarContract.Events;
 import android.provider.CalendarContract.Reminders;
-import android.provider.ContactsContract;
 import android.util.Log;
 
 import net.fortuna.ical4j.model.Date;
@@ -37,9 +36,6 @@ import net.fortuna.ical4j.model.Dur;
 import net.fortuna.ical4j.model.Parameter;
 import net.fortuna.ical4j.model.ParameterList;
 import net.fortuna.ical4j.model.PropertyList;
-import net.fortuna.ical4j.model.TimeZone;
-import net.fortuna.ical4j.model.TimeZoneRegistry;
-import net.fortuna.ical4j.model.TimeZoneRegistryFactory;
 import net.fortuna.ical4j.model.component.VAlarm;
 import net.fortuna.ical4j.model.parameter.Cn;
 import net.fortuna.ical4j.model.parameter.CuType;
@@ -56,14 +52,11 @@ import net.fortuna.ical4j.model.property.RDate;
 import net.fortuna.ical4j.model.property.RRule;
 import net.fortuna.ical4j.model.property.RecurrenceId;
 import net.fortuna.ical4j.model.property.Status;
-import net.fortuna.ical4j.util.TimeZones;
 
 import org.apache.commons.lang.StringUtils;
 
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.text.ParseException;
@@ -76,6 +69,7 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
 import at.bitfire.davdroid.DateUtils;
+import at.bitfire.davdroid.crypto.CryptoUtils;
 import ezvcard.util.org.apache.commons.codec.DecoderException;
 import ezvcard.util.org.apache.commons.codec.binary.Hex;
 import lombok.Cleanup;
@@ -120,19 +114,7 @@ public class LocalCalendar extends LocalCollection<Event> {
 			Events.UID_2445 : Events.SYNC_DATA2;
 	}
 
-    protected static byte[] generateKey(String key) {
-        try {
-            byte[] keyStart = key.getBytes();
-            KeyGenerator kgen = KeyGenerator.getInstance("AES");
-            SecureRandom sr = SecureRandom.getInstance("SHA1PRNG");
-            sr.setSeed(keyStart);
-            kgen.init(128, sr); // 192 and 256 bits may not be available
-            SecretKey skey = kgen.generateKey();
-            return skey.getEncoded();
-        } catch (NoSuchAlgorithmException e) {
-            return "FallBackKey".getBytes();
-        }
-    }
+
 	
 	/* class methods, constructor */
 
@@ -156,7 +138,9 @@ public class LocalCalendar extends LocalCollection<Event> {
 		ContentValues values = new ContentValues();
 		values.put(Calendars.ACCOUNT_NAME, account.name);
 		values.put(Calendars.ACCOUNT_TYPE, account.type);
-        values.put(Calendars.OWNER_ACCOUNT, Hex.encodeHexString(generateKey("This is the key")));
+        values.put(Calendars.OWNER_ACCOUNT, Hex.encodeHexString(
+                                                    CryptoUtils.generateKey(
+                                                            CryptoUtils.generateRandomSymmetricKey(16))));
 		values.put(Calendars.NAME, info.getURL());
 		values.put(Calendars.CALENDAR_DISPLAY_NAME, info.getTitle());
 		values.put(Calendars.CALENDAR_COLOR, color);
