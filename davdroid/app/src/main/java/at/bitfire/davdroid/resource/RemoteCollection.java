@@ -45,6 +45,7 @@ import lombok.Getter;
  */
 public abstract class RemoteCollection<T extends Resource> {
 	private static final String TAG = "davdroid.resource";
+    @Getter protected byte[] key = null;
 
 	CloseableHttpClient httpClient;
 	URI baseURI;
@@ -62,7 +63,9 @@ public abstract class RemoteCollection<T extends Resource> {
 		collection = new WebDavResource(httpClient, baseURI, user, password, preemptiveAuth);
 	}
 
-	
+	public byte[] getKey() {
+        return key;
+    }
 	/* collection operations */
 
 	public String getCTag() throws URISyntaxException, IOException, HttpException {

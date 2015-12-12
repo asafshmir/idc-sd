@@ -7,13 +7,10 @@
  */
 package at.bitfire.davdroid.resource;
 
-import android.accounts.Account;
-
 import org.apache.http.impl.client.CloseableHttpClient;
 
 import java.net.URISyntaxException;
 
-import at.bitfire.davdroid.syncadapter.AccountSettings;
 import at.bitfire.davdroid.webdav.DavMultiget;
 
 public class CalDavCalendar extends RemoteCollection<Event> { 
@@ -31,7 +28,7 @@ public class CalDavCalendar extends RemoteCollection<Event> {
 	
 	@Override
 	protected Event newResourceSkeleton(String name, String ETag) {
-		return new Event(name, ETag);
+		return new Event(name, ETag, this.key);
 	}
 	
 	

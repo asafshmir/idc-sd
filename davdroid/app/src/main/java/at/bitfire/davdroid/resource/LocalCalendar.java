@@ -103,6 +103,8 @@ public class LocalCalendar extends LocalCollection<Event> {
 	protected String entryColumnParentID()		{ return Events.CALENDAR_ID; }
 	protected String entryColumnID()			{ return Events._ID; }
 	protected String entryColumnRemoteName()	{ return Events._SYNC_ID; }
+    protected String entryColumnDtStartName()	{ return Events.DTSTART; }
+
 	protected String entryColumnETag()			{ return Events.SYNC_DATA1; }
 
 	protected String entryColumnDirty()			{ return Events.DIRTY; }
@@ -138,9 +140,7 @@ public class LocalCalendar extends LocalCollection<Event> {
 		ContentValues values = new ContentValues();
 		values.put(Calendars.ACCOUNT_NAME, account.name);
 		values.put(Calendars.ACCOUNT_TYPE, account.type);
-        values.put(Calendars.OWNER_ACCOUNT, Hex.encodeHexString(
-                                                    CryptoUtils.generateKey(
-                                                            CryptoUtils.generateRandomSymmetricKey(16))));
+        values.put(Calendars.OWNER_ACCOUNT, Hex.encodeHexString(CryptoUtils.generateRandomSymmetricKey()));
 		values.put(Calendars.NAME, info.getURL());
 		values.put(Calendars.CALENDAR_DISPLAY_NAME, info.getTitle());
 		values.put(Calendars.CALENDAR_COLOR, color);

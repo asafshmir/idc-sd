@@ -122,8 +122,9 @@ public class Event extends Resource {
 	}
 	
 
-	public Event(String name, String ETag) {
+	public Event(String name, String ETag, byte[] key) {
 		super(name, ETag);
+        this.key = key;
 	}
 	
 	public Event(long localID, String name, String ETag, byte[] key) {

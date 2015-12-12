@@ -20,6 +20,8 @@ import android.os.RemoteException;
 import android.provider.CalendarContract;
 import android.util.Log;
 
+import net.fortuna.ical4j.model.property.DtStart;
+
 import java.util.ArrayList;
 
 import ezvcard.util.org.apache.commons.codec.DecoderException;
@@ -59,6 +61,10 @@ public abstract class LocalCollection<T extends Resource> {
 	abstract protected String entryColumnID();
 	/** column name of an entry's file name on the WebDAV server */
 	abstract protected String entryColumnRemoteName();
+
+    /** column name of an entry's Date Starton the WebDAV server */
+    abstract protected String entryColumnDtStartName();
+
 	/** column name of an entry's last ETag on the WebDAV server; null if entry hasn't been uploaded yet */
 	abstract protected String entryColumnETag();
 	
@@ -256,6 +262,40 @@ public abstract class LocalCollection<T extends Resource> {
 			throw new LocalStorageException(ex);
 		}
 	}
+
+
+    /**
+     * Finds a specific resource by remote file name. Only records matching sqlFilter are taken into account.
+     * @param localID	remote file name of the resource
+     * @param populate	true: populates all data fields (for instance, contact or event details);
+     * 					false: only remote file name and ETag are populated
+     * @return resource with either ID/remote file/name/ETag or all fields populated
+     * @throws RecordNotFoundException when the resource couldn't be found
+     * @throws LocalStorageException when the content provider couldn't be queried
+     */
+    public T findByDtStart(DtStart startDate, boolean populate) throws LocalStorageException {
+
+        String where = entryColumnDtStartName() + "=?";
+        if (sqlFilter != null)
+            where += " AND (" + sqlFilter + ")";
+        try {
+            @Cleanup Cursor cursor = providerClient.query(entriesURI(),
+                    new String[] { entryColumnID(), entryColumnRemoteName(), entryColumnETag() },
+                    where, new String[] { String.valueOf(startDate.getDate().getTime()) }, null);
+            if (cursor != null && cursor.moveToNext()) {
+                T resource = newResource(cursor.getLong(0), cursor.getString(1), cursor.getString(2));
+                if (populate)
+                    populate(resource);
+                return resource;
+            } else
+                throw new RecordNotFoundException();
+        } catch(RemoteException ex) {
+            throw new LocalStorageException(ex);
+        }
+    }
+
+
+
 
 	/** populates all data fields from the content provider */
 	public abstract void populate(Resource record) throws LocalStorageException;
