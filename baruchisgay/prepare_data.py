@@ -6,7 +6,6 @@ from sklearn.cross_validation import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import Imputer, StandardScaler
 
-DEFAULT_TEST_SIZE = .3
 
 RIGHT_FEATURE_SET = ['Vote', 'Yearly_ExpensesK', 'Yearly_IncomeK', 'Overall_happiness_score',
                      'Most_Important_Issue', 'Avg_Residancy_Altitude', 
@@ -120,10 +119,20 @@ def scale(electionsData):
     electionsData[col_scale] = pd.DataFrame(s.fit_transform(electionsData[col_scale]), index=electionsData[col_scale].index)
     return electionsData
 
-def split_data(electionsData):
-    X_train, X_test, y_train, y_test = train_test_split(electionsData, electionsData, test_size=0.35)
-    X_test, X_validate, y_train, y_test = train_test_split(X_test, X_test, test_size=0.43) # 3/7
-    return X_train, X_test, X_validate
+def split_data(split_size,data):
+	data_size = len(data)
+
+	indexes = np.random.permutation(data_size)
+
+	data_sets = []
+	for i in xrange(len(split_size)):
+		index1 = int(sum(split_size[0:i])*data_size)
+		index2 = int(sum(split_size[0:i+1])*data_size)
+
+		data_sets.append(data.loc[indexes[index1:index2],:])
+
+	return data_sets
+
 
 def save_to_file(data,columns,name):
     df = pd.DataFrame(data=data,columns=columns)
@@ -135,32 +144,33 @@ def main():
     electionsData = pd.read_csv("ElectionsData.csv", header=0)
     originalElectionsData = electionsData.copy()
 
+
+
     electionsData,categorical_features = convert_categorial_features(electionsData)
 
     electionsData = drop_outliers(electionsData)
 
     correlations = find_correlations(electionsData)
-    
+
     fill_missing_linear_regression(electionsData,correlations)
 
     # Drop unnecessary features (from both election-data and the backup)
     electionsData = electionsData[RIGHT_FEATURE_SET]
-    originalElectionsData  = originalElectionsData[RIGHT_FEATURE_SET] 
-    
+    originalElectionsData  = originalElectionsData[RIGHT_FEATURE_SET]
+
     most_frequent, non_categorical = split_categorial(electionsData,categorical_features)
 
     fill_missing_imputation(electionsData,most_frequent)
-    
+
     electionsData = scale(electionsData)
- 
-    # TODO: FIX INDEX LIKE SHMIR WANTS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- 
-    train, test, validation = split_data(originalElectionsData)
+
+    split_sizes = [0.5,0.25,0.25]
+    train, test, validation = split_data(split_sizes ,originalElectionsData)
     save_to_file(train,originalElectionsData.columns,"trainOrig")
     save_to_file(test,originalElectionsData.columns,"testOrig")
     save_to_file(validation,originalElectionsData.columns,"validationOrig")
 
-    train, test, validation = split_data(electionsData)
+    train, test, validation = split_data(split_sizes, electionsData)
     save_to_file(train,electionsData.columns,"train")
     save_to_file(test,electionsData.columns,"test")
     save_to_file(validation,electionsData.columns,"validation")
