@@ -75,6 +75,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 import at.bitfire.davdroid.Constants;
 import at.bitfire.davdroid.DateUtils;
+import at.bitfire.davdroid.crypto.CryptoUtils;
 import at.bitfire.davdroid.syncadapter.DavSyncAdapter;
 import ezvcard.util.org.apache.commons.codec.binary.Hex;
 import lombok.Getter;
@@ -245,10 +246,17 @@ public class Event extends Resource {
 
 		this.alarms = event.getAlarms();
 
-        // Decrypt all encrypted properties
-        summary = decryptProperty(key, summary);
-        location = decryptProperty(key, location);
-        description = decryptProperty(key, description);
+        // Check the signature of the summary
+        if(checkSignedProperty(key, summary)) {
+            // The signature is valid - decrypt
+            summary = decryptProperty(key, summary);
+            location = decryptProperty(key, location);
+            description = decryptProperty(key, description);
+
+        } else {
+            // The signature is invalid - do not decrypt
+            // ( Do nothing )
+        }
     }
 
 
@@ -406,6 +414,33 @@ public class Event extends Resource {
         }
     }
 
+    protected boolean checkSignedProperty(byte[] key, String value) {
+        if(value == null) {
+            return false;
+        }
+
+        // size of signature (doubled because of hex conversion)
+        int size = CryptoUtils.signatureSize() * 2;
+
+        if(value.length() <= size) {
+            return false;
+        }
+
+        try {
+
+            String signature = Hex.encodeHexString(value.substring(0, size).getBytes());
+            String decrypted = Hex.encodeHexString(decrypt(key, value.substring(size).getBytes()));
+
+            String calculated = new String(CryptoUtils.calculateSignature(decrypted, key));
+            return calculated.equals(signature);
+
+        } catch (Exception e) {
+            Log.i(TAG, "Value Failed!");
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     protected boolean encryptProperty(PropertyList props, byte[] key, String value, Class c) {
 
         if (value != null && !value.isEmpty()) {
@@ -433,6 +468,33 @@ public class Event extends Resource {
         return true;
     }
 
+    protected boolean encryptAndSignProperty(PropertyList props, byte[] key, String value, Class c) {
+
+        if (value != null && !value.isEmpty()) {
+            try {
+                Log.i(TAG, "Value: " + value);
+                Constructor constructor = c.getConstructor(String.class);
+                String signature = Hex.encodeHexString(CryptoUtils.calculateSignature(value,key));
+                String encrypted = Hex.encodeHexString(encrypt(key, value.getBytes()));
+                props.add(constructor.newInstance(signature + encrypted));
+
+            } catch (Exception e) {
+                Log.i(TAG, "Value Failed!");
+                e.printStackTrace();
+                try {
+                    Constructor constructor = c.getConstructor(String.class);
+                    // Falling back to not encrypting
+                    props.add(constructor.newInstance(value));
+                } catch (Exception ex) {
+                }
+            }
+        } else {
+            Log.i(TAG, "Value is null!");
+        }
+
+        // TODO - change this
+        return true;
+    }
 
     protected VEvent toVEvent() {
         Log.i(TAG, "toVEvent: Encrypting event with key '" + Hex.encodeHexString(key) + "'");
@@ -460,7 +522,8 @@ public class Event extends Resource {
             props.add(exdate);
 
 
-        encryptProperty(props, key, summary, Summary.class);
+        // Sign (for validation) and encrypt the summary. Only encrypt the rest of the properties
+        encryptAndSignProperty(props, key, summary, Summary.class);
         encryptProperty(props, key, location, Location.class);
         encryptProperty(props, key, description, Description.class);
 
