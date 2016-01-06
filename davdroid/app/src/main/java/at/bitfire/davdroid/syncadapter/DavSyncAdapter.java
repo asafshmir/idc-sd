@@ -8,8 +8,6 @@
 package at.bitfire.davdroid.syncadapter;
 
 import android.accounts.Account;
-import android.accounts.AccountManager;
-import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -112,7 +110,7 @@ public abstract class DavSyncAdapter extends AbstractThreadedSyncAdapter impleme
 	@Override
 	public void onPerformSync(Account account, Bundle extras, String authority,	ContentProviderClient provider, SyncResult syncResult) {
 		Log.i(TAG, "Performing sync for authority " + authority);
-		
+
 		// set class loader for iCal4j ResourceLoader
 		Thread.currentThread().setContextClassLoader(getContext().getClassLoader());
 		
@@ -142,8 +140,19 @@ public abstract class DavSyncAdapter extends AbstractThreadedSyncAdapter impleme
 				Log.i(TAG, "Nothing to synchronize");
 			else
 				try {
-					for (Map.Entry<LocalCollection<?>, RemoteCollection<?>> entry : syncCollections.entrySet())
-						new SyncManager(entry.getKey(), entry.getValue()).synchronize(extras.containsKey(ContentResolver.SYNC_EXTRAS_MANUAL), syncResult);
+					for (Map.Entry<LocalCollection<?>, RemoteCollection<?>> entry : syncCollections.entrySet()) {
+                        SyncManager mn = new SyncManager(entry.getKey(), entry.getValue());
+                        String key = mn.synchronize(extras.containsKey(ContentResolver.SYNC_EXTRAS_MANUAL), syncResult);
+                        SharedPreferences preferences = getContext().getSharedPreferences("caldavdetails", Context.MODE_PRIVATE);
+                        if (!preferences.contains("key"+entry.getKey())) {
+                            SharedPreferences.Editor editor = preferences.edit();
+                            editor.putString("key" + entry.getKey(), key);
+                            editor.commit();
+                        }
+
+                        Log.i(TAG,"Key-" + preferences.getString("key" + entry.getKey(),""));
+
+                    }
 
 				} catch (DavException ex) {
 					syncResult.stats.numParseExceptions++;
