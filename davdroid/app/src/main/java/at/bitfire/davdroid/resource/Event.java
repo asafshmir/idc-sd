@@ -92,7 +92,8 @@ public class Event extends Resource {
 
 	@Getter @Setter protected RecurrenceId recurrenceId;
 
-	@Getter @Setter protected String summary, location, description;
+	@Getter @Setter public String summary, description;
+    @Getter @Setter public String  location;
 	
 	@Getter protected DtStart dtStart;
 	@Getter protected DtEnd dtEnd;
@@ -182,7 +183,7 @@ public class Event extends Resource {
 		for (Object objEvent : events) {
 			VEvent event = (VEvent)objEvent;
 			if (event.getRecurrenceId() != null) {
-				Event exception = new Event(name, null);
+				Event exception = new Event(name, null, key);
 				exception.fromVEvent(event);
 				exceptions.add(exception);
 			}
@@ -257,6 +258,7 @@ public class Event extends Resource {
             // The signature is invalid - do not decrypt
             // ( Do nothing )
         }
+        Log.i(TAG,"MintSummary " + summary);
     }
 
 
@@ -543,6 +545,7 @@ public class Event extends Resource {
         props.add(new LastModified());
         return event;
     }
+
 
 
     public long getDtStartInMillis() {
