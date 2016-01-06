@@ -40,6 +40,13 @@ from sklearn import mixture
 
 DEFAULT_TEST_SIZE = .3
 
+RIGHT_FEATURE_SET = ['Vote', 'Yearly_ExpensesK', 'Yearly_IncomeK', 'Overall_happiness_score',
+                     'Most_Important_Issue', 'Avg_Residancy_Altitude',
+                     'Will_vote_only_large_party', 'Financial_agenda_matters']
+
+VOTES = {0:'Blues', 1:'Browns', 2:'Greens', 3:'Greys', 4:'Oranges', 5:'Pinks', 6:'Purples', 7:'Reds', 8:'Whites', 9:'Yellows'}
+PARTIES = map(lambda x: x[1], sorted(VOTES.items()))
+
 def load_from_file(name):
 	df = pd.read_csv("ElectionsData-%s.csv" % name, header=0)
 
@@ -62,8 +69,6 @@ def run_prediction_with_cross_validation(x,y,classifiers,parts):
 		results[np.mean(scores)] = classifier_name
 
 	return results
-
-fig = plt.figure(figsize=(12, 12))
 
 
 def run_svc(X_train,y_train):
@@ -252,18 +257,89 @@ def plot_kmeans(X_train, y_train):
 	plt.show()
 
 
+def plot_3d(train,relevant_parties=PARTIES):
+	fig3 = plt.figure(figsize=(8,8))
+	ax3 = fig3.add_subplot(111, projection='3d')
+	fig2 = plt.figure(figsize=(8,8))
+	ax2 = fig2.add_subplot(111, projection='3d')
+	fig1 = plt.figure(figsize=(8,8))
+	ax1 = fig1.add_subplot(111, projection='3d')
+
+	#relevant_parties = ["Blues", "Yellows", "Reds", "Greys", "Oranges"] #-155,-57
+	#relevant_parties = ["Greens","Pinks","Whites"] # -45, -45
+
+	for i, name in zip(range(len(PARTIES)), PARTIES):
+		if name in relevant_parties:
+			cur = train[train.Vote==i]
+			ax3.scatter(cur.Yearly_ExpensesK, cur.Yearly_IncomeK, cur.Overall_happiness_score, label=name, color=name[:-1])
+			ax2.scatter(cur.Yearly_ExpensesK, cur.Yearly_IncomeK, cur.Overall_happiness_score, label=name, color=name[:-1])
+			ax1.scatter(cur.Overall_happiness_score, cur.Yearly_ExpensesK, cur.Yearly_IncomeK, label=name, color=name[:-1])
+
+	ax1.view_init(elev=100, azim=320)
+	ax2.view_init(elev=180, azim=310)
+	ax3.view_init(elev=45, azim=45)
+
+	plt.legend(loc='best')
+	plt.show()
+
+def find_coalition(train,clf):
+
+	X_train = train.drop(['Vote','Financial_agenda_matters','Will_vote_only_large_party','Most_Important_Issue', 'Avg_Residancy_Altitude'], axis=1).values
+	y_train = train.Vote.values
+
+	clf.fit(X_train)
+	clusters = clf.predict(X_train)
+
+	print pd.crosstab(np.array(PARTIES)[y_train.astype(int)], clusters, rownames=["Party"], colnames=["Cluster"])
+	relevant_parties = ["Blues", "Yellows", "Reds", "Greys", "Oranges"]
+	coalition = ["Blues", "Yellows", "Oranges"]
+
+
+	plot_3d(train,relevant_parties)
+
 
 def main():
 
 	# Load the prepared training set
 	train = load_from_file("train")
-
-
-
+	train_columns = train.drop(['Vote'], axis=1).columns
 	X_train,y_train = prepare_prediction_data(train)
 
+	# Load the prepared test set
+	test = load_from_file("test")
+	X_test,y_test = prepare_prediction_data(test)
 
-	plot_gmm(X_train)
+	# Learnt that parties 1 and 6 are separate form the others according to
+	# Avg Residancy Alt and Will Only Vote Large Party
+
+	# Also Learnt that parties 2,5,8 are separate from the others using
+	# Most_Important_Issue
+
+
+	# TODO - uncomment
+	#plot_kmeans(X_train, y_train)
+
+	# We focus on the rest 0,3,4,7,9
+
+	# Use a generative model. We look at non-categorical features
+	# We learn that:
+	# Yearly_Expenses are important to Blues, Greys, Reds, Yellows (below 0.5)
+	# Yearly_Income are important to Blues, Greys, Reds, Yellows (below 0.5)
+	# Overall_happinnes_score are important to Blues, Greys, Oranges, Reds, Yellows (below 0.5)
+	# Avg_Alt_residenacy are important to no one, based on the (below 0.5) rule
+	clf = GaussianNB()
+	clf.fit(X_train, y_train)
+	sigmas = pd.DataFrame(index=PARTIES, columns=train_columns, data=clf.sigma_)
+	continous_features = ["Yearly_ExpensesK","Yearly_IncomeK","Overall_happiness_score","Avg_Residancy_Altitude"]
+	print sigmas[continous_features ]
+
+	# TODO - uncomment and show all groups
+	#plot_3d(train)
+	#plot_gmm(X_train)
+	clf = GMM(n_components=5)
+	find_coalition(train,clf)
+	clf = KMeans(n_clusters=5)
+	find_coalition(train,clf)
 
 	return
 
@@ -272,34 +348,9 @@ def main():
 		# Clustering Algorithms
 		# "KMeans (2)" : KMeans(n_clusters=2, n_init=10),
 
-		#"Linear SVC" : LinearSVC(C=1),
-		# "SVC" : SVC(C=1),
-		#
 		# "GMM" : GMM,
-		# "DPGMM" : DPGMM,
-		# "VBGMM" : VBGMM,
-		#
-		# "LDA" : LinearDiscriminantAnalysis,
-		# "QDA" : QuadraticDiscriminantAnalysis,
-		#
+
 		# "GaussianNB" : GaussianNB,
-
-
-		#
-		# "OneVsRestClassifier" : OneVsRestClassifier,
-		# "OneVsOneClassifier" : OneVsOneClassifier,
-		# "OneVsOneClassifier" : OutputCodeClassifier,
-		#
-		# "AgglomerativeClustering" : AgglomerativeClustering(n_clusters=5,
-		# linkage='ward', connectivity=''),
-		# "AffinityPropagation" : cluster.AffinityPropagation(damping=1)
-		# "AgglomerativeClustering" : cluster.AgglomerativeClustering()
-		# "Birch" : cluster.Birch(threshold=1,branching_factor=1),
-		#  "DBSCAN" : cluster.DBSCAN(eps=1, min_samples=1, metric=1),
-		#  "FeatureAgglomeration" : cluster.FeatureAgglomeration(n_clusters=1),
-		# "MiniBatchKMeans" : cluster.MiniBatchKMeans(n_clusters=1, init='k-means++'),
-		# "MeanShift" : cluster.MeanShift(bandwidth=1, seeds=1),
-		# "SpectralClustering" : cluster.SpectralClustering(n_clusters=1)
 
 	}
 
@@ -311,13 +362,10 @@ def main():
 	for key in keys:
 		print "%s (%.3f)" % (res[key], key)
 
-	return
-	plot_kmeans(X_train, y_train)
+
 	# Load the prepared test set
 	test = load_from_file("test")
 	X_test,y_test = prepare_prediction_data(test)
-
-	#run_kmeans(X_train, y_train)
 
 
 	df = pd.DataFrame(data=X_train)
@@ -326,56 +374,6 @@ def main():
 	print "Parties prediction values:"
 	percentages = df.ix[:,4].value_counts(normalize=True,sort=False)
 	print percentages
-	#for p in xrange(len(parties)):
-	#    print parties[p],percentages[p]
-
-	#print "The Winning party is: " + parties[int(df.ix[:,0].value_counts(normalize=True).idxmax())] + "\n"
-
-
-	#prob_pos_clf = clf.predict_proba(X_test)
-	#print len(prob_pos_clf)
-
-	#run_svc(X_train, y_train)
-	#a = input("Wait")
-	# Apply the trained models on the test set and check performance
-
-
-	# Select the best model for the prediction tasks
-	# chosen_classifier_name = res[keys[0]]
-	# chosen_classifier = classifiers[chosen_classifier_name]
-	# print "The best prediction model: ", chosen_classifier_name + "\n"
-	#
-	# chosen_classifier.fit(X_train, y_train)
-
-
-	# Incorrect number of clusters
-
-	# Use the selected model to provide the following:
-	# a. Predict to which party each person in the test set will vote
-	# prediction = chosen_classifier.predict(X_test)
-
-
-	# df = pd.DataFrame(data=prediction, columns=['Predicted-Vote'])
-	# parties = ['Blues','Browns','Greens','Greys','Oranges','Pinks','Purples','Reds','Whites','Yellows']
-	#
-	# print "Parties prediction values:"
-	# percentages = df.ix[:,0].value_counts(normalize=True,sort=False)
-	# for p in xrange(len(parties)):
-	#     print parties[p],percentages[p]
-	#
-	# print "The Winning party is: " + parties[int(df.ix[:,0].value_counts(normalize=True).idxmax())] + "\n"
-	#
-	# test['Predicted-Vote'] = df
-	# df.to_csv("ElectionsData-predictvalueonly.csv",sep=',',index=False)
-	# test.to_csv("ElectionsData-predict.csv",sep=',', index=False)
-	#
-	# # b. Construct the (test) confusion matrix and overall test error
-	# print "Confusion Matrix:"
-	# print confusion_matrix(y_test, prediction)
-	# print
-	# score = chosen_classifier.score(X_test, y_test)
-	# print chosen_classifier_name + " Score: %3f" % score
-	# print
 
 
 
