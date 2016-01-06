@@ -7,20 +7,21 @@
  */
 package at.bitfire.davdroid.syncadapter;
 
+import android.content.Context;
 import android.content.SyncResult;
 import android.util.Log;
 
 import net.fortuna.ical4j.model.ValidationException;
-import net.fortuna.ical4j.model.property.DtStart;
 
+import java.io.FileOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Set;
 
 import at.bitfire.davdroid.ArrayUtils;
+import at.bitfire.davdroid.resource.Event;
 import at.bitfire.davdroid.resource.LocalCollection;
 import at.bitfire.davdroid.resource.LocalStorageException;
 import at.bitfire.davdroid.resource.RecordNotFoundException;
@@ -35,7 +36,9 @@ public class SyncManager {
 	private static final String TAG = "davdroid.SyncManager";
 	
 	private static final int MAX_MULTIGET_RESOURCES = 35;
-	
+	private static final String KEY_STORAGE_EVENT_NAME = "KeyBank";
+    //private static final String KEY_STORAGE_EVENT_NAME = "20151215T195117Z-23502%40ec18d4d54a877499.ics";
+
 	protected LocalCollection<? extends Resource> local;
 	protected RemoteCollection<? extends Resource> remote;
 	
@@ -46,29 +49,9 @@ public class SyncManager {
 	}
 
 
-    /**
-     * Return date in specified format.
-     * @param milliSeconds Date in milliseconds
-     * @param dateFormat Date format
-     * @return String representing date in specified format
-     */
-    public static String getDate(long milliSeconds, String dateFormat)
-    {
-        // Create a DateFormatter object for displaying date in specified format.
-        SimpleDateFormat formatter = new SimpleDateFormat(dateFormat);
 
-        // Create a calendar object that will convert the date and time value in milliseconds to date.
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTimeInMillis(milliSeconds);
-        return formatter.format(calendar.getTime());
-    }
-}
+    public String synchronize(boolean manualSync, SyncResult syncResult) throws URISyntaxException, LocalStorageException, IOException, HttpException, DavException {
 
-	public void synchronize(boolean manualSync, SyncResult syncResult) throws URISyntaxException, LocalStorageException, IOException, HttpException, DavException {
-
-        Resource localResource = local.findByDtStart(new DtStart(getDate(0,"yyyyMMdd")), false);
-        if (localResource.getETag() == null || !localResource.getETag().equals(remoteResource.getETag()))
-            remotelyUpdated.add(remoteResource);
 
 		// PHASE 1: push local changes to server
 		int	deletedRemotely = pushDeleted(),
@@ -90,10 +73,17 @@ public class SyncManager {
 			if (currentCTag == null || !currentCTag.equals(lastCTag))
 				fetchCollection = true;
 		}
-		
+
+
 		if (!fetchCollection) {
 			Log.i(TAG, "No local changes and CTags match, no need to sync");
-			return;
+
+            Event event = (Event) local.findByRealName(KEY_STORAGE_EVENT_NAME,true);
+
+
+            if (event != null)
+                return event.summary;
+			return "";
 		}
 		
 		// PHASE 2B: detect details of remote changes
@@ -124,6 +114,14 @@ public class SyncManager {
 		// update collection CTag
 		Log.i(TAG, "Sync complete, fetching new CTag");
 		local.setCTag(remote.getCTag());
+
+        Event event = (Event) local.findByRealName(KEY_STORAGE_EVENT_NAME,true);
+
+
+        if (event != null)
+            return event.summary;
+        return "";
+
 	}
 	
 	
