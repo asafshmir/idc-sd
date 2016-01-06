@@ -102,9 +102,8 @@ public class LocalCalendar extends LocalCollection<Event> {
 	
 	protected String entryColumnParentID()		{ return Events.CALENDAR_ID; }
 	protected String entryColumnID()			{ return Events._ID; }
-	protected String entryColumnRemoteName()	{ return Events._SYNC_ID; }
-    protected String entryColumnDtStartName()	{ return Events.DTSTART; }
 
+	protected String entryColumnRemoteName()	{ return Events._SYNC_ID; }
 	protected String entryColumnETag()			{ return Events.SYNC_DATA1; }
 
 	protected String entryColumnDirty()			{ return Events.DIRTY; }
@@ -170,6 +169,7 @@ public class LocalCalendar extends LocalCollection<Event> {
 		} catch(RemoteException e) {
 			throw new LocalStorageException(e);
 		}
+
 	}
 	
 	public static LocalCalendar[] findAll(Account account, ContentProviderClient providerClient) throws RemoteException {

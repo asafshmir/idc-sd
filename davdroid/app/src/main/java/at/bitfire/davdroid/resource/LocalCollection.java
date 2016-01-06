@@ -62,9 +62,6 @@ public abstract class LocalCollection<T extends Resource> {
 	/** column name of an entry's file name on the WebDAV server */
 	abstract protected String entryColumnRemoteName();
 
-    /** column name of an entry's Date Starton the WebDAV server */
-    abstract protected String entryColumnDtStartName();
-
 	/** column name of an entry's last ETag on the WebDAV server; null if entry hasn't been uploaded yet */
 	abstract protected String entryColumnETag();
 	
@@ -273,31 +270,36 @@ public abstract class LocalCollection<T extends Resource> {
      * @throws RecordNotFoundException when the resource couldn't be found
      * @throws LocalStorageException when the content provider couldn't be queried
      */
-    public T findByDtStart(DtStart startDate, boolean populate) throws LocalStorageException {
+    public T findByRealName(String name, boolean populate) throws LocalStorageException {
 
-        String where = entryColumnDtStartName() + "=?";
-        if (sqlFilter != null)
-            where += " AND (" + sqlFilter + ")";
         try {
             @Cleanup Cursor cursor = providerClient.query(entriesURI(),
                     new String[] { entryColumnID(), entryColumnRemoteName(), entryColumnETag() },
-                    where, new String[] { String.valueOf(startDate.getDate().getTime()) }, null);
-            if (cursor != null && cursor.moveToNext()) {
+                    "", null, null);
+
+            while (cursor != null && cursor.moveToNext()) {
+                Log.i(TAG,String.valueOf(cursor.getLong(0)));
                 T resource = newResource(cursor.getLong(0), cursor.getString(1), cursor.getString(2));
                 if (populate)
                     populate(resource);
-                return resource;
-            } else
-                throw new RecordNotFoundException();
+                if (((Event)resource).summary.equals(name)) {
+
+                    return resource;
+                } else {
+                    Log.i(TAG,"SUMMARY!!! " + ((Event)resource).summary);
+                }
+            }
+
         } catch(RemoteException ex) {
             throw new LocalStorageException(ex);
         }
+        return null;
     }
 
 
 
 
-	/** populates all data fields from the content provider */
+    /** populates all data fields from the content provider */
 	public abstract void populate(Resource record) throws LocalStorageException;
 
 	
