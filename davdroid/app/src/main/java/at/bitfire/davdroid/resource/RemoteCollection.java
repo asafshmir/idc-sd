@@ -8,6 +8,8 @@
 package at.bitfire.davdroid.resource;
 
 import android.accounts.Account;
+import android.database.Cursor;
+import android.os.RemoteException;
 import android.util.Log;
 
 import net.fortuna.ical4j.model.ValidationException;
@@ -63,9 +65,6 @@ public abstract class RemoteCollection<T extends Resource> {
 		collection = new WebDavResource(httpClient, baseURI, user, password, preemptiveAuth);
 	}
 
-	public byte[] getKey() {
-        return key;
-    }
 	/* collection operations */
 
 	public String getCTag() throws URISyntaxException, IOException, HttpException {
@@ -89,7 +88,49 @@ public abstract class RemoteCollection<T extends Resource> {
 		return resources.toArray(new Resource[0]);
 	}
 
-	@SuppressWarnings("unchecked")
+
+
+    /**
+     * Finds a specific resource by resource name.
+     * @param remoteName	remote name of the resource
+
+     * @return resource with either ID/remote file/name/ETag or all fields populated
+     * @throws URISyntaxException
+     * @throws IOException
+     * @throws DavException
+     * @throws HttpException
+     */
+    public Event findByRealName(String remoteName) throws URISyntaxException, IOException, DavException, HttpException, RecordNotFoundException {
+        collection.propfind(HttpPropfind.Mode.MEMBERS_ETAG);
+
+        if (collection.getMembers() != null) {
+
+            for (WebDavResource member : collection.getMembers()) {
+                //Event resource = newResourceSkeleton(member.getName(), member.getETag());
+                Event e = new Event("","",null);
+                try {
+                    if (member.getContent() != null) {
+                        @Cleanup InputStream is = new ByteArrayInputStream(member.getContent());
+                        e.parseEntity(is, getDownloader());
+                        Log.i(TAG,e.summary);
+                        if (e.summary.equals(remoteName)) {
+                            return e;
+                        }
+                    } else
+                        Log.e(TAG, "Ignoring entity without content");
+                } catch (InvalidResourceException ex) {
+                    Log.e(TAG, "Ignoring unparseable entity in multi-response", ex);
+                }
+            }
+
+
+
+        }
+        throw new RecordNotFoundException();
+    }
+
+
+    @SuppressWarnings("unchecked")
 	public Resource[] multiGet(Resource[] resources) throws URISyntaxException, IOException, DavException, HttpException {
 		try {
 			if (resources.length == 1)
