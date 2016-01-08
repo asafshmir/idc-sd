@@ -4,6 +4,7 @@ import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.util.Random;
@@ -37,12 +38,15 @@ public class CryptoUtils {
     /** The secure hashing algorithm */
     private static final String SIGNATURE_ALGORITHM = "HmacSHA1";
 
+    // TODO for user authentication with asymetric signature use bouncy-castle: elyptic curve, DSA
+
     /**
      * Generate a random pair (public, private) of keys for the algorithm
      * @return The key pair
      */
     public static KeyPair generateRandomKeyPair() {
 
+        // TODO replace with bouncy-castle: elyptic curve, el-gamal, 400 bits
         try {
             KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(ASYMMETRIC_ALGORITHM);
             keyPairGenerator.initialize(ASYMMETRIC_KEY_SIZE);
@@ -106,7 +110,7 @@ public class CryptoUtils {
      * @param key The asymmetric algorithm private key
      * @return The decrypted symmetric key
      */
-    public static byte[] decryptSymmetricKey(byte[] symmetricKeyBytes, PublicKey key) {
+    public static byte[] decryptSymmetricKey(byte[] symmetricKeyBytes, PrivateKey key) {
 
         try {
             Cipher cipher = Cipher.getInstance(ASYMMETRIC_ALGORITHM);
@@ -139,6 +143,26 @@ public class CryptoUtils {
             Mac mac = Mac.getInstance(SIGNATURE_ALGORITHM);
             mac.init(signingKey);
             return mac.doFinal(data.getBytes());
+        } catch(NoSuchAlgorithmException ae) {
+            return null;
+        } catch (InvalidKeyException ke) {
+            return null;
+        }
+    }
+
+    /**
+     * Calculate the hashed signature of the given data
+     * @param data The data
+     * @param symmetricKeyBytes The key for the secure hash
+     * @return The signature
+     */
+    public static byte[] calculateSignature(byte[] data, byte[] symmetricKeyBytes) {
+
+        try {
+            SecretKeySpec signingKey = new SecretKeySpec(symmetricKeyBytes, SIGNATURE_ALGORITHM);
+            Mac mac = Mac.getInstance(SIGNATURE_ALGORITHM);
+            mac.init(signingKey);
+            return mac.doFinal(data);
         } catch(NoSuchAlgorithmException ae) {
             return null;
         } catch (InvalidKeyException ke) {
