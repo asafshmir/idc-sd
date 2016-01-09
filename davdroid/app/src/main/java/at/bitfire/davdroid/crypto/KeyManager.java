@@ -7,6 +7,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.security.KeyPair;
+import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -14,25 +15,8 @@ import java.util.Map;
 
 public class KeyManager {
 
-    public class KeyRecord {
-
-        public KeyRecord(byte[] pbkey, byte[] encSK, byte[] signature) {
-            this.pbkey = pbkey;
-            this.encSK = encSK;
-            this.signature = signature;
-        }
-
-        protected byte[] pbkey;
-        protected byte[] encSK;
-        protected byte[] signature;
-    }
-
-    // JSON tag names and attributes
-    private final static String KEYBANK_TAG = "KEYBANK";
-    private final static String USER_ID_ATTR = "user-id";
-    private final static String PUBLIC_KEY_ATTR = "public-key";
-    private final static String ENC_SK_ATTR = "enc-sk";
-    private final static String SIGNATURE_ATTR = "signature";
+    // Singleton instance
+    private static KeyManager instance = null;
 
     // A map from userID to KeyRecord
     protected String userID;
@@ -41,15 +25,22 @@ public class KeyManager {
     // Asymmetric key-pair
     protected KeyPair asymKeyPair;
 
+    // JSON tag names and attributes
+    private final static String KEYBANK_TAG = "KEYBANK";
+    private final static String USER_ID_ATTR = "user-id";
+    private final static String PUBLIC_KEY_ATTR = "public-key";
+    private final static String ENC_SK_ATTR = "enc-sk";
+    private final static String SIGNATURE_ATTR = "signature";
 
-    // TODO - make key manager singleton
-
-    public KeyManager()  {
-
+    private KeyManager()  {
         keyBank = new HashMap<String, KeyRecord>();
+    }
 
-        // Sync the asymmetric key-pair
-        syncAsymKeyPair();
+    public static KeyManager getInstance() {
+        if (instance == null) {
+            instance = new KeyManager();
+        }
+        return instance;
     }
 
     public String syncAsymKeyPair(String keyPairData) {
@@ -61,13 +52,41 @@ public class KeyManager {
         return keyPairToString(asymKeyPair);
     }
 
-    // TODO extend KeyPair and add this functionality
     private String keyPairToString(KeyPair keyPair) {
-
+        byte[] pbKeyData = keyPair.getPublic().getEncoded();
+        byte[] prKeyData = keyPair.getPrivate().getEncoded();
+        byte[] data = new byte[pbKeyData.length + prKeyData.length];
+        System.arraycopy(pbKeyData, 0, data, 0, pbKeyData.length);
+        System.arraycopy(prKeyData, 0, data, pbKeyData.length, prKeyData.length);
+        return Base64.encodeToString(data, Base64.DEFAULT);
     }
 
     private KeyPair stringToKeyPair(String keyPairData) {
+        byte[] data = Base64.decode(keyPairData.getBytes(), Base64.DEFAULT);
+        final byte[] pbKeyData = new byte[CryptoUtils.ASYMMETRIC_KEY_SIZE];
+        final byte[] prKeyData = new byte[CryptoUtils.ASYMMETRIC_KEY_SIZE];
+        System.arraycopy(data, 0, pbKeyData, 0, pbKeyData.length);
+        System.arraycopy(data, pbKeyData.length, prKeyData, 0, prKeyData.length);
 
+        PublicKey pbKey = new PublicKey() {
+            @Override
+            public String getAlgorithm() { return null; }
+            @Override
+            public String getFormat() { return null; }
+            @Override
+            public byte[] getEncoded() { return pbKeyData; }
+        };
+
+        PrivateKey prKey = new PrivateKey() {
+            @Override
+            public String getAlgorithm() { return null; }
+            @Override
+            public String getFormat() { return null; }
+            @Override
+            public byte[] getEncoded() { return prKeyData; }
+        };
+
+        return new KeyPair(pbKey, prKey);
     }
 
     // TODO handle multiple accounts per KeyManager
@@ -120,9 +139,6 @@ public class KeyManager {
 
     public String getBase64SK(String userID) {
         return Base64.encodeToString(getSK(userID),Base64.DEFAULT);
-    }
-    public void addUserRequest(String userID, byte[] pbkey) {
-
     }
 
     private void validateAllUsers() {
@@ -243,5 +259,18 @@ public class KeyManager {
             return null;
         }
         return rootObj.toString();
+    }
+
+    public class KeyRecord {
+
+        public KeyRecord(byte[] pbkey, byte[] encSK, byte[] signature) {
+            this.pbkey = pbkey;
+            this.encSK = encSK;
+            this.signature = signature;
+        }
+
+        protected byte[] pbkey;
+        protected byte[] encSK;
+        protected byte[] signature;
     }
 }
