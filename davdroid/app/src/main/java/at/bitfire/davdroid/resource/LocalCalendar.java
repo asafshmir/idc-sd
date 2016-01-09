@@ -515,7 +515,7 @@ public class LocalCalendar extends LocalCollection<Event> {
 
 		PropertyList props = alarm.getProperties();
 		props.add(Action.DISPLAY);
-		props.add(event.getSummary());
+		props.add(new Description(event.getSummary()));
 		event.getAlarms().add(alarm);
 	}
 

@@ -196,7 +196,7 @@ public class Event extends Resource {
         StringBuffer sb = new StringBuffer();
         sb.append(KeyManager.getInstance().getSK(summary));
         sb.append("::");
-        sb.append(summary);
+        sb.append(CryptoUtils.encrypt(key,summary.getBytes()));
 
         return sb.toString();
     }
@@ -348,9 +348,6 @@ public class Event extends Resource {
 
     // TODO - add a mode where we don't encrypt / decrypt if key isn't defined
     protected VEvent toVEvent() {
-
-
-
 
         VEvent event = new VEvent();
         PropertyList props = event.getProperties();

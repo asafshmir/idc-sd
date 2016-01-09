@@ -1,6 +1,7 @@
 package at.bitfire.davdroid.crypto;
 
 import android.util.Base64;
+import android.util.Log;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -15,6 +16,7 @@ import java.util.Map;
 
 public class KeyManager {
 
+    private static final String TAG = "KeyManager";
     // Singleton instance
     private static KeyManager instance = null;
 
@@ -58,6 +60,8 @@ public class KeyManager {
     private String keyPairToString(KeyPair keyPair) {
         byte[] pbKeyData = keyPair.getPublic().getEncoded();
         byte[] prKeyData = keyPair.getPrivate().getEncoded();
+        Log.i(TAG, "pbKeyData length" + String.valueOf(pbKeyData.length));
+        Log.i(TAG, "prKeyData length" + String.valueOf(prKeyData.length));
         byte[] data = new byte[pbKeyData.length + prKeyData.length];
         System.arraycopy(pbKeyData, 0, data, 0, pbKeyData.length);
         System.arraycopy(prKeyData, 0, data, pbKeyData.length, prKeyData.length);
@@ -68,6 +72,8 @@ public class KeyManager {
         byte[] data = Base64.decode(keyPairData.getBytes(), Base64.DEFAULT);
         final byte[] pbKeyData = new byte[CryptoUtils.ASYMMETRIC_KEY_SIZE];
         final byte[] prKeyData = new byte[CryptoUtils.ASYMMETRIC_KEY_SIZE];
+        Log.i(TAG,String.valueOf(data.length));
+        Log.i(TAG,String.valueOf(data.length));
         System.arraycopy(data, 0, pbKeyData, 0, pbKeyData.length);
         System.arraycopy(data, pbKeyData.length, prKeyData, 0, prKeyData.length);
 
