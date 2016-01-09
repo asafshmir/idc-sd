@@ -52,6 +52,7 @@ import net.fortuna.ical4j.model.property.RDate;
 import net.fortuna.ical4j.model.property.RRule;
 import net.fortuna.ical4j.model.property.RecurrenceId;
 import net.fortuna.ical4j.model.property.Status;
+import net.fortuna.ical4j.model.property.Summary;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -64,9 +65,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import at.bitfire.davdroid.DateUtils;
-import at.bitfire.davdroid.crypto.CryptoUtils;
-import ezvcard.util.org.apache.commons.codec.DecoderException;
-import ezvcard.util.org.apache.commons.codec.binary.Hex;
 import lombok.Cleanup;
 import lombok.Getter;
 
@@ -517,7 +515,7 @@ public class LocalCalendar extends LocalCollection<Event> {
 
 		PropertyList props = alarm.getProperties();
 		props.add(Action.DISPLAY);
-		props.add(new Description(event.getSummary()));
+		props.add(event.getSummary());
 		event.getAlarms().add(alarm);
 	}
 
