@@ -155,16 +155,16 @@ public abstract class DavSyncAdapter extends AbstractThreadedSyncAdapter impleme
 		try {
 			// get local <-> remote collection pairs
 			Map<LocalCollection<?>, RemoteCollection<?>> syncCollections = getSyncPairs(account, provider);
-			if (syncCollections == null)
-				Log.i(TAG, "Nothing to synchronize");
-			else
+
 				try {
 					for (Map.Entry<LocalCollection<?>, RemoteCollection<?>> entry : syncCollections.entrySet()) {
-                        // TODO - generate or read public and private key
-                        SyncManager mn = new SyncManager(entry.getKey(), entry.getValue());
-                        mn.synchronize(extras.containsKey(ContentResolver.SYNC_EXTRAS_MANUAL), syncResult, account.name);
-
-
+                        SyncManager mn = new SyncManager(entry.getKey(), entry.getValue(), account.name);
+                        // If we don't have to sync the calendars, we still need to read the keys for each calendar.
+                        if (syncCollections == null) {
+                            mn.synchronizeKeys();
+                        } else {
+                            mn.synchronize(extras.containsKey(ContentResolver.SYNC_EXTRAS_MANUAL), syncResult);
+                        }
                     }
 
 				} catch (DavException ex) {
