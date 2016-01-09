@@ -41,7 +41,9 @@ public class KeyManager {
     // Asymmetric key-pair
     protected KeyPair asymKeyPair;
 
+
     // TODO - make key manager singleton
+
     public KeyManager()  {
 
         keyBank = new HashMap<String, KeyRecord>();
@@ -50,11 +52,25 @@ public class KeyManager {
         syncAsymKeyPair();
     }
 
-    private void syncAsymKeyPair() {
-        // TODO check if there exists a key-pair in the local storage, and if so read it
-        asymKeyPair = CryptoUtils.generateRandomKeyPair();
+    public String syncAsymKeyPair(String keyPairData) {
+        if (keyPairData == null) {
+            asymKeyPair = CryptoUtils.generateRandomKeyPair();
+        } else {
+            asymKeyPair = stringToKeyPair(keyPairData);
+        }
+        return keyPairToString(asymKeyPair);
     }
 
+    // TODO extend KeyPair and add this functionality
+    private String keyPairToString(KeyPair keyPair) {
+
+    }
+
+    private KeyPair stringToKeyPair(String keyPairData) {
+
+    }
+
+    // TODO handle multiple accounts per KeyManager
     public String initKeyBank(String userID, String keyBankData) {
 
         this.userID = userID;

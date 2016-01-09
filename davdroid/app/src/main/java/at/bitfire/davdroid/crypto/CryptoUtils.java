@@ -1,5 +1,7 @@
 package at.bitfire.davdroid.crypto;
 
+import android.util.Log;
+
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -76,6 +78,38 @@ public class CryptoUtils {
         } catch (NoSuchAlgorithmException e) {
             return null;
         }
+    }
+
+    /**
+     *
+     * @param raw
+     * @param clear
+     * @return
+     */
+    public static byte[] encrypt(byte[] raw, byte[] clear) {
+        byte[] encrypted = null;
+        try {
+            SecretKeySpec skeySpec = new SecretKeySpec(raw, "AES");
+            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING");
+            cipher.init(Cipher.ENCRYPT_MODE, skeySpec);
+            encrypted = cipher.doFinal(clear);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return encrypted;
+    }
+
+    public static byte[] decrypt(byte[] raw, byte[] encrypted) {
+        byte[] decrypted = null;
+        try {
+            SecretKeySpec skeySpec = new SecretKeySpec(raw, "AES");
+            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING");
+            cipher.init(Cipher.DECRYPT_MODE, skeySpec);
+            decrypted = cipher.doFinal(encrypted);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return decrypted;
     }
 
     /**
