@@ -247,11 +247,11 @@ public class Event extends Resource {
         // TODO - read key from key manager
         byte[] key = "".getBytes();
         // Check the signature of the summary
-        if(checkSignedProperty(key, summary)) {
+        if(CryptoUtils.checkSignedProperty(key, summary)) {
             // The signature is valid - decrypt
-            summary = decryptProperty(key, summary);
-            location = decryptProperty(key, location);
-            description = decryptProperty(key, description);
+            summary = CryptoUtils.decryptProperty(key, summary);
+            location = CryptoUtils.decryptProperty(key, location);
+            description = CryptoUtils.decryptProperty(key, description);
 
         } else {
             // The signature is invalid - do not decrypt
@@ -315,154 +315,9 @@ public class Event extends Resource {
 		}
 		return os;
 	}
-/*
-	protected VEvent toVEvent() {
-		VEvent event = new VEvent();
-		PropertyList props = event.getProperties();
-
-		if (uid != null)
-			props.add(new Uid(uid));
-		if (recurrenceId != null)
-			props.add(recurrenceId);
-
-		props.add(dtStart);
-		if (dtEnd != null)
-			props.add(dtEnd);
-		if (duration != null)
-			props.add(duration);
-
-		if (rrule != null)
-			props.add(rrule);
-		if (rdate != null)
-			props.add(rdate);
-		if (exrule != null)
-			props.add(exrule);
-		if (exdate != null)
-			props.add(exdate);
-
-		if (summary != null && !summary.isEmpty())
-			props.add(new Summary(summary));
-		if (location != null && !location.isEmpty())
-			props.add(new Location(location));
-		if (description != null && !description.isEmpty())
-			props.add(new Description(description));
-
-		if (status != null)
-			props.add(status);
-		if (!opaque)
-			props.add(Transp.TRANSPARENT);
-
-		if (organizer != null)
-			props.add(organizer);
-		props.addAll(attendees);
-
-		if (forPublic != null)
-			event.getProperties().add(forPublic ? Clazz.PUBLIC : Clazz.PRIVATE);
-
-		event.getAlarms().addAll(alarms);
-
-		props.add(new LastModified());
-		return event;
-	}
-*/
 
 
-    protected String decryptProperty(byte[] key, String value) {
-        if(value == null) {
-            return null;
-        }
 
-        try {
-            String decrypted = Hex.encodeHexString(decrypt(key, value.getBytes()));
-            return  decrypted;
-        } catch (Exception e) {
-            Log.i(TAG, "Value Failed!");
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    protected boolean checkSignedProperty(byte[] key, String value) {
-        if(value == null) {
-            return false;
-        }
-
-        // size of signature (doubled because of hex conversion)
-        int size = CryptoUtils.signatureSize() * 2;
-
-        if(value.length() <= size) {
-            return false;
-        }
-
-        try {
-
-            String signature = Hex.encodeHexString(value.substring(0, size).getBytes());
-            String decrypted = Hex.encodeHexString(decrypt(key, value.substring(size).getBytes()));
-
-            String calculated = new String(CryptoUtils.calculateSignature(decrypted, key));
-            return calculated.equals(signature);
-
-        } catch (Exception e) {
-            Log.i(TAG, "Value Failed!");
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    protected boolean encryptProperty(PropertyList props, byte[] key, String value, Class c) {
-
-        if (value != null && !value.isEmpty()) {
-            try {
-                Log.i(TAG, "Value: " + value);
-                Constructor constructor = c.getConstructor(String.class);
-                String encrypted = Hex.encodeHexString(encrypt(key, value.getBytes()));
-                props.add(constructor.newInstance(encrypted));
-
-            } catch (Exception e) {
-                Log.i(TAG, "Value Failed!");
-                e.printStackTrace();
-                try {
-                    Constructor constructor = c.getConstructor(String.class);
-                    // Falling back to not encrypting
-                    props.add(constructor.newInstance(value));
-                } catch (Exception ex) {
-                }
-            }
-        } else {
-            Log.i(TAG, "Value is null!");
-        }
-
-        // TODO - change this
-        return true;
-    }
-
-    protected boolean encryptAndSignProperty(PropertyList props, byte[] key, String value, Class c) {
-
-        if (value != null && !value.isEmpty()) {
-            try {
-                Log.i(TAG, "Value: " + value);
-                Constructor constructor = c.getConstructor(String.class);
-                String signature = Hex.encodeHexString(CryptoUtils.calculateSignature(value,key));
-                String encrypted = Hex.encodeHexString(encrypt(key, value.getBytes()));
-                props.add(constructor.newInstance(signature + encrypted));
-
-            } catch (Exception e) {
-                Log.i(TAG, "Value Failed!");
-                e.printStackTrace();
-                try {
-                    Constructor constructor = c.getConstructor(String.class);
-                    // Falling back to not encrypting
-                    props.add(constructor.newInstance(value));
-                } catch (Exception ex) {
-                }
-            }
-        } else {
-            Log.i(TAG, "Value is null!");
-        }
-
-        // TODO - change this
-        return true;
-    }
 
     // TODO - add a mode where we don't encrypt / decrypt if key isn't defined
     protected VEvent toVEvent() {
@@ -495,9 +350,9 @@ public class Event extends Resource {
 
 
         // Sign (for validation) and encrypt the summary. Only encrypt the rest of the properties
-        encryptAndSignProperty(props, key, summary, Summary.class);
-        encryptProperty(props, key, location, Location.class);
-        encryptProperty(props, key, description, Description.class);
+        CryptoUtils.encryptAndSignProperty(props, key, summary, Summary.class);
+        CryptoUtils.encryptProperty(props, key, location, Location.class);
+        CryptoUtils.encryptProperty(props, key, description, Description.class);
 
 
         if (status != null)

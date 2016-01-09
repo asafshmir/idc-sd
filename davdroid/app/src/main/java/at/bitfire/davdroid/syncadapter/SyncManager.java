@@ -39,40 +39,36 @@ public class SyncManager {
 
 	protected LocalCollection<? extends Resource> local;
 	protected RemoteCollection<? extends Resource> remote;
+    protected String user;
 	
 	
-	public SyncManager(LocalCollection<? extends Resource> local, RemoteCollection<? extends Resource> remote) {
+	public SyncManager(LocalCollection<? extends Resource> local, RemoteCollection<? extends Resource> remote, String accountName) {
 		this.local = local;
 		this.remote = remote;
+        this.user = accountName + "-" + local.getId();
 	}
 
-    public void synchronizeKeys(String accountName) throws LocalStorageException {
-        Log.i(TAG, "No local changes and CTags match, no need to sync");
+    public void synchronizeKeys() throws LocalStorageException {
 
         Event event = (Event) local.findByRealName(KEY_STORAGE_EVENT_NAME,true);
-        // TODO switch to singleton when implemented
-        KeyManager keyManager = new KeyManager();
+
+        KeyManager keyManager = KeyManager.getInstance();
+
         if (event != null) {
-//            // TODO - check if the account exists in the key bank
-            keyManager.initKeyBank(accountName,event.summary);
+            keyManager.initKeyBank(user,event.description);
         } else {
-
             event = new Event(KEY_STORAGE_EVENT_NAME,null);
-            event.summary = keyManager.initKeyBank(accountName,null);
-            // TODO - change when relevant function is implemented in KeyManager
-
-            event.description = keyManager.getBase64SK(accountName);
+            event.summary = KEY_STORAGE_EVENT_NAME;
+            // Generates a new key bank
+            event.description = keyManager.initKeyBank(user,null);
             event.setDtStart(1,null);
             event.setDtEnd(1,null);
             local.add(event);
-
         }
 
     }
 
-
-
-    public void synchronize(boolean manualSync, SyncResult syncResult, String accountName) throws URISyntaxException, LocalStorageException, IOException, HttpException, DavException {
+    public void synchronize(boolean manualSync, SyncResult syncResult) throws URISyntaxException, LocalStorageException, IOException, HttpException, DavException {
 
 
 		// PHASE 1: push local changes to server
@@ -98,7 +94,7 @@ public class SyncManager {
 
 
 		if (!fetchCollection) {
-            synchronizeKeys(accountName);
+            synchronizeKeys();
             return;
 		}
 		
@@ -131,10 +127,12 @@ public class SyncManager {
 		Log.i(TAG, "Sync complete, fetching new CTag");
 		local.setCTag(remote.getCTag());
 
-        synchronizeKeys(accountName);
+        synchronizeKeys();
 
 	}
-	
+
+
+
 	
 	private int pushDeleted() throws URISyntaxException, LocalStorageException, IOException, HttpException {
 		int count = 0;
