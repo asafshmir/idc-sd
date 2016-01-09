@@ -41,7 +41,8 @@ public class KeyManager {
     // Asymmetric key-pair
     protected KeyPair asymKeyPair;
 
-    public KeyManager(String data)  {
+    // TODO - make key manager singleton
+    public KeyManager()  {
 
         keyBank = new HashMap<String, KeyRecord>();
 
@@ -101,6 +102,9 @@ public class KeyManager {
         return CryptoUtils.decryptSymmetricKey(encSK, asymKeyPair.getPrivate());
     }
 
+    public String getBase64SK(String userID) {
+        return Base64.encodeToString(getSK(userID),Base64.DEFAULT);
+    }
     public void addUserRequest(String userID, byte[] pbkey) {
 
     }
@@ -208,9 +212,9 @@ public class KeyManager {
                 JSONObject userObj = new JSONObject();
                 KeyRecord keyRecord = keyBank.get(userID);
                 userObj.put("USER_ID_ATTR", userID);
-                userObj.put("PUBLIC_KEY_ATTR", Base64.decode(keyRecord.pbkey, Base64.DEFAULT));
-                userObj.put("ENC_SK_ATTR", Base64.decode(keyRecord.encSK, Base64.DEFAULT));
-                userObj.put("SIGNATURE_ATTR", Base64.decode(keyRecord.signature, Base64.DEFAULT));
+                userObj.put("PUBLIC_KEY_ATTR", Base64.encodeToString(keyRecord.pbkey, Base64.DEFAULT));
+                userObj.put("ENC_SK_ATTR", Base64.encodeToString(keyRecord.encSK, Base64.DEFAULT));
+                userObj.put("SIGNATURE_ATTR", Base64.encodeToString(keyRecord.signature, Base64.DEFAULT));
 
                 keybank.put(userObj);
             }
