@@ -41,7 +41,7 @@ import javax.net.ssl.SSLException;
 
 import at.bitfire.davdroid.Constants;
 import at.bitfire.davdroid.R;
-import at.bitfire.davdroid.crypto.KeyBank;
+import at.bitfire.davdroid.crypto.KeyManager;
 import at.bitfire.davdroid.resource.LocalCollection;
 import at.bitfire.davdroid.resource.LocalStorageException;
 import at.bitfire.davdroid.resource.RemoteCollection;
@@ -53,7 +53,7 @@ import lombok.Getter;
 
 public abstract class DavSyncAdapter extends AbstractThreadedSyncAdapter implements Closeable {
 	private final static String TAG = "davdroid.DavSyncAdapter";
-	
+	private final static String KEYPAIR_PREFERENCE = "KeyPair";
 	@Getter private static String androidID;
 
 	protected Context context;
@@ -73,13 +73,31 @@ public abstract class DavSyncAdapter extends AbstractThreadedSyncAdapter impleme
 	
 	public DavSyncAdapter(Context context) {
 		super(context, true);
-		
+
+
+
 		synchronized(this) {
 			if (androidID == null)
 				androidID = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
 		}
 
 		this.context = context;
+
+        // TODO - read public / private key form shared preferences and generate new singleton key manager
+
+        SharedPreferences preferences = context.getSharedPreferences("caldavdetails", Context.MODE_PRIVATE);
+
+        //Log.i(TAG,account.name);
+        // TODO - Fix KeyManager
+        if (!preferences.contains(KEYPAIR_PREFERENCE)) {
+            SharedPreferences.Editor editor = preferences.edit();
+            // TODO - add right key interface
+            //editor.putString("key" + entry.getKey(), keyBank.key);
+            editor.putString(KEYPAIR_PREFERENCE, "KeyManager");
+            editor.commit();
+        }
+
+        Log.i(TAG,"Key-" + preferences.getString(KEYPAIR_PREFERENCE,""));
 	}
 	
 	@Override
@@ -142,20 +160,10 @@ public abstract class DavSyncAdapter extends AbstractThreadedSyncAdapter impleme
 			else
 				try {
 					for (Map.Entry<LocalCollection<?>, RemoteCollection<?>> entry : syncCollections.entrySet()) {
+                        // TODO - generate or read public and private key
                         SyncManager mn = new SyncManager(entry.getKey(), entry.getValue());
-                        KeyBank keyBank = mn.synchronize(extras.containsKey(ContentResolver.SYNC_EXTRAS_MANUAL), syncResult, account.name);
-                        SharedPreferences preferences = getContext().getSharedPreferences("caldavdetails", Context.MODE_PRIVATE);
-                        Log.i(TAG,account.name);
-                        // TODO - Fix KeyBank
-                        if (!preferences.contains("key"+entry.getKey())) {
-                            SharedPreferences.Editor editor = preferences.edit();
-                            // TODO - add right key interface
-                            //editor.putString("key" + entry.getKey(), keyBank.key);
-                            editor.putString("key" + entry.getKey(), "KeyBank");
-                            editor.commit();
-                        }
-                        entry.getKey().key = keyBank;
-                        Log.i(TAG,"Key-" + preferences.getString("key" + entry.getKey(),""));
+                        mn.synchronize(extras.containsKey(ContentResolver.SYNC_EXTRAS_MANUAL), syncResult, account.name);
+
 
                     }
 

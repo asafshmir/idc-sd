@@ -65,7 +65,6 @@ import java.util.regex.Pattern;
 
 import at.bitfire.davdroid.DateUtils;
 import at.bitfire.davdroid.crypto.CryptoUtils;
-import at.bitfire.davdroid.crypto.KeyBank;
 import ezvcard.util.org.apache.commons.codec.DecoderException;
 import ezvcard.util.org.apache.commons.codec.binary.Hex;
 import lombok.Cleanup;
@@ -135,7 +134,6 @@ public class LocalCalendar extends LocalCollection<Event> {
 		ContentValues values = new ContentValues();
 		values.put(Calendars.ACCOUNT_NAME, account.name);
 		values.put(Calendars.ACCOUNT_TYPE, account.type);
-        values.put(Calendars.OWNER_ACCOUNT, Hex.encodeHexString(CryptoUtils.generateRandomSymmetricKey()));
 		values.put(Calendars.NAME, info.getURL());
 		values.put(Calendars.CALENDAR_DISPLAY_NAME, info.getTitle());
 		values.put(Calendars.CALENDAR_COLOR, color);
@@ -170,27 +168,21 @@ public class LocalCalendar extends LocalCollection<Event> {
 	
 	public static LocalCalendar[] findAll(Account account, ContentProviderClient providerClient) throws RemoteException {
 		@Cleanup Cursor cursor = providerClient.query(calendarsURI(account),
-				new String[] { Calendars._ID, Calendars.NAME, Calendars.OWNER_ACCOUNT },
+				new String[] { Calendars._ID, Calendars.NAME},
 				Calendars.DELETED + "=0 AND " + Calendars.SYNC_EVENTS + "=1", null, null);
 		
 		LinkedList<LocalCalendar> calendars = new LinkedList<LocalCalendar>();
 		while (cursor != null && cursor.moveToNext())
-			calendars.add(new LocalCalendar(account, providerClient, cursor.getInt(0), cursor.getString(1), cursor.getString(2)));
+			calendars.add(new LocalCalendar(account, providerClient, cursor.getInt(0), cursor.getString(1)));
 
 		return calendars.toArray(new LocalCalendar[0]);
 	}
 
 
-    public LocalCalendar(Account account, ContentProviderClient providerClient, long id, String url, String key) {
+    public LocalCalendar(Account account, ContentProviderClient providerClient, long id, String url) {
         super(account, providerClient);
         this.id = id;
         this.url = url;
-//        try {
-//            this.key = Hex.decodeHex(key.toCharArray());
-//        } catch (DecoderException e) {
-//            // TODO - Russo Handle decoder exception
-//        }
-        this.key = new KeyBank(key);
         sqlFilter = "ORIGINAL_ID IS NULL";
     }
 
@@ -246,7 +238,7 @@ public class LocalCalendar extends LocalCollection<Event> {
 	/* create/update/delete */
 	
 	public Event newResource(long localID, String resourceName, String eTag) {
-		return new Event(localID, resourceName, eTag, this.key);
+		return new Event(localID, resourceName, eTag);
 	}
 	
 	public void deleteAllExceptRemoteNames(Resource[] remoteResources) {
@@ -461,7 +453,7 @@ public class LocalCalendar extends LocalCollection<Event> {
 			long exceptionId = c.getLong(0);
 			String exceptionRemoteName = c.getString(1);
 			try {
-				Event exception = new Event(exceptionId, exceptionRemoteName, null, this.key);
+				Event exception = new Event(exceptionId, exceptionRemoteName, null);
 				populate(exception);
 				e.getExceptions().add(exception);
 			} catch (LocalStorageException ex) {

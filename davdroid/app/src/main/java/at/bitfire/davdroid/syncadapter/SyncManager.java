@@ -12,17 +12,14 @@ import android.util.Log;
 
 import net.fortuna.ical4j.model.ValidationException;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.HashSet;
 import java.util.Set;
 
 import at.bitfire.davdroid.ArrayUtils;
-import at.bitfire.davdroid.crypto.KeyBank;
+import at.bitfire.davdroid.crypto.KeyManager;
 import at.bitfire.davdroid.resource.Event;
-import at.bitfire.davdroid.resource.InvalidResourceException;
 import at.bitfire.davdroid.resource.LocalCollection;
 import at.bitfire.davdroid.resource.LocalStorageException;
 import at.bitfire.davdroid.resource.RecordNotFoundException;
@@ -32,14 +29,12 @@ import at.bitfire.davdroid.webdav.DavException;
 import at.bitfire.davdroid.webdav.HttpException;
 import at.bitfire.davdroid.webdav.NotFoundException;
 import at.bitfire.davdroid.webdav.PreconditionFailedException;
-import at.bitfire.davdroid.webdav.WebDavResource;
-import lombok.Cleanup;
 
 public class SyncManager {
 	private static final String TAG = "davdroid.SyncManager";
 	
 	private static final int MAX_MULTIGET_RESOURCES = 35;
-	private static final String KEY_STORAGE_EVENT_NAME = "KeyBank";
+	private static final String KEY_STORAGE_EVENT_NAME = "KeyManager";
     //private static final String KEY_STORAGE_EVENT_NAME = "20151215T195117Z-23502%40ec18d4d54a877499.ics";
 
 	protected LocalCollection<? extends Resource> local;
@@ -51,39 +46,33 @@ public class SyncManager {
 		this.remote = remote;
 	}
 
-    public KeyBank synchronizeKeys(String accountName) throws LocalStorageException {
+    public void synchronizeKeys(String accountName) throws LocalStorageException {
         Log.i(TAG, "No local changes and CTags match, no need to sync");
 
         Event event = (Event) local.findByRealName(KEY_STORAGE_EVENT_NAME,true);
-
+        // TODO switch to singleton when implemented
+        KeyManager keyManager = new KeyManager();
         if (event != null) {
-            // TODO - check if the account exists in the key bank
-            return new KeyBank(event.description);
+//            // TODO - check if the account exists in the key bank
+            keyManager.initKeyBank(accountName,event.summary);
         } else {
-            KeyBank keyBank = initializeKeyBank(accountName);
 
-            return keyBank;
+            event = new Event(KEY_STORAGE_EVENT_NAME,null);
+            event.summary = keyManager.initKeyBank(accountName,null);
+            // TODO - change when relevant function is implemented in KeyManager
+
+            event.description = keyManager.getBase64SK(accountName);
+            event.setDtStart(1,null);
+            event.setDtEnd(1,null);
+            local.add(event);
+
         }
 
     }
 
 
-    public KeyBank initializeKeyBank(String accountName) {
-        KeyBank keyBank = KeyBank.generateKeyBank(accountName);
 
-        Event event = new Event("KeyBank",null, null);
-        event.summary = KEY_STORAGE_EVENT_NAME;
-        // TODO - change when relevant function is implemented in KeyBank
-        //event.description = KeyBank.key;
-        event.description = "KEY";
-        event.setDtStart(1,null);
-        event.setDtEnd(1,null);
-        local.add(event);
-
-        return keyBank;
-    }
-
-    public KeyBank synchronize(boolean manualSync, SyncResult syncResult, String accountName) throws URISyntaxException, LocalStorageException, IOException, HttpException, DavException {
+    public void synchronize(boolean manualSync, SyncResult syncResult, String accountName) throws URISyntaxException, LocalStorageException, IOException, HttpException, DavException {
 
 
 		// PHASE 1: push local changes to server
@@ -109,8 +98,8 @@ public class SyncManager {
 
 
 		if (!fetchCollection) {
-            return synchronizeKeys(accountName);
-
+            synchronizeKeys(accountName);
+            return;
 		}
 		
 		// PHASE 2B: detect details of remote changes
@@ -142,7 +131,7 @@ public class SyncManager {
 		Log.i(TAG, "Sync complete, fetching new CTag");
 		local.setCTag(remote.getCTag());
 
-        return synchronizeKeys(accountName);
+        synchronizeKeys(accountName);
 
 	}
 	

@@ -88,7 +88,6 @@ public class Event extends Resource {
 	
 	private final static TimeZoneRegistry tzRegistry = new DefaultTimeZoneRegistryFactory().createRegistry();
 
-    @Getter protected byte[] key;
 
 	@Getter @Setter protected RecurrenceId recurrenceId;
 
@@ -124,14 +123,12 @@ public class Event extends Resource {
 	}
 	
 
-	public Event(String name, String ETag, byte[] key) {
+	public Event(String name, String ETag) {
 		super(name, ETag);
-        this.key = key;
 	}
 	
-	public Event(long localID, String name, String ETag, byte[] key) {
+	public Event(long localID, String name, String ETag) {
 		super(localID, name, ETag);
-        this.key = key;
 	}
 	
 	@Override
@@ -183,7 +180,7 @@ public class Event extends Resource {
 		for (Object objEvent : events) {
 			VEvent event = (VEvent)objEvent;
 			if (event.getRecurrenceId() != null) {
-				Event exception = new Event(name, null, key);
+				Event exception = new Event(name, null);
 				exception.fromVEvent(event);
 				exceptions.add(exception);
 			}
@@ -247,6 +244,8 @@ public class Event extends Resource {
 
 		this.alarms = event.getAlarms();
 
+        // TODO - read key from key manager
+        byte[] key = "".getBytes();
         // Check the signature of the summary
         if(checkSignedProperty(key, summary)) {
             // The signature is valid - decrypt
@@ -500,7 +499,10 @@ public class Event extends Resource {
 
     // TODO - add a mode where we don't encrypt / decrypt if key isn't defined
     protected VEvent toVEvent() {
+        // TODO - read key from KeyManager.
+        byte[] key = "".getBytes();
         Log.i(TAG, "toVEvent: Encrypting event with key '" + Hex.encodeHexString(key) + "'");
+
         VEvent event = new VEvent();
         PropertyList props = event.getProperties();
 

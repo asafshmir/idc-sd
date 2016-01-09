@@ -28,7 +28,7 @@ public class CalDavCalendar extends RemoteCollection<Event> {
 	
 	@Override
 	protected Event newResourceSkeleton(String name, String ETag) {
-		return new Event(name, ETag, this.key);
+		return new Event(name, ETag);
 	}
 	
 	

@@ -107,7 +107,7 @@ public abstract class RemoteCollection<T extends Resource> {
 
             for (WebDavResource member : collection.getMembers()) {
                 //Event resource = newResourceSkeleton(member.getName(), member.getETag());
-                Event e = new Event("","",null);
+                Event e = new Event("","");
                 try {
                     if (member.getContent() != null) {
                         @Cleanup InputStream is = new ByteArrayInputStream(member.getContent());
