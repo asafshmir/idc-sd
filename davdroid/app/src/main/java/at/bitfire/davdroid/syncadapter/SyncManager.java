@@ -49,31 +49,24 @@ public class SyncManager {
 	}
 
     public void synchronizeKeys() throws LocalStorageException {
-        Log.i(TAG, "No local changes and CTags match, no need to sync");
 
         Event event = (Event) local.findByRealName(KEY_STORAGE_EVENT_NAME,true);
-        // TODO switch to singleton when implemented
-        KeyManager keyManager = new KeyManager();
-        
+
+        KeyManager keyManager = KeyManager.getInstance();
+
         if (event != null) {
-//            // TODO - check if the account exists in the key bank
-            keyManager.initKeyBank(user,event.summary);
+            keyManager.initKeyBank(user,event.description);
         } else {
-
             event = new Event(KEY_STORAGE_EVENT_NAME,null);
-            event.summary = keyManager.initKeyBank(user,null);
-            // TODO - change when relevant function is implemented in KeyManager
-
-            event.description = keyManager.getBase64SK(user);
+            event.summary = KEY_STORAGE_EVENT_NAME;
+            // Generates a new key bank
+            event.description = keyManager.initKeyBank(user,null);
             event.setDtStart(1,null);
             event.setDtEnd(1,null);
             local.add(event);
-
         }
 
     }
-
-
 
     public void synchronize(boolean manualSync, SyncResult syncResult) throws URISyntaxException, LocalStorageException, IOException, HttpException, DavException {
 

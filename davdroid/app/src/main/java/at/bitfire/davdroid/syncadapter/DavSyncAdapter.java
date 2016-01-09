@@ -74,8 +74,6 @@ public abstract class DavSyncAdapter extends AbstractThreadedSyncAdapter impleme
 	public DavSyncAdapter(Context context) {
 		super(context, true);
 
-
-
 		synchronized(this) {
 			if (androidID == null)
 				androidID = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
@@ -83,21 +81,19 @@ public abstract class DavSyncAdapter extends AbstractThreadedSyncAdapter impleme
 
 		this.context = context;
 
-        // TODO - read public / private key form shared preferences and generate new singleton key manager
+        SharedPreferences preferences = context.getSharedPreferences("caldavkeys", Context.MODE_PRIVATE);
 
-        SharedPreferences preferences = context.getSharedPreferences("caldavdetails", Context.MODE_PRIVATE);
+        KeyManager keyManager = KeyManager.getInstance();
 
-        //Log.i(TAG,account.name);
-        // TODO - Fix KeyManager
         if (!preferences.contains(KEYPAIR_PREFERENCE)) {
             SharedPreferences.Editor editor = preferences.edit();
-            // TODO - add right key interface
-            //editor.putString("key" + entry.getKey(), keyBank.key);
-            editor.putString(KEYPAIR_PREFERENCE, "KeyManager");
+            editor.putString(KEYPAIR_PREFERENCE, keyManager.syncAsymKeyPair(null));
             editor.commit();
+        } else {
+            Log.i(TAG,"Key-" + preferences.getString(KEYPAIR_PREFERENCE,""));
+            keyManager.syncAsymKeyPair(preferences.getString(KEYPAIR_PREFERENCE,""));
         }
 
-        Log.i(TAG,"Key-" + preferences.getString(KEYPAIR_PREFERENCE,""));
 	}
 	
 	@Override
