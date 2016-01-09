@@ -20,6 +20,7 @@ public class KeyManager {
 
     // A map from userID to KeyRecord
     protected String userID;
+    // TODO support keyBank per account-name
     protected Map<String, KeyRecord> keyBank;
 
     // Asymmetric key-pair
@@ -32,8 +33,10 @@ public class KeyManager {
     private final static String ENC_SK_ATTR = "enc-sk";
     private final static String SIGNATURE_ATTR = "signature";
 
+    private final static int PUBLIC_KEY_PREFIX_SIZE = 64;
+
     private KeyManager()  {
-        keyBank = new HashMap<String, KeyRecord>();
+        keyBank = new HashMap<>();
     }
 
     public static KeyManager getInstance() {
@@ -163,7 +166,7 @@ public class KeyManager {
 
             // Validate the user's KeyRecord
             boolean valid = validateSignature(userID, keyRecord);
-            final byte[] pbKeyBytes = keyRecord.pbkey;
+            final byte[] pbKeyBytes = keyRecord.pbKey;
             // If valid, add an encrypted version of SK to the user KeyRecord
             if (valid) {
                 PublicKey userPbKey = new PublicKey() {
@@ -181,12 +184,12 @@ public class KeyManager {
 
     private boolean validateSignature(String userID, KeyRecord keyRecord) {
         if (keyRecord == null) return false;
-        return validateSignature(keyRecord.signature, keyRecord.pbkey, userID);
+        return validateSignature(keyRecord.signature, keyRecord.pbKey, userID);
     }
 
     private boolean validateSignature(byte[] signature, byte[] pbkey, String userID) {
 
-        // TODO use signature without a key, and sign pbkey+secret together
+        // TODO use signature without a key, and sign pbke+secret together
 
         // Get the user's secret
         byte[] secret = getSecret(userID);
@@ -244,7 +247,7 @@ public class KeyManager {
                 JSONObject userObj = new JSONObject();
                 KeyRecord keyRecord = keyBank.get(userID);
                 userObj.put("USER_ID_ATTR", userID);
-                userObj.put("PUBLIC_KEY_ATTR", Base64.encodeToString(keyRecord.pbkey, Base64.DEFAULT));
+                userObj.put("PUBLIC_KEY_ATTR", Base64.encodeToString(keyRecord.pbKey, Base64.DEFAULT));
                 userObj.put("ENC_SK_ATTR", Base64.encodeToString(keyRecord.encSK, Base64.DEFAULT));
                 userObj.put("SIGNATURE_ATTR", Base64.encodeToString(keyRecord.signature, Base64.DEFAULT));
 
@@ -261,15 +264,69 @@ public class KeyManager {
         return rootObj.toString();
     }
 
+
+    public String generateEncSKList() {
+
+        // Calc total data size
+        int numUsers = keyBank.keySet().size();
+        int dataSize = numUsers * (PUBLIC_KEY_PREFIX_SIZE + CryptoUtils.SYMMETRIC_KEY_SIZE);
+        byte[] data = new byte[dataSize];
+
+        // Create a byte array with the following structure -
+        // For each user: PUBLIC_KEY_PREFIX_SIZE first bytes of user's PublicKey + user's SK
+        int dataPtr = 0;
+        for (String userID : keyBank.keySet()) {
+            KeyRecord keyRecord = keyBank.get(userID);
+            byte[] pbKey = keyRecord.pbKey;
+            byte[] encSK = keyRecord.encSK;
+            System.arraycopy(pbKey, 0, data, dataPtr, PUBLIC_KEY_PREFIX_SIZE);
+            dataPtr += PUBLIC_KEY_PREFIX_SIZE;
+            System.arraycopy(encSK, 0, data, dataPtr, CryptoUtils.SYMMETRIC_KEY_SIZE);
+            dataPtr += CryptoUtils.SYMMETRIC_KEY_SIZE;
+        }
+
+        // Convert the byte array to Base64
+        return Base64.encodeToString(data, Base64.DEFAULT);
+    }
+
+    public byte[] getSKFromEncSKList(String allSKData) {
+
+        // Decode Base64 string
+        byte[] data = Base64.decode(allSKData.getBytes(), Base64.DEFAULT);
+        int dataPtr = 0;
+
+        // My PublicKey prefix
+        KeyRecord myKeyRecord = keyBank.get(this.userID);
+        byte[] myPbKeyPrefix = Arrays.copyOfRange(myKeyRecord.pbKey, 0, PUBLIC_KEY_PREFIX_SIZE);
+
+        // Parse all SK data and look for my PublicKey prefix
+        // TODO make sure that data's length is valid
+        int numSK = data.length / (PUBLIC_KEY_PREFIX_SIZE + CryptoUtils.SYMMETRIC_KEY_SIZE);
+        for (int i = 0; i < numSK; i++) {
+            byte[] curPbKeyPrefix = Arrays.copyOfRange(data, dataPtr, dataPtr + PUBLIC_KEY_PREFIX_SIZE);
+            dataPtr += PUBLIC_KEY_PREFIX_SIZE;
+
+            // Check if this is my public-key
+            if (Arrays.equals(myPbKeyPrefix, curPbKeyPrefix))
+                break;
+
+            dataPtr += CryptoUtils.SYMMETRIC_KEY_SIZE;
+        }
+        // TODO handle a situation where pkKeyPrefix is not found
+        // Get the matching version of the encSK that can be decrypted with my private key
+        byte[] encSK = Arrays.copyOfRange(data, dataPtr, dataPtr + CryptoUtils.SYMMETRIC_KEY_SIZE);
+        return CryptoUtils.decryptSymmetricKey(encSK, asymKeyPair.getPrivate());
+    }
+
     public class KeyRecord {
 
-        public KeyRecord(byte[] pbkey, byte[] encSK, byte[] signature) {
-            this.pbkey = pbkey;
+        public KeyRecord(byte[] pbKey, byte[] encSK, byte[] signature) {
+            this.pbKey = pbKey;
             this.encSK = encSK;
             this.signature = signature;
         }
 
-        protected byte[] pbkey;
+        protected byte[] pbKey;
         protected byte[] encSK;
         protected byte[] signature;
     }
