@@ -498,6 +498,7 @@ public class Event extends Resource {
         return true;
     }
 
+    // TODO - add a mode where we don't encrypt / decrypt if key isn't defined
     protected VEvent toVEvent() {
         Log.i(TAG, "toVEvent: Encrypting event with key '" + Hex.encodeHexString(key) + "'");
         VEvent event = new VEvent();

@@ -12,9 +12,8 @@ import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 
-import at.bitfire.davdroid.resource.InvalidResourceException;
+import lombok.Getter;
 
 /**
  * Created by baruch on 1/2/2016.
@@ -34,9 +33,14 @@ public class KeyBank {
         public String signature;
     }
 
-    Set<User> users;
+    @Getter Set<User> users;
 
-    public KeyBank(String data) throws InvalidResourceException {
+    public static KeyBank generateKeyBank(String accountName) {
+        return null;
+    }
+
+
+    public KeyBank(String data) {
 
         users = new HashSet<User>();
 
@@ -60,7 +64,7 @@ public class KeyBank {
             }
 
         } catch(Exception e) {
-            throw new InvalidResourceException(e.getMessage());
+            //throw new InvalidResourceException(e.getMessage());
         }
     }
 

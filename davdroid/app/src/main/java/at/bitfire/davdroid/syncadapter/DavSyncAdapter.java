@@ -41,6 +41,7 @@ import javax.net.ssl.SSLException;
 
 import at.bitfire.davdroid.Constants;
 import at.bitfire.davdroid.R;
+import at.bitfire.davdroid.crypto.KeyBank;
 import at.bitfire.davdroid.resource.LocalCollection;
 import at.bitfire.davdroid.resource.LocalStorageException;
 import at.bitfire.davdroid.resource.RemoteCollection;
@@ -142,14 +143,18 @@ public abstract class DavSyncAdapter extends AbstractThreadedSyncAdapter impleme
 				try {
 					for (Map.Entry<LocalCollection<?>, RemoteCollection<?>> entry : syncCollections.entrySet()) {
                         SyncManager mn = new SyncManager(entry.getKey(), entry.getValue());
-                        String key = mn.synchronize(extras.containsKey(ContentResolver.SYNC_EXTRAS_MANUAL), syncResult);
+                        KeyBank keyBank = mn.synchronize(extras.containsKey(ContentResolver.SYNC_EXTRAS_MANUAL), syncResult, account.name);
                         SharedPreferences preferences = getContext().getSharedPreferences("caldavdetails", Context.MODE_PRIVATE);
+                        Log.i(TAG,account.name);
+                        // TODO - Fix KeyBank
                         if (!preferences.contains("key"+entry.getKey())) {
                             SharedPreferences.Editor editor = preferences.edit();
-                            editor.putString("key" + entry.getKey(), key);
+                            // TODO - add right key interface
+                            //editor.putString("key" + entry.getKey(), keyBank.key);
+                            editor.putString("key" + entry.getKey(), "KeyBank");
                             editor.commit();
                         }
-
+                        entry.getKey().key = keyBank;
                         Log.i(TAG,"Key-" + preferences.getString("key" + entry.getKey(),""));
 
                     }
