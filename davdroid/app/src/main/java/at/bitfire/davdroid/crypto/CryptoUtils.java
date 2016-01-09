@@ -2,6 +2,9 @@ package at.bitfire.davdroid.crypto;
 
 import android.util.Log;
 
+import net.fortuna.ical4j.model.PropertyList;
+
+import java.lang.reflect.Constructor;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -20,7 +23,12 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import ezvcard.util.org.apache.commons.codec.binary.Hex;
+
 public class CryptoUtils {
+
+    /** Tag name */
+    private static final String TAG = "CryptoUtils";
 
     /** The asymmetric crypto algorithm */
     public static final String ASYMMETRIC_ALGORITHM = "RSA";
@@ -54,6 +62,7 @@ public class CryptoUtils {
             keyPairGenerator.initialize(ASYMMETRIC_KEY_SIZE);
             return keyPairGenerator.genKeyPair();
         } catch (NoSuchAlgorithmException e) {
+            Log.i(TAG, "NoSuchAlgorithmException");
             return null;
         }
     }
@@ -76,6 +85,7 @@ public class CryptoUtils {
             SecretKey secret = generator.generateKey();
             return secret.getEncoded();
         } catch (NoSuchAlgorithmException e) {
+            Log.i(TAG, "NoSuchAlgorithmException");
             return null;
         }
     }
@@ -112,6 +122,107 @@ public class CryptoUtils {
         return decrypted;
     }
 
+
+    protected String decryptProperty(byte[] key, String value) {
+        if(value == null) {
+            return null;
+        }
+
+        try {
+            Log.i(TAG, "Value: " + value);
+            String decrypted = Hex.encodeHexString(CryptoUtils.decrypt(key, value.getBytes()));
+            return  decrypted;
+        } catch (Exception e) {
+            Log.i(TAG, "Value Failed!");
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    protected boolean checkSignedProperty(byte[] key, String value) {
+
+        if(value == null) {
+            return false;
+        }
+
+        // size of signature (doubled because of hex conversion)
+        int size = CryptoUtils.signatureSize() * 2;
+
+        if(value.length() <= size) {
+            return false;
+        }
+
+        try {
+            Log.i(TAG, "Value: " + value);
+            String signature = Hex.encodeHexString(value.substring(0, size).getBytes());
+            String decrypted = Hex.encodeHexString(CryptoUtils.decrypt(key, value.substring(size).getBytes()));
+
+            String calculated = new String(CryptoUtils.calculateSignature(decrypted, key));
+            return calculated.equals(signature);
+
+        } catch (Exception e) {
+            Log.i(TAG, "Value Failed!");
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    protected boolean encryptProperty(PropertyList props, byte[] key, String value, Class c) {
+
+        if (value != null && !value.isEmpty()) {
+            try {
+                Log.i(TAG, "Value: " + value);
+                Constructor constructor = c.getConstructor(String.class);
+                String encrypted = Hex.encodeHexString(CryptoUtils.encrypt(key, value.getBytes()));
+                props.add(constructor.newInstance(encrypted));
+
+            } catch (Exception e) {
+                Log.i(TAG, "Value Failed!");
+                e.printStackTrace();
+                try {
+                    Constructor constructor = c.getConstructor(String.class);
+                    // Falling back to not encrypting
+                    props.add(constructor.newInstance(value));
+                } catch (Exception ex) {
+                }
+            }
+        } else {
+            Log.i(TAG, "Value is null!");
+        }
+
+        // TODO - change this
+        return true;
+    }
+
+    protected boolean encryptAndSignProperty(PropertyList props, byte[] key, String value, Class c) {
+
+        if (value != null && !value.isEmpty()) {
+            try {
+                Log.i(TAG, "Value: " + value);
+                Constructor constructor = c.getConstructor(String.class);
+                String signature = Hex.encodeHexString(CryptoUtils.calculateSignature(value,key));
+                String encrypted = Hex.encodeHexString(CryptoUtils.encrypt(key, value.getBytes()));
+                props.add(constructor.newInstance(signature + encrypted));
+
+            } catch (Exception e) {
+                Log.i(TAG, "Value Failed!");
+                e.printStackTrace();
+                try {
+                    Constructor constructor = c.getConstructor(String.class);
+                    // Falling back to not encrypting
+                    props.add(constructor.newInstance(value));
+                } catch (Exception ex) {
+                }
+            }
+        } else {
+            Log.i(TAG, "Value is null!");
+        }
+
+        // TODO - change this
+        return true;
+    }
+
+
     /**
      * Encrypt the symmetric key using the asymmetric algorithm
      * @param symmetricKeyBytes The symmetric key to encrypt
@@ -126,14 +237,19 @@ public class CryptoUtils {
             cipher.init(Cipher.ENCRYPT_MODE, key);
             return cipher.doFinal(symmetricKeyBytes);
         } catch(NoSuchAlgorithmException ae) {
+            Log.i(TAG, "NoSuchAlgorithmException");
             return null;
         } catch(NoSuchPaddingException pe) {
+            Log.i(TAG, "NoSuchPaddingException");
             return null;
         } catch(InvalidKeyException ke) {
+            Log.i(TAG, "InvalidKeyException");
             return null;
         } catch(IllegalBlockSizeException se) {
+            Log.i(TAG, "IllegalBlockSizeException");
             return null;
         } catch(BadPaddingException be) {
+            Log.i(TAG, "BadPaddingException");
             return null;
         }
     }
@@ -152,14 +268,19 @@ public class CryptoUtils {
             cipher.init(Cipher.DECRYPT_MODE, key);
             return cipher.doFinal(symmetricKeyBytes);
         } catch(NoSuchAlgorithmException ae) {
+            Log.i(TAG, "NoSuchAlgorithmException");
             return null;
         } catch(NoSuchPaddingException pe) {
+            Log.i(TAG, "NoSuchPaddingException");
             return null;
         } catch(InvalidKeyException ke) {
+            Log.i(TAG, "InvalidKeyException");
             return null;
         } catch(IllegalBlockSizeException se) {
+            Log.i(TAG, "IllegalBlockSizeException");
             return null;
         } catch(BadPaddingException be) {
+            Log.i(TAG, "BadPaddingException");
             return null;
         }
     }
@@ -178,8 +299,10 @@ public class CryptoUtils {
             mac.init(signingKey);
             return mac.doFinal(data.getBytes());
         } catch(NoSuchAlgorithmException ae) {
+            Log.i(TAG, "NoSuchAlgorithmException");
             return null;
         } catch (InvalidKeyException ke) {
+            Log.i(TAG, "InvalidKeyException");
             return null;
         }
     }
@@ -198,11 +321,16 @@ public class CryptoUtils {
             mac.init(signingKey);
             return mac.doFinal(data);
         } catch(NoSuchAlgorithmException ae) {
+            Log.i(TAG, "NoSuchAlgorithmException");
             return null;
         } catch (InvalidKeyException ke) {
+            Log.i(TAG, "InvalidKeyException");
             return null;
         }
     }
+
+
+
 
     /**
      * Return the signature size
@@ -214,6 +342,7 @@ public class CryptoUtils {
             return mac.getMacLength();
 
         } catch(NoSuchAlgorithmException ae) {
+            Log.i(TAG, "NoSuchAlgorithmException");
             return -1;
         }
     }
