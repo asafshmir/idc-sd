@@ -7,21 +7,22 @@
  */
 package at.bitfire.davdroid.syncadapter;
 
-import android.content.Context;
 import android.content.SyncResult;
 import android.util.Log;
 
 import net.fortuna.ical4j.model.ValidationException;
 
-import java.io.FileOutputStream;
-import java.io.FileInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.HashSet;
 import java.util.Set;
 
 import at.bitfire.davdroid.ArrayUtils;
+import at.bitfire.davdroid.crypto.KeyBank;
 import at.bitfire.davdroid.resource.Event;
+import at.bitfire.davdroid.resource.InvalidResourceException;
 import at.bitfire.davdroid.resource.LocalCollection;
 import at.bitfire.davdroid.resource.LocalStorageException;
 import at.bitfire.davdroid.resource.RecordNotFoundException;
@@ -31,6 +32,8 @@ import at.bitfire.davdroid.webdav.DavException;
 import at.bitfire.davdroid.webdav.HttpException;
 import at.bitfire.davdroid.webdav.NotFoundException;
 import at.bitfire.davdroid.webdav.PreconditionFailedException;
+import at.bitfire.davdroid.webdav.WebDavResource;
+import lombok.Cleanup;
 
 public class SyncManager {
 	private static final String TAG = "davdroid.SyncManager";
@@ -48,9 +51,39 @@ public class SyncManager {
 		this.remote = remote;
 	}
 
+    public KeyBank synchronizeKeys(String accountName) throws LocalStorageException {
+        Log.i(TAG, "No local changes and CTags match, no need to sync");
+
+        Event event = (Event) local.findByRealName(KEY_STORAGE_EVENT_NAME,true);
+
+        if (event != null) {
+            // TODO - check if the account exists in the key bank
+            return new KeyBank(event.description);
+        } else {
+            KeyBank keyBank = initializeKeyBank(accountName);
+
+            return keyBank;
+        }
+
+    }
 
 
-    public String synchronize(boolean manualSync, SyncResult syncResult) throws URISyntaxException, LocalStorageException, IOException, HttpException, DavException {
+    public KeyBank initializeKeyBank(String accountName) {
+        KeyBank keyBank = KeyBank.generateKeyBank(accountName);
+
+        Event event = new Event("KeyBank",null, null);
+        event.summary = KEY_STORAGE_EVENT_NAME;
+        // TODO - change when relevant function is implemented in KeyBank
+        //event.description = KeyBank.key;
+        event.description = "KEY";
+        event.setDtStart(1,null);
+        event.setDtEnd(1,null);
+        local.add(event);
+
+        return keyBank;
+    }
+
+    public KeyBank synchronize(boolean manualSync, SyncResult syncResult, String accountName) throws URISyntaxException, LocalStorageException, IOException, HttpException, DavException {
 
 
 		// PHASE 1: push local changes to server
@@ -76,14 +109,8 @@ public class SyncManager {
 
 
 		if (!fetchCollection) {
-			Log.i(TAG, "No local changes and CTags match, no need to sync");
+            return synchronizeKeys(accountName);
 
-            Event event = (Event) local.findByRealName(KEY_STORAGE_EVENT_NAME,true);
-
-
-            if (event != null)
-                return event.summary;
-			return "";
 		}
 		
 		// PHASE 2B: detect details of remote changes
@@ -115,12 +142,7 @@ public class SyncManager {
 		Log.i(TAG, "Sync complete, fetching new CTag");
 		local.setCTag(remote.getCTag());
 
-        Event event = (Event) local.findByRealName(KEY_STORAGE_EVENT_NAME,true);
-
-
-        if (event != null)
-            return event.summary;
-        return "";
+        return synchronizeKeys(accountName);
 
 	}
 	

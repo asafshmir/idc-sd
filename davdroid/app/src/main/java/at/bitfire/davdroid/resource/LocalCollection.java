@@ -20,10 +20,9 @@ import android.os.RemoteException;
 import android.provider.CalendarContract;
 import android.util.Log;
 
-import net.fortuna.ical4j.model.property.DtStart;
-
 import java.util.ArrayList;
 
+import at.bitfire.davdroid.crypto.KeyBank;
 import ezvcard.util.org.apache.commons.codec.DecoderException;
 import ezvcard.util.org.apache.commons.codec.binary.Hex;
 import lombok.Cleanup;
@@ -42,7 +41,7 @@ public abstract class LocalCollection<T extends Resource> {
 	protected Account account;
 	protected ContentProviderClient providerClient;
 	protected ArrayList<ContentProviderOperation> pendingOperations = new ArrayList<ContentProviderOperation>();
-    @Getter public byte[] key;
+    @Getter public KeyBank key;
 	
 	// database fields
 	
@@ -320,7 +319,7 @@ public abstract class LocalCollection<T extends Resource> {
 				buildEntry(ContentProviderOperation.newInsert(entriesURI()), resource)
 				.withYieldAllowed(true)
 				.build());
-		
+
 		addDataRows(resource, -1, idx);
 	}
 

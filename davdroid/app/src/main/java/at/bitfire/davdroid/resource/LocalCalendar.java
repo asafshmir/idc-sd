@@ -57,19 +57,15 @@ import org.apache.commons.lang.StringUtils;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.text.ParseException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-
 import at.bitfire.davdroid.DateUtils;
 import at.bitfire.davdroid.crypto.CryptoUtils;
+import at.bitfire.davdroid.crypto.KeyBank;
 import ezvcard.util.org.apache.commons.codec.DecoderException;
 import ezvcard.util.org.apache.commons.codec.binary.Hex;
 import lombok.Cleanup;
@@ -184,19 +180,22 @@ public class LocalCalendar extends LocalCollection<Event> {
 		return calendars.toArray(new LocalCalendar[0]);
 	}
 
-	public LocalCalendar(Account account, ContentProviderClient providerClient, long id, String url, String key) throws RemoteException {
-		super(account, providerClient);
-		this.id = id;
-		this.url = url;
-        try {
-            this.key = Hex.decodeHex(key.toCharArray());
-        } catch (DecoderException e) {
-            // TODO - Russo Handle decoder exception
-        }
-		sqlFilter = "ORIGINAL_ID IS NULL";
-	}
 
-	
+    public LocalCalendar(Account account, ContentProviderClient providerClient, long id, String url, String key) {
+        super(account, providerClient);
+        this.id = id;
+        this.url = url;
+//        try {
+//            this.key = Hex.decodeHex(key.toCharArray());
+//        } catch (DecoderException e) {
+//            // TODO - Russo Handle decoder exception
+//        }
+        this.key = new KeyBank(key);
+        sqlFilter = "ORIGINAL_ID IS NULL";
+    }
+
+
+
 	/* collection operations */
 	
 	@Override
