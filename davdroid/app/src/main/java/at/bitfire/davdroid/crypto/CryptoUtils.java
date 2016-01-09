@@ -123,7 +123,7 @@ public class CryptoUtils {
     }
 
 
-    protected String decryptProperty(byte[] key, String value) {
+    public static String decryptProperty(byte[] key, String value) {
         if(value == null) {
             return null;
         }
@@ -139,7 +139,7 @@ public class CryptoUtils {
         }
     }
 
-    protected boolean checkSignedProperty(byte[] key, String value) {
+    public static boolean checkSignedProperty(byte[] key, String value) {
 
         if(value == null) {
             return false;
@@ -167,7 +167,7 @@ public class CryptoUtils {
         }
     }
 
-    protected boolean encryptProperty(PropertyList props, byte[] key, String value, Class c) {
+    public static boolean encryptProperty(PropertyList props, byte[] key, String value, Class c) {
 
         if (value != null && !value.isEmpty()) {
             try {
@@ -194,7 +194,7 @@ public class CryptoUtils {
         return true;
     }
 
-    protected boolean encryptAndSignProperty(PropertyList props, byte[] key, String value, Class c) {
+    public static boolean encryptAndSignProperty(PropertyList props, byte[] key, String value, Class c) {
 
         if (value != null && !value.isEmpty()) {
             try {

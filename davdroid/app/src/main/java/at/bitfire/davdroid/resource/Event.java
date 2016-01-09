@@ -247,11 +247,11 @@ public class Event extends Resource {
         // TODO - read key from key manager
         byte[] key = "".getBytes();
         // Check the signature of the summary
-        if(checkSignedProperty(key, summary)) {
+        if(CryptoUtils.checkSignedProperty(key, summary)) {
             // The signature is valid - decrypt
-            summary = decryptProperty(key, summary);
-            location = decryptProperty(key, location);
-            description = decryptProperty(key, description);
+            summary = CryptoUtils.decryptProperty(key, summary);
+            location = CryptoUtils.decryptProperty(key, location);
+            description = CryptoUtils.decryptProperty(key, description);
 
         } else {
             // The signature is invalid - do not decrypt
@@ -350,9 +350,9 @@ public class Event extends Resource {
 
 
         // Sign (for validation) and encrypt the summary. Only encrypt the rest of the properties
-        encryptAndSignProperty(props, key, summary, Summary.class);
-        encryptProperty(props, key, location, Location.class);
-        encryptProperty(props, key, description, Description.class);
+        CryptoUtils.encryptAndSignProperty(props, key, summary, Summary.class);
+        CryptoUtils.encryptProperty(props, key, location, Location.class);
+        CryptoUtils.encryptProperty(props, key, description, Description.class);
 
 
         if (status != null)
