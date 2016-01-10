@@ -4,7 +4,7 @@ import sys
 
 import numpy as np
 import pandas as pd
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, MiniBatchKMeans
 import sklearn.cluster as cluster
 
 import matplotlib.pyplot as plt
@@ -41,14 +41,26 @@ def prepare_prediction_data(electionsData):
 def run_prediction_with_cross_validation(x,y,classifiers,parts):
 
 	results = {}
+	test = load_from_file("test")
+	X_test,y_test = prepare_prediction_data(test)
 	for classifier_name, classifier in classifiers.items():
-		scores = cross_validation.cross_val_score(classifier, x, y, cv=parts)
+		if (classifier_name == 'GMM'):
+			scorer = lambda est, data: np.mean(est.score(data))
+			scores = cross_validation.cross_val_score(classifier, x, cv=parts, scoring=scorer)
+		elif (classifier_name == 'KMeans'):
+			scores = cross_validation.cross_val_score(classifier, x, cv=parts)
+		else:
+			scores = cross_validation.cross_val_score(classifier, x, y, cv=parts)
 		results[np.mean(scores)] = classifier_name
+
+		classifier.fit(x, y)
+		scores = classifier.score(X_test, y_test)
+		print classifier_name + ":", np.mean(scores)
 
 	return results
 
 
-def add_kmeans_plot(n_clusters,column, y_train, plot_spot,title):
+def add_bin_plot(n_clusters,column, y_train, plot_spot,title):
 	clf = KMeans(n_clusters=n_clusters)
 	y_pred = clf.fit(column)
 	values = y_pred.cluster_centers_.squeeze()
@@ -60,95 +72,19 @@ def add_kmeans_plot(n_clusters,column, y_train, plot_spot,title):
 	plt.title(title)
 
 
-def add_gmm_plot(n_clusters,column, y_train,plot_spot,title):
-	y_pred = GMM(n_components=n_clusters).fit(column)
-	print y_pred.cluster_centers_
-	values = y_pred.cluster_centers_.squeeze()
-	labels = y_pred.labels_
-	comp = np.choose(labels,values)
-
-	plt.subplot(plot_spot)
-	plt.scatter(comp, y_train, c=y_train)
-	plt.title(title)
-
-def plot_gmm(X_train,y_train):
-
-	# Number of samples per component
-	n_samples = 500
-
-	# Generate random sample, two components
-	np.random.seed(0)
-	C = np.array([[0., -0.1], [1.7, .4]])
-	# X = np.r_[np.dot(np.random.randn(n_samples, 2), C),
-	#           .7 * np.random.randn(n_samples, 2) + np.array([-6, 3])]
-	X = X_train
-	lowest_bic = np.infty
-	bic = []
-	n_components_range = range(9, 10)
-	cv_types = ['spherical', 'tied', 'diag', 'full']
-	for cv_type in cv_types:
-		for n_components in n_components_range:
-			# Fit a mixture of Gaussians with EM
-			gmm = GMM(n_components=n_components, covariance_type=cv_type)
-			gmm.fit(X)
-			bic.append(gmm.bic(X))
-			if bic[-1] < lowest_bic:
-				lowest_bic = bic[-1]
-				best_gmm = gmm
-
-	bic = np.array(bic)
-	#color_iter = itertools.cycle(['k', 'r', 'g', 'b', 'c', 'm', 'y','w'])
-	colors = ['Blue', 'Brown','Green', 'Grey', 'Orange', 'Pink', 'Purple', 'Red', 'White', 'Yellow']
-	#
-	color_iter = itertools.cycle(colors)
-	#color_iter = [(1,1,1),(1,1,64),(1,1,128),(1,1,192),(1,1,256)]
-	clf = best_gmm
-	bars = []
-
-	# Plot the winner
-	splot = plt.subplot(1, 1, 1)
-	Y_ = clf.predict(X)
-
-	for i, (mean, covar, color) in enumerate(zip(clf.means_, clf.covars_,
-	                                             color_iter)):
-	    v, w = linalg.eigh(covar)
-	    if not np.any(Y_ == i):
-	        continue
-
-	    plt.scatter(X[Y_ == i, 0], y_train, .8, color=color)
-
-	    # Plot an ellipse to show the Gaussian component
-	    angle = np.arctan2(w[0][1], w[0][0])
-	    angle = 180 * angle / np.pi  # convert to degrees
-	    v *= 4
-	    ell = mpl.patches.Ellipse(mean, v[0], v[1], 180 + angle, color=color)
-	    ell.set_clip_box(splot.bbox)
-	    ell.set_alpha(.5)
-	    splot.add_artist(ell)
-
-	#plt.xlim(-10, 10)
-	#plt.ylim(-3, 6)
-	#plt.xticks(())
-	#plt.yticks(())
-	#plt.title('Selected GMM: full model, 2 components')
-	plt.title('Selected GMM: ')
-	#plt.subplots_adjust(hspace=.35, bottom=.02)
-	plt.show()
-
-
-def plot_kmeans(X_train, y_train, X_test, y_test):
+def plot_bins(X_train, y_train, X_test, y_test):
 
 	n_clusters = 10
 
-	add_kmeans_plot(n_clusters,X_train[:, 0:1], y_train,331,"Yearly_Expense")
-	add_kmeans_plot(n_clusters,X_train[:, 1:2], y_train,332,"Yearly_Income")
-	add_kmeans_plot(n_clusters,X_train[:, 2:3], y_train,333,"Overall_Happiness_Score")
+	add_bin_plot(n_clusters,X_train[:, 0:1], y_train,331,"Yearly_Expense")
+	add_bin_plot(n_clusters,X_train[:, 1:2], y_train,332,"Yearly_Income")
+	add_bin_plot(n_clusters,X_train[:, 2:3], y_train,333,"Overall_Happiness_Score")
 
 	plt.subplot(334)
 	plt.scatter(X_train[:, 3], y_train, c=y_train)
 	plt.title("Most_Important_Issue")
 
-	add_kmeans_plot(n_clusters,X_train[:, 5:6], y_train,335,"Avg_Residancy_Alt")
+	add_bin_plot(n_clusters,X_train[:, 5:6], y_train,335,"Avg_Residancy_Alt")
 
 	plt.subplot(336)
 	plt.scatter(X_train[:, 5], y_train, c=y_train)
@@ -162,28 +98,21 @@ def plot_kmeans(X_train, y_train, X_test, y_test):
 
 
 def plot_3d(train,relevant_parties=PARTIES):
-	fig3 = plt.figure(figsize=(8,8))
-	ax3 = fig3.add_subplot(111, projection='3d')
-	fig2 = plt.figure(figsize=(8,8))
-	ax2 = fig2.add_subplot(111, projection='3d')
-	fig1 = plt.figure(figsize=(8,8))
-	ax1 = fig1.add_subplot(111, projection='3d')
+	fig = plt.figure(figsize=(8,8))
+	ax = fig.add_subplot(111, projection='3d')
 
 	for i, name in zip(range(len(PARTIES)), PARTIES):
 		if name in relevant_parties:
 			cur = train[train.Vote==i]
-			ax3.scatter(cur.Yearly_ExpensesK, cur.Yearly_IncomeK, cur.Overall_happiness_score, label=name, color=name[:-1])
-			ax2.scatter(cur.Yearly_ExpensesK, cur.Yearly_IncomeK, cur.Overall_happiness_score, label=name, color=name[:-1])
-			ax1.scatter(cur.Overall_happiness_score, cur.Yearly_ExpensesK, cur.Yearly_IncomeK, label=name, color=name[:-1])
+			ax.scatter(cur.Overall_happiness_score, cur.Yearly_ExpensesK, cur.Yearly_IncomeK, label=name, color=name[:-1])
 
-	ax1.view_init(elev=100, azim=320)
-	ax2.view_init(elev=180, azim=310)
-	ax3.view_init(elev=45, azim=45)
+	ax.view_init(elev=65, azim=-71)
 
 	plt.legend(loc='best')
 	plt.show()
 
-def find_coalition(train,clf):
+
+def find_coalition(train,clf,relevant_parties):
 
 	X_train = train.drop(['Vote','Financial_agenda_matters','Will_vote_only_large_party','Most_Important_Issue', 'Avg_Residancy_Altitude'], axis=1).values
 	y_train = train.Vote.values
@@ -192,8 +121,6 @@ def find_coalition(train,clf):
 	clusters = clf.predict(X_train)
 
 	print pd.crosstab(np.array(PARTIES)[y_train.astype(int)], clusters, rownames=["Party"], colnames=["Cluster"])
-	relevant_parties = ["Blues", "Yellows", "Reds", "Greys", "Oranges"]
-	coalition = ["Blues", "Yellows", "Oranges"]
 
 
 	plot_3d(train,relevant_parties)
@@ -211,69 +138,64 @@ def main():
 	test = load_from_file("test")
 	X_test,y_test = prepare_prediction_data(test)
 
+	# Plotting all features as "bins"
 	# Learnt that parties 1 and 6 are separate form the others according to
 	# Avg Residancy Alt and Will Only Vote Large Party
+	# Also Learnt that parties 2,5,8 are separate from the others using Most_Important_Issue
+	# Also learnt that parties 2,5,6 are separate from the others using Financial_Agenda_Matters
+	plot_bins(X_train, y_train, X_test, y_test)
 
-	# Also Learnt that parties 2,5,8 are separate from the others using
-	# Most_Important_Issue
-	relevant_parties = ["Blues", "Yellows", "Reds", "Greys", "Oranges"] #-155,-57
-	#plot_3d(train,relevant_parties)
-	relevant_parties = ["Greens","Pinks","Whites"] # -45, -45
-	#plot_3d(train,relevant_parties)
-
-
-	# TODO - uncomment
-	#plot_kmeans(X_train, y_train, X_test, y_test)
-
-	# We focus on the rest 0,3,4,7,9
-
-
-	#plot_gmm(X_train,y_train)
-	#return
-	clf = GMM(n_components=5)
-	find_coalition(train,clf)
-	clf = KMeans(n_clusters=5)
-	find_coalition(train,clf)
-
-
-	# Train at least two discriminative models (including cross validation)
+	# Train classifiers (including cross validation) and check to see performance is ok
+	# before we use them on our data
 	classifiers = {
-		# Clustering Algorithms
-		#"KMeans (2)" : KMeans(n_clusters=2, n_init=10),
-
-		#"GMM" : GMM(),
-
+		"GMM" : GMM(n_components=5),
 		"GaussianNB" : GaussianNB()
-
 	}
 
+	# Run with cross validation
+	print "Test Scores:"
 	res = run_prediction_with_cross_validation(X_train,y_train,classifiers,PARTS)
 	keys = res.keys()
 	keys.sort()
 	keys.reverse()
-	print "Model scores:"
+	print "Cross Validation scores:"
 	for key in keys:
 		print "%s (%.3f)" % (res[key], key)
 
 
-	# Load the prepared test set
-	test = load_from_file("test")
-	cls = GaussianNB()
-	X_test,y_test = prepare_prediction_data(test)
-	cls.fit(X_train, y_train)
-	score = cls.score(X_test, y_test)
-	print "GaussianNB: ", score
-
-	# Use a generative model. We look at non-categorical features
+	# We Use a generative model. We look at non-categorical features
 	# We learn that:
 	# Yearly_Expenses are important to Blues, Greys, Reds, Yellows (below 0.5)
 	# Yearly_Income are important to Blues, Greys, Reds, Yellows (below 0.5)
 	# Overall_happinnes_score are important to Blues, Greys, Oranges, Reds, Yellows (below 0.5)
 	# Avg_Alt_residenacy are important to no one, based on the (below 0.5) rule
+	cls = GaussianNB()
+	cls.fit(X_train, y_train)
+	score = cls.score(X_test, y_test)
+	print "GaussianNB: ", score
+
 	clf = GaussianNB()
 	clf.fit(X_train, y_train)
 	sigmas = pd.DataFrame(index=PARTIES, columns=train_columns, data=clf.sigma_)
 	continous_features = ["Yearly_ExpensesK","Yearly_IncomeK","Overall_happiness_score","Avg_Residancy_Altitude"]
+	print sigmas[continous_features]
+
+	# Find coalition using clustering algorithm - GMM.
+	# We focus on the parties found above in the generative model:
+	# Blues, Reds, Greys, Yellows
+	relevant_parties = ["Blues", "Yellows", "Reds", "Greys"]
+	find_coalition(train,GMM(n_components=5),relevant_parties)
+
+
+	relevant_parties = ["Blues", "Yellows", "Reds", "Greys", "Oranges"]
+	find_coalition(train,GMM(n_components=5),relevant_parties)
+
+
+
+
+
+
+
 
 
 main()
