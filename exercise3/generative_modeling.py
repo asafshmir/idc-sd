@@ -1,29 +1,15 @@
 __author__ = 'Jonatan & Baruch'
 
-import sys
-
 import numpy as np
 import pandas as pd
-from sklearn.cluster import KMeans, MiniBatchKMeans
-import sklearn.cluster as cluster
-
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
+from sklearn.cluster import KMeans
 from sklearn.mixture import GMM
-
 from sklearn.naive_bayes import GaussianNB
 from sklearn.cross_validation import train_test_split
 from sklearn import cross_validation
 
-import itertools
-
-from scipy import linalg
-import matplotlib as mpl
-
-RIGHT_FEATURE_SET = ['Vote', 'Yearly_ExpensesK', 'Yearly_IncomeK', 'Overall_happiness_score',
-                     'Most_Important_Issue', 'Avg_Residancy_Altitude',
-                     'Will_vote_only_large_party', 'Financial_agenda_matters']
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 VOTES = {0:'Blues', 1:'Browns', 2:'Greens', 3:'Greys', 4:'Oranges', 5:'Pinks', 6:'Purples', 7:'Reds', 8:'Whites', 9:'Yellows'}
 PARTIES = map(lambda x: x[1], sorted(VOTES.items()))
@@ -47,8 +33,6 @@ def run_prediction_with_cross_validation(x,y,classifiers,parts):
 		if (classifier_name == 'GMM'):
 			scorer = lambda est, data: np.mean(est.score(data))
 			scores = cross_validation.cross_val_score(classifier, x, cv=parts, scoring=scorer)
-		elif (classifier_name == 'KMeans'):
-			scores = cross_validation.cross_val_score(classifier, x, cv=parts)
 		else:
 			scores = cross_validation.cross_val_score(classifier, x, y, cv=parts)
 		results[np.mean(scores)] = classifier_name
@@ -112,7 +96,7 @@ def plot_3d(train,relevant_parties=PARTIES):
 	plt.show()
 
 
-def find_coalition(train,clf,relevant_parties):
+def find_coalition(train,clf):
 
 	X_train = train.drop(['Vote','Financial_agenda_matters','Will_vote_only_large_party','Most_Important_Issue', 'Avg_Residancy_Altitude'], axis=1).values
 	y_train = train.Vote.values
@@ -121,10 +105,6 @@ def find_coalition(train,clf,relevant_parties):
 	clusters = clf.predict(X_train)
 
 	print pd.crosstab(np.array(PARTIES)[y_train.astype(int)], clusters, rownames=["Party"], colnames=["Cluster"])
-
-
-	plot_3d(train,relevant_parties)
-
 
 def main():
 
@@ -169,10 +149,6 @@ def main():
 	# Yearly_Income are important to Blues, Greys, Reds, Yellows (below 0.5)
 	# Overall_happinnes_score are important to Blues, Greys, Oranges, Reds, Yellows (below 0.5)
 	# Avg_Alt_residenacy are important to no one, based on the (below 0.5) rule
-	cls = GaussianNB()
-	cls.fit(X_train, y_train)
-	score = cls.score(X_test, y_test)
-	print "GaussianNB: ", score
 
 	clf = GaussianNB()
 	clf.fit(X_train, y_train)
@@ -181,21 +157,30 @@ def main():
 	print sigmas[continous_features]
 
 	# Find coalition using clustering algorithm - GMM.
-	# We focus on the parties found above in the generative model:
-	# Blues, Reds, Greys, Yellows
+	# We see that the parties found in the generative algorithm above
+	# are clustered together when run run GMM to find the coalition.
+	# The relevant parties we find are indicated below.
+	find_coalition(train,GMM(n_components=5))
 	relevant_parties = ["Blues", "Yellows", "Reds", "Greys"]
-	find_coalition(train,GMM(n_components=5),relevant_parties)
+	plot_3d(train,relevant_parties)
 
-
+	# We saw that Oranges are very close to the other members of the coalition,
+	# So we can strengthen the coalition by adding them.
 	relevant_parties = ["Blues", "Yellows", "Reds", "Greys", "Oranges"]
-	find_coalition(train,GMM(n_components=5),relevant_parties)
+	plot_3d(train,relevant_parties)
+
+	# We chose to use GMM, but could easily use other clustering algorithms
+	# We tried a few additional alternatives when testing, coming with rather similar results
+	# but left these commented out
+	#-find_coalition(train,KMeans(n_clusters=5,n_init=10),relevant_parties)
+	#-relevant_parties = ["Blues", "Yellows", "Reds", "Greys", "Oranges"]
+	#-plot_3d(train,relevant_parties)
 
 
-
-
-
-
-
-
+	# The features we would change to form a different coalition are
+	# Will_vote_only_large_party and Financial_agenda_matters, both set to -1
+	# We changed our discriminative modeling script to check the results
+	# and added that to the word document we submitted. It shows staggering
+	# results with the brown party winning the elections and forming a coalition by itself
 
 main()
