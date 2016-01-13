@@ -192,13 +192,13 @@ public class Event extends Resource {
 
 
 
-    protected String generateEventSummary(byte[] key, String summary) {
+    protected Summary generateEventSummary(byte[] key, String summary) {
         StringBuffer sb = new StringBuffer();
         sb.append(KeyManager.getInstance().getSK(summary));
         sb.append("::");
         sb.append(CryptoUtils.encrypt(key,summary.getBytes()));
 
-        return sb.toString();
+        return new Summary(sb.toString());
     }
 
     protected byte[] readSkFromEvent(String summary) {
