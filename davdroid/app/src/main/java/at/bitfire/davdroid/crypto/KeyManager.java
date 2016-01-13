@@ -73,23 +73,20 @@ public class KeyManager {
         try {
             JSONObject rootObj = new JSONObject(data);
             JSONObject keyPairObj = rootObj.optJSONObject(KEYPAIR_TAG);
-            final byte[] pbKeyData = Base64.decode(keyPairObj.optString(PUBLIC_KEY_ATTR).toString(), Base64.DEFAULT);
-            final byte[] prKeyData = Base64.decode(keyPairObj.optString(PRIVATE_KEY_ATTR).toString(), Base64.DEFAULT);
+            final byte[] pbKeyData = Base64.decode(keyPairObj.optString(PUBLIC_KEY_ATTR), Base64.DEFAULT);
+            final byte[] prKeyData = Base64.decode(keyPairObj.optString(PRIVATE_KEY_ATTR), Base64.DEFAULT);
 
-            PublicKey pbKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM).
-                    generatePublic(new X509EncodedKeySpec(pbKeyData));
-            PrivateKey prKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM).
-                    generatePrivate(new PKCS8EncodedKeySpec(prKeyData));
+            PublicKey pbKey;
+            pbKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM).generatePublic(new X509EncodedKeySpec(pbKeyData));
+            PrivateKey prKey;
+            prKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM).generatePrivate(new PKCS8EncodedKeySpec(prKeyData));
 
             keyPair = new KeyPair(pbKey, prKey);
 
         } catch (JSONException e) {
             e.printStackTrace();
             return null;
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-            return null;
-        } catch (InvalidKeySpecException e) {
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             e.printStackTrace();
             return null;
         }
@@ -194,9 +191,7 @@ public class KeyManager {
                 try {
                     userPbKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM).
                             generatePublic(new X509EncodedKeySpec(pbKeyBytes));
-                } catch (NoSuchAlgorithmException e) {
-                    e.printStackTrace();
-                } catch (InvalidKeySpecException e) {
+                } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
                     e.printStackTrace();
                 }
 
@@ -206,8 +201,7 @@ public class KeyManager {
     }
 
     private boolean validateSignature(String userID, KeyRecord keyRecord) {
-        if (keyRecord == null) return false;
-        return validateSignature(keyRecord.signature, keyRecord.pbKey, userID);
+        return (keyRecord != null) && validateSignature(keyRecord.signature, keyRecord.pbKey, userID);
     }
 
     private boolean validateSignature(byte[] signature, byte[] pbkey, String userID) {
@@ -242,10 +236,10 @@ public class KeyManager {
                 JSONObject userObj = keybank.getJSONObject(i);
 
                 // Read user data
-                String userID = userObj.optString(USER_ID_ATTR).toString();
-                byte[] pbkey = Base64.decode(userObj.optString(PUBLIC_KEY_ATTR).toString(), Base64.DEFAULT);
-                byte[] encsk = Base64.decode(userObj.optString(ENC_SK_ATTR).toString(), Base64.DEFAULT);
-                byte[] signature = Base64.decode(userObj.optString(SIGNATURE_ATTR).toString(), Base64.DEFAULT);
+                String userID = userObj.optString(USER_ID_ATTR);
+                byte[] pbkey = Base64.decode(userObj.optString(PUBLIC_KEY_ATTR), Base64.DEFAULT);
+                byte[] encsk = Base64.decode(userObj.optString(ENC_SK_ATTR), Base64.DEFAULT);
+                byte[] signature = Base64.decode(userObj.optString(SIGNATURE_ATTR), Base64.DEFAULT);
 
                 keyRecords.put(userID, new KeyRecord(pbkey, encsk, signature));
             }
@@ -327,13 +321,13 @@ public class KeyManager {
             JSONArray skList = rootObj.optJSONArray(SKLIST_TAG);
 
             // Iterate all SK in the JSONArray
-            byte[] curPbKeyPrefix = null;
+            byte[] curPbKeyPrefix;
             byte[] encSK = null;
             for (int i = 0; i < skList.length(); i++) {
                 JSONObject skObj = skList.getJSONObject(i);
 
-                curPbKeyPrefix = Base64.decode(skObj.optString(PUBLIC_KEY_PREFIX_ATTR).toString(), Base64.DEFAULT);
-                encSK = Base64.decode(skObj.optString(ENC_SK_ATTR).toString(), Base64.DEFAULT);
+                curPbKeyPrefix = Base64.decode(skObj.optString(PUBLIC_KEY_PREFIX_ATTR), Base64.DEFAULT);
+                encSK = Base64.decode(skObj.optString(ENC_SK_ATTR), Base64.DEFAULT);
 
                 // Check if this is my public-key
                 if (Arrays.equals(myPbKeyPrefix, curPbKeyPrefix))
@@ -360,99 +354,4 @@ public class KeyManager {
         protected byte[] encSK;
         protected byte[] signature;
     }
-
-    @Deprecated
-    public String generateEncSKListOld() {
-
-        // Calc total data size
-        int numUsers = keyBank.keySet().size();
-        int dataSize = numUsers * (PUBLIC_KEY_PREFIX_SIZE + CryptoUtils.SYMMETRIC_KEY_SIZE);
-        byte[] data = new byte[dataSize];
-
-        // Create a byte array with the following structure -
-        // For each user: PUBLIC_KEY_PREFIX_SIZE first bytes of user's PublicKey + user's SK
-        int dataPtr = 0;
-        for (String userID : keyBank.keySet()) {
-            KeyRecord keyRecord = keyBank.get(userID);
-            byte[] pbKey = keyRecord.pbKey;
-            byte[] encSK = keyRecord.encSK;
-            System.arraycopy(pbKey, 0, data, dataPtr, PUBLIC_KEY_PREFIX_SIZE);
-            dataPtr += PUBLIC_KEY_PREFIX_SIZE;
-            System.arraycopy(encSK, 0, data, dataPtr, CryptoUtils.SYMMETRIC_KEY_SIZE);
-            dataPtr += CryptoUtils.SYMMETRIC_KEY_SIZE;
-        }
-
-        // Convert the byte array to Base64
-        return Base64.encodeToString(data, Base64.DEFAULT);
-    }
-
-    @Deprecated
-    public byte[] getSKFromEncSKListOld(String allSKData) {
-
-        // Decode Base64 string
-        byte[] data = Base64.decode(allSKData.getBytes(), Base64.DEFAULT);
-        int dataPtr = 0;
-
-        // My PublicKey prefix
-        KeyRecord myKeyRecord = keyBank.get(this.userID);
-        byte[] myPbKeyPrefix = Arrays.copyOfRange(myKeyRecord.pbKey, 0, PUBLIC_KEY_PREFIX_SIZE);
-
-        // Parse all SK data and look for my PublicKey prefix
-        // TODO make sure that data's length is valid
-        int numSK = data.length / (PUBLIC_KEY_PREFIX_SIZE + CryptoUtils.SYMMETRIC_KEY_SIZE);
-        for (int i = 0; i < numSK; i++) {
-            byte[] curPbKeyPrefix = Arrays.copyOfRange(data, dataPtr, dataPtr + PUBLIC_KEY_PREFIX_SIZE);
-            dataPtr += PUBLIC_KEY_PREFIX_SIZE;
-
-            // Check if this is my public-key
-            if (Arrays.equals(myPbKeyPrefix, curPbKeyPrefix))
-                break;
-
-            dataPtr += CryptoUtils.SYMMETRIC_KEY_SIZE;
-        }
-        // TODO handle a situation where pkKeyPrefix is not found
-        // Get the matching version of the encSK that can be decrypted with my private key
-        byte[] encSK = Arrays.copyOfRange(data, dataPtr, dataPtr + CryptoUtils.SYMMETRIC_KEY_SIZE);
-        return CryptoUtils.decryptSymmetricKey(encSK, asymKeyPair.getPrivate());
-    }
-
-    @Deprecated
-    private String keyPairToStringOld(KeyPair keyPair) {
-        byte[] pbKeyData = keyPair.getPublic().getEncoded();
-        byte[] prKeyData = keyPair.getPrivate().getEncoded();
-        byte[] data = new byte[pbKeyData.length + prKeyData.length];
-        System.arraycopy(pbKeyData, 0, data, 0, pbKeyData.length);
-        System.arraycopy(prKeyData, 0, data, pbKeyData.length, prKeyData.length);
-        return Base64.encodeToString(data, Base64.DEFAULT);
-    }
-
-    @Deprecated
-    private KeyPair stringToKeyPairOld(String keyPairData) {
-        byte[] data = Base64.decode(keyPairData.getBytes(), Base64.DEFAULT);
-        final byte[] pbKeyData = new byte[CryptoUtils.ASYMMETRIC_KEY_SIZE];
-        final byte[] prKeyData = new byte[CryptoUtils.ASYMMETRIC_KEY_SIZE];
-        System.arraycopy(data, 0, pbKeyData, 0, pbKeyData.length);
-        System.arraycopy(data, pbKeyData.length, prKeyData, 0, prKeyData.length);
-
-        PublicKey pbKey = new PublicKey() {
-            @Override
-            public String getAlgorithm() { return null; }
-            @Override
-            public String getFormat() { return null; }
-            @Override
-            public byte[] getEncoded() { return pbKeyData; }
-        };
-
-        PrivateKey prKey = new PrivateKey() {
-            @Override
-            public String getAlgorithm() { return null; }
-            @Override
-            public String getFormat() { return null; }
-            @Override
-            public byte[] getEncoded() { return prKeyData; }
-        };
-
-        return new KeyPair(pbKey, prKey);
-    }
-
 }
