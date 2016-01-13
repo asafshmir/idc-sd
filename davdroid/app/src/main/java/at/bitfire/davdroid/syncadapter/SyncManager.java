@@ -35,7 +35,6 @@ public class SyncManager {
 	
 	private static final int MAX_MULTIGET_RESOURCES = 35;
 	private static final String KEY_STORAGE_EVENT_NAME = "KeyManager";
-    //private static final String KEY_STORAGE_EVENT_NAME = "20151215T195117Z-23502%40ec18d4d54a877499.ics";
 
 	protected LocalCollection<? extends Resource> local;
 	protected RemoteCollection<? extends Resource> remote;
@@ -48,15 +47,18 @@ public class SyncManager {
         this.user = accountName + "-" + local.getId();
 	}
 
-    public void synchronizeKeys() throws LocalStorageException {
+    public boolean synchronizeKeys() throws LocalStorageException {
 
         Event event = (Event) local.findByRealName(KEY_STORAGE_EVENT_NAME,true);
 
         KeyManager keyManager = KeyManager.getInstance();
 
         if (event != null) {
+            Log.i(TAG, "Found KeyManager event");
             keyManager.initKeyBank(user,event.description);
+            return false;
         } else {
+            Log.i(TAG, "Adding KeyManager event");
             event = new Event(KEY_STORAGE_EVENT_NAME,null);
             event.summary = KEY_STORAGE_EVENT_NAME;
             // Generates a new key bank
@@ -64,6 +66,9 @@ public class SyncManager {
             event.setDtStart(1,null);
             event.setDtEnd(1,null);
             local.add(event);
+
+            Log.i(TAG,"KeyManager event added");
+            return true;
         }
 
     }
@@ -93,9 +98,10 @@ public class SyncManager {
 		}
 
 
-		if (!fetchCollection) {
-            synchronizeKeys();
-            return;
+		if (!fetchCollection ) {
+            boolean shouldSync = synchronizeKeys();
+            if (!shouldSync)
+                return;
 		}
 		
 		// PHASE 2B: detect details of remote changes
