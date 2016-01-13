@@ -141,9 +141,9 @@ public class KeyManager {
         return keyBankToString();
     }
 
-    public byte[] getSK(String userID) {
+    public byte[] getSK() {
 
-        KeyRecord keyRecord = keyBank.get(userID);
+        KeyRecord keyRecord = keyBank.get(this.userID);
         // No such user
         if (keyRecord == null)
             return null;
@@ -156,14 +156,10 @@ public class KeyManager {
         return CryptoUtils.decryptSymmetricKey(encSK, asymKeyPair.getPrivate());
     }
 
-    public String getBase64SK(String userID) {
-        return Base64.encodeToString(getSK(userID),Base64.DEFAULT);
-    }
-
     private void validateAllUsers() {
 
         // TODO make sure i can validate users - i.e owner
-        byte[] realSK = getSK(this.userID);
+        byte[] realSK = getSK();
         // My user doesn't have a valid SK so it can't validate others
         if (realSK == null)
             return;
