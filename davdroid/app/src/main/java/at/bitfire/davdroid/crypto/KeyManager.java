@@ -6,9 +6,14 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.security.KeyFactory;
 import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -71,43 +76,20 @@ public class KeyManager {
             final byte[] pbKeyData = Base64.decode(keyPairObj.optString(PUBLIC_KEY_ATTR).toString(), Base64.DEFAULT);
             final byte[] prKeyData = Base64.decode(keyPairObj.optString(PRIVATE_KEY_ATTR).toString(), Base64.DEFAULT);
 
-            PublicKey pbKey = new PublicKey() {
-                @Override
-                public String getAlgorithm() {
-                    return null;
-                }
-
-                @Override
-                public String getFormat() {
-                    return null;
-                }
-
-                @Override
-                public byte[] getEncoded() {
-                    return pbKeyData;
-                }
-            };
-
-            PrivateKey prKey = new PrivateKey() {
-                @Override
-                public String getAlgorithm() {
-                    return null;
-                }
-
-                @Override
-                public String getFormat() {
-                    return null;
-                }
-
-                @Override
-                public byte[] getEncoded() {
-                    return prKeyData;
-                }
-            };
+            PublicKey pbKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM).
+                    generatePublic(new X509EncodedKeySpec(pbKeyData));
+            PrivateKey prKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM).
+                    generatePrivate(new PKCS8EncodedKeySpec(prKeyData));
 
             keyPair = new KeyPair(pbKey, prKey);
 
         } catch (JSONException e) {
+            e.printStackTrace();
+            return null;
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            return null;
+        } catch (InvalidKeySpecException e) {
             e.printStackTrace();
             return null;
         }
@@ -206,14 +188,18 @@ public class KeyManager {
             final byte[] pbKeyBytes = keyRecord.pbKey;
             // If valid, add an encrypted version of SK to the user KeyRecord
             if (valid) {
-                PublicKey userPbKey = new PublicKey() {
-                    @Override
-                    public String getAlgorithm() {return null;}
-                    @Override
-                    public String getFormat() {return null;}
-                    @Override
-                    public byte[] getEncoded() {return pbKeyBytes;}
-                };
+
+                PublicKey userPbKey = null;
+
+                try {
+                    userPbKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM).
+                            generatePublic(new X509EncodedKeySpec(pbKeyBytes));
+                } catch (NoSuchAlgorithmException e) {
+                    e.printStackTrace();
+                } catch (InvalidKeySpecException e) {
+                    e.printStackTrace();
+                }
+
                 keyRecord.encSK = CryptoUtils.encryptSymmetricKey(realSK, userPbKey);
             }
         }
