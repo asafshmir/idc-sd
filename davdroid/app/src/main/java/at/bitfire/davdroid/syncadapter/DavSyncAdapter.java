@@ -84,6 +84,7 @@ public abstract class DavSyncAdapter extends AbstractThreadedSyncAdapter impleme
         SharedPreferences preferences = context.getSharedPreferences("caldavkeys", Context.MODE_PRIVATE);
 
         KeyManager keyManager = KeyManager.getInstance();
+        preferences.edit().remove(KEYPAIR_PREFERENCE);
 
         if (!preferences.contains(KEYPAIR_PREFERENCE)) {
             SharedPreferences.Editor editor = preferences.edit();

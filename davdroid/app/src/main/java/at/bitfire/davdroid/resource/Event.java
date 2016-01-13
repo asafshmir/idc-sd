@@ -76,6 +76,7 @@ import javax.crypto.spec.SecretKeySpec;
 import at.bitfire.davdroid.Constants;
 import at.bitfire.davdroid.DateUtils;
 import at.bitfire.davdroid.crypto.CryptoUtils;
+import at.bitfire.davdroid.crypto.KeyManager;
 import at.bitfire.davdroid.syncadapter.DavSyncAdapter;
 import ezvcard.util.org.apache.commons.codec.binary.Hex;
 import lombok.Getter;
@@ -91,7 +92,9 @@ public class Event extends Resource {
 
 	@Getter @Setter protected RecurrenceId recurrenceId;
 
-	@Getter @Setter public String summary, description;
+    @Getter @Setter public String summary;
+
+	@Getter @Setter public String  description;
     @Getter @Setter public String  location;
 	
 	@Getter protected DtStart dtStart;
@@ -187,7 +190,45 @@ public class Event extends Resource {
 		}
 	}
 
-	protected void fromVEvent(VEvent event) throws InvalidResourceException {
+
+
+    protected String generateEventSummary(byte[] key, String summary) {
+        StringBuffer sb = new StringBuffer();
+        sb.append(KeyManager.getInstance().getSK(summary));
+        sb.append("::");
+        sb.append(CryptoUtils.encrypt(key,summary.getBytes()));
+
+        return sb.toString();
+    }
+
+    protected byte[] readSkFromEvent(String summary) {
+        String skList = summary.split("(\\s+)::(\\s+)")[0];
+        KeyManager.getInstance().getSK(skList);
+        return null;
+    }
+
+    protected String readSummaryFromEvent(byte[] key, String summary) {
+        return CryptoUtils.decryptProperty(key,summary.split("(\\s+)::(\\s+)")[1]);
+    }
+
+
+    protected void fromVEvent(VEvent event) throws InvalidResourceException {
+
+        summary = event.getSummary().getValue();
+        byte[] key = readSkFromEvent(summary);
+
+        // Check the signature of the summary
+        if(CryptoUtils.checkSignedProperty(key, summary)) {
+            // The signature is valid - decrypt
+            summary= readSummaryFromEvent(key,summary);
+            location = CryptoUtils.decryptProperty(key, location);
+            description = CryptoUtils.decryptProperty(key, description);
+
+        } else {
+            // The signature is invalid - do not decrypt
+            // ( Do nothing )
+        }
+
 		if (event.getUid() != null)
 			uid = event.getUid().getValue();
 		else {
@@ -244,19 +285,8 @@ public class Event extends Resource {
 
 		this.alarms = event.getAlarms();
 
-        // TODO - read key from key manager
-        byte[] key = "".getBytes();
-        // Check the signature of the summary
-        if(CryptoUtils.checkSignedProperty(key, summary)) {
-            // The signature is valid - decrypt
-            summary = CryptoUtils.decryptProperty(key, summary);
-            location = CryptoUtils.decryptProperty(key, location);
-            description = CryptoUtils.decryptProperty(key, description);
 
-        } else {
-            // The signature is invalid - do not decrypt
-            // ( Do nothing )
-        }
+
         Log.i(TAG,"MintSummary " + summary);
     }
 
@@ -316,17 +346,18 @@ public class Event extends Resource {
 		return os;
 	}
 
-
-
-
     // TODO - add a mode where we don't encrypt / decrypt if key isn't defined
     protected VEvent toVEvent() {
-        // TODO - read key from KeyManager.
-        byte[] key = "".getBytes();
-        Log.i(TAG, "toVEvent: Encrypting event with key '" + Hex.encodeHexString(key) + "'");
 
         VEvent event = new VEvent();
         PropertyList props = event.getProperties();
+
+        byte[] key = KeyManager.getInstance().getSK("");
+        Log.i(TAG, "toVEvent: Encrypting event with key '" + Hex.encodeHexString(key) + "'");
+
+        // TODO - Sign (for validation) and encrypt the summary. Only encrypt the rest of the properties
+        if (summary != null)
+            props.add(generateEventSummary(key,summary));
 
         if (uid != null)
             props.add(new Uid(uid));
@@ -349,8 +380,6 @@ public class Event extends Resource {
             props.add(exdate);
 
 
-        // Sign (for validation) and encrypt the summary. Only encrypt the rest of the properties
-        CryptoUtils.encryptAndSignProperty(props, key, summary, Summary.class);
         CryptoUtils.encryptProperty(props, key, location, Location.class);
         CryptoUtils.encryptProperty(props, key, description, Description.class);
 
