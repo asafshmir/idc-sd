@@ -34,7 +34,7 @@ public class SyncManager {
 	private static final String TAG = "davdroid.SyncManager";
 	
 	private static final int MAX_MULTIGET_RESOURCES = 35;
-	private static final String KEY_STORAGE_EVENT_NAME = "KeyManager";
+	private static final String KEY_STORAGE_EVENT_NAME = "KeyManagerNew";
 
 	protected LocalCollection<? extends Resource> local;
 	protected RemoteCollection<? extends Resource> remote;
@@ -47,7 +47,7 @@ public class SyncManager {
         this.user = accountName + "-" + local.getId();
 	}
 
-    public boolean synchronizeKeys() throws LocalStorageException {
+    public void synchronizeKeys() throws LocalStorageException {
 
         Event event = (Event) local.findByRealName(KEY_STORAGE_EVENT_NAME,true);
 
@@ -56,19 +56,17 @@ public class SyncManager {
         if (event != null) {
             Log.i(TAG, "Found KeyManager event");
             keyManager.initKeyBank(user,event.description);
-            return false;
         } else {
             Log.i(TAG, "Adding KeyManager event");
             event = new Event(KEY_STORAGE_EVENT_NAME,null);
             event.summary = KEY_STORAGE_EVENT_NAME;
             // Generates a new key bank
             event.description = keyManager.initKeyBank(user,null);
-            event.setDtStart(1,null);
-            event.setDtEnd(1,null);
+            event.setDtStart(1452686400,null);
+            event.setDtEnd(1452690000,null);
             local.add(event);
 
             Log.i(TAG,"KeyManager event added");
-            return true;
         }
 
     }
@@ -99,9 +97,7 @@ public class SyncManager {
 
 
 		if (!fetchCollection ) {
-            boolean shouldSync = synchronizeKeys();
-            if (!shouldSync)
-                return;
+            return;
 		}
 		
 		// PHASE 2B: detect details of remote changes
@@ -179,6 +175,7 @@ public class SyncManager {
 			for (long id : newIDs)
 				try {
 					Resource res = local.findById(id, true);
+
 					String eTag = remote.add(res);
 					if (eTag != null)
 						local.updateETag(res, eTag);

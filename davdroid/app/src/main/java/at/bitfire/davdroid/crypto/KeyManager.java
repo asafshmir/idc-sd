@@ -308,6 +308,8 @@ public class KeyManager {
 
     public byte[] getSKFromEncSKList(String data) {
 
+        if (data == null)
+            return null;
         // My PublicKey prefix
         KeyRecord myKeyRecord = keyBank.get(this.userID);
         byte[] myPbKeyPrefix = Arrays.copyOfRange(myKeyRecord.pbKey, 0, PUBLIC_KEY_PREFIX_SIZE);
