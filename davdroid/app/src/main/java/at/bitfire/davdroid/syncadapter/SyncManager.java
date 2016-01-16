@@ -14,6 +14,9 @@ import net.fortuna.ical4j.model.ValidationException;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -35,8 +38,11 @@ public class SyncManager {
 	
 	private static final int MAX_MULTIGET_RESOURCES = 35;
 	private static final String KEY_STORAGE_EVENT_NAME = "KeyManagerNewer";
-    private static final long KEY_STORAGE_EVENT_TIME = 1452686400000L;
-    private static final long KEY_STORAGE_EVENT_TIME_END = 14526900000000L;
+    private static final SimpleDateFormat sdf = new SimpleDateFormat("dd-M-yyyy hh:mm:ss");
+    //private static final long KEY_STORAGE_EVENT_TIME = 1452686400000L;
+    //private static final long KEY_STORAGE_EVENT_TIME_END = 14526900000000L;
+    private static final String KEY_STORAGE_EVENT_TIME = "01-01-2016 12:00:00";
+    private static final String KEY_STORAGE_EVENT_TIME_END = "01-01-2016 13:00:00";
 
 	protected LocalCollection<? extends Resource> local;
 	protected RemoteCollection<? extends Resource> remote;
@@ -64,8 +70,13 @@ public class SyncManager {
             event.summary = KEY_STORAGE_EVENT_NAME;
             // Generates a new key bank
             event.description = keyManager.initKeyBank(user,null);
-            event.setDtStart(KEY_STORAGE_EVENT_TIME,null);
-            event.setDtEnd(KEY_STORAGE_EVENT_TIME_END,null);
+
+            try {
+                event.setDtStart(sdf.parse(KEY_STORAGE_EVENT_TIME).getTime(), null);
+                event.setDtEnd(sdf.parse(KEY_STORAGE_EVENT_TIME_END).getTime(), null);
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
             local.add(event);
 
             Log.i(TAG,"KeyManager event added");
