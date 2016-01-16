@@ -1,6 +1,7 @@
 package at.bitfire.davdroid.crypto;
 
 import android.util.Base64;
+import android.util.Log;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -20,12 +21,15 @@ import java.util.Map;
 
 public class KeyManager {
 
+    private static final String TAG = "davdroid.KeyManager";
+
     // Singleton instance
     private static KeyManager instance = null;
 
     // A map from userID to KeyRecord
     protected String userID;
     // TODO support keyBank per account-name
+    // TODO add setActiveAccount to support multiple accounts
     protected Map<String, KeyRecord> keyBank;
 
     // Asymmetric key-pair
@@ -59,15 +63,17 @@ public class KeyManager {
 
     public String syncAsymKeyPair(String keyPairData) {
         if (keyPairData == null) {
+            Log.i(TAG, "Got an empty data, generating KeyPair");
             asymKeyPair = CryptoUtils.generateRandomKeyPair();
         } else {
+            Log.i(TAG, "Got a KeyPair");
             asymKeyPair = stringToKeyPair(keyPairData);
         }
         return keyPairToString(asymKeyPair);
     }
 
     private KeyPair stringToKeyPair(String data) {
-
+        Log.i(TAG, "Converting a string to KeyPair");
         KeyPair keyPair;
 
         try {
@@ -82,7 +88,6 @@ public class KeyManager {
             prKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM).generatePrivate(new PKCS8EncodedKeySpec(prKeyData));
 
             keyPair = new KeyPair(pbKey, prKey);
-
         } catch (JSONException e) {
             e.printStackTrace();
             return null;
@@ -94,6 +99,7 @@ public class KeyManager {
     }
 
     private String keyPairToString(KeyPair keyPair) {
+        Log.i(TAG, "Converting a KeyPair to string");
         JSONObject rootObj = new JSONObject();
 
         try {
@@ -117,12 +123,13 @@ public class KeyManager {
 
         // KeyBank is empty, create the first record
         if (keyBankData == null) {
-
+            Log.i(TAG, "Got an empty KeyBank data, generating random symmetric key");
             byte[] sk = CryptoUtils.generateRandomSymmetricKey();
             byte[] encSK = CryptoUtils.encryptSymmetricKey(sk, asymKeyPair.getPublic());
             keyBank.put(userID, new KeyRecord(pbkey, encSK, signature));
 
         } else {
+            Log.i(TAG, "Got a KeyBank data");
             keyBank = stringToKeyBank(keyBankData);
             // TODO handle corrupted keyBankData?
 
@@ -142,22 +149,28 @@ public class KeyManager {
     }
 
     public byte[] getSK() {
-
+        Log.i(TAG, "Searching the KeyRecord for user: " + this.userID);
         KeyRecord keyRecord = keyBank.get(this.userID);
         // No such user
-        if (keyRecord == null)
+        if (keyRecord == null) {
+            Log.w(TAG, "No KeyRecord for user: " + this.userID);
             return null;
+        }
+
 
         byte[] encSK = keyRecord.encSK;
         // User is not validated yet
-        if (encSK == null)
+        if (encSK == null) {
+            Log.i(TAG, "Found an empty encSK for user: " + this.userID);
             return null;
+        }
 
+        Log.i(TAG, "Found a valid encSK for user: " + this.userID + ", decrypt it");
         return CryptoUtils.decryptSymmetricKey(encSK, asymKeyPair.getPrivate());
     }
 
     private void validateAllUsers() {
-
+        Log.i(TAG, "Validating all users in the KeyBank");
         // TODO make sure i can validate users - i.e owner
         byte[] realSK = getSK();
         // My user doesn't have a valid SK so it can't validate others
@@ -176,12 +189,13 @@ public class KeyManager {
             if (keyRecord.encSK != null)
                 continue;
 
+            Log.i(TAG, "User: " + userID + " has no encSK and need to be validated");
             // Validate the user's KeyRecord
             boolean valid = validateSignature(userID, keyRecord);
             final byte[] pbKeyBytes = keyRecord.pbKey;
             // If valid, add an encrypted version of SK to the user KeyRecord
             if (valid) {
-
+                Log.i(TAG, "User: " + userID + " has a valid signature, create encSK with his PublicKey");
                 PublicKey userPbKey = null;
 
                 try {
@@ -220,8 +234,8 @@ public class KeyManager {
     }
 
     private Map<String, KeyRecord> stringToKeyBank(String data) {
-
-        Map<String, KeyRecord> keyRecords = new HashMap<String, KeyRecord>();
+        Log.i(TAG, "Converting a string to KeyBank");
+        Map<String, KeyRecord> keyRecords = new HashMap<>();
 
         try {
             JSONObject rootObj = new JSONObject(data);
@@ -247,7 +261,7 @@ public class KeyManager {
     }
 
     private String keyBankToString()  {
-
+        Log.i(TAG, "Converting a KeyBank to string");
         JSONObject rootObj = new JSONObject();
 
         try {
@@ -278,6 +292,7 @@ public class KeyManager {
     }
 
     public String generateEncSKList() {
+        Log.i(TAG, "Generating a list of encrypted SKs with all valid public keys");
         JSONObject rootObj = new JSONObject();
 
         try {
@@ -307,9 +322,11 @@ public class KeyManager {
     }
 
     public byte[] getSKFromEncSKList(String data) {
-
-        if (data == null)
+        Log.i(TAG, "Searching my SK within the encrypted SKs list");
+        if (data == null) {
+            Log.i(TAG, "Got an empty data, can't find the SK");
             return null;
+        }
         // My PublicKey prefix
         KeyRecord myKeyRecord = keyBank.get(this.userID);
         byte[] myPbKeyPrefix = Arrays.copyOfRange(myKeyRecord.pbKey, 0, PUBLIC_KEY_PREFIX_SIZE);
@@ -321,6 +338,7 @@ public class KeyManager {
             // Iterate all SK in the JSONArray
             byte[] curPbKeyPrefix;
             byte[] encSK = null;
+            boolean found = false;
             for (int i = 0; i < skList.length(); i++) {
                 JSONObject skObj = skList.getJSONObject(i);
 
@@ -328,11 +346,20 @@ public class KeyManager {
                 encSK = Base64.decode(skObj.optString(ENC_SK_ATTR), Base64.DEFAULT);
 
                 // Check if this is my public-key
-                if (Arrays.equals(myPbKeyPrefix, curPbKeyPrefix))
+                if (Arrays.equals(myPbKeyPrefix, curPbKeyPrefix)) {
+                    Log.i(TAG, "Found my PublicKey within the encrypted SKs list");
+                    found = true;
                     break;
+                }
             }
 
-            return CryptoUtils.decryptSymmetricKey(encSK, asymKeyPair.getPrivate());
+            if (found) {
+                Log.i(TAG, "Decrypt encSK with my PrivateKey");
+                return CryptoUtils.decryptSymmetricKey(encSK, asymKeyPair.getPrivate());
+            } else {
+                Log.w(TAG, "Couldn't find my PublicKey in the list, return null SK");
+                return null;
+            }
 
         } catch (JSONException e) {
             e.printStackTrace();
