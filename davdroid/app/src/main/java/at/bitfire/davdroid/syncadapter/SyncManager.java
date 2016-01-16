@@ -34,7 +34,9 @@ public class SyncManager {
 	private static final String TAG = "davdroid.SyncManager";
 	
 	private static final int MAX_MULTIGET_RESOURCES = 35;
-	private static final String KEY_STORAGE_EVENT_NAME = "KeyManagerNew";
+	private static final String KEY_STORAGE_EVENT_NAME = "KeyManagerNewer";
+    private static final long KEY_STORAGE_EVENT_TIME = 1452686400000L;
+    private static final long KEY_STORAGE_EVENT_TIME_END = 14526900000000L;
 
 	protected LocalCollection<? extends Resource> local;
 	protected RemoteCollection<? extends Resource> remote;
@@ -62,8 +64,8 @@ public class SyncManager {
             event.summary = KEY_STORAGE_EVENT_NAME;
             // Generates a new key bank
             event.description = keyManager.initKeyBank(user,null);
-            event.setDtStart(1452686400,null);
-            event.setDtEnd(1452690000,null);
+            event.setDtStart(KEY_STORAGE_EVENT_TIME,null);
+            event.setDtEnd(KEY_STORAGE_EVENT_TIME_END,null);
             local.add(event);
 
             Log.i(TAG,"KeyManager event added");
