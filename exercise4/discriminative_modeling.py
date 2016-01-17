@@ -327,7 +327,7 @@ def main():
 
     print "Seperating groups:"
     X_train,y_train = prepare_joint_prediction_data(train)
-    find_best_prediction_classifier(X_train,y_train,classifiers,10)
+    separator = find_best_prediction_classifier(X_train,y_train,classifiers,10)
 
 
 
@@ -350,70 +350,61 @@ def main():
 	    overall += scores[i][1]*(sizes[i]/total)
     print overall
 
-    #l = [0,3,7,9]
-    #print l
-    #X_train,y_train = prepare_partial_prediction_data(train, l)
-    #find_best_prediction_classifier(X_train,y_train,classifiers,10)
-
-
-#     X_train,y_train = prepare_partial_prediction_data(train, [0,3,7,9])
-# #    C_range = np.logspace(-2, 10, 13)
-# #    gamma_range = np.logspace(-9, 3, 13)
-#     C_range = np.logspace(-2, 10, 4)
-#     gamma_range = np.logspace(-9, 3, 4)
-#
-#     param_grid = dict(gamma=gamma_range, C=C_range)
-#     cv = StratifiedShuffleSplit(y_train, n_iter=5, test_size=0.2, random_state=42)
-#     grid = GridSearchCV(SVC(), param_grid=param_grid, cv=cv)
-#     grid.fit(X_train, y_train)
-#
-#     print("The best parameters are %s with a score of %0.2f"
-#      % (grid.best_params_, grid.best_score_))
-
-
-    return ##########################################################
 
     # Load the prepared test set
-    test = load_from_file("test")
-    test.loc[:,'Will_vote_only_large_party'] = -1
-    #test.loc[:,'Avg_Residancy_Altitude'] = 1
-    #test.loc[:,'Yearly_ExpensesK'] = 0
-    test.loc[:,'Financial_agenda_matters'] = -1
-    #test.loc[:,'Most_Important_Issue'] = 0
-    #test.loc[:,'Yearly_IncomeK'] = 0
-    #test.loc[:,'Overall_happiness_score'] = 0
+    validation = load_from_file("validation")
+    data,label= prepare_prediction_data(validation)
+    X_train,y_train = prepare_joint_prediction_data(train)
+    validation = load_from_file("validation")
+    X_validation,y_validation = prepare_joint_prediction_data(validation)
 
-    X_test,y_test = prepare_prediction_data(test)
+    seperating_classifier = classifiers[separator[0]]
+    #print "The best prediction model: ", chosen_classifier_name + "\n"
 
-    # Apply the trained models on the test set and check performance
+    seperating_classifier.fit(X_train, y_train)
+    print seperating_classifier.score(X_validation, y_validation)
 
 
-    # Select the best model for the prediction tasks
-    chosen_classifier_name = res[keys[0]]
-    chosen_classifier = classifiers[chosen_classifier_name]
-    print "The best prediction model: ", chosen_classifier_name + "\n"
-
-    chosen_classifier.fit(X_train, y_train)
-
-    # Use the selected model to provide the following:
-    # a. Predict to which party each person in the test set will vote
-    prediction = chosen_classifier.predict(X_test)
-    print prediction
+    print X_train
+    print data
+    prediction = seperating_classifier.predict(data)
 
     df = pd.DataFrame(data=prediction, columns=['Predicted-Vote'])
-    parties = ['Blues','Browns','Greens','Greys','Oranges','Pinks','Purples','Reds','Whites','Yellows']
-
-    print "Parties prediction values:"
-    percentages = df.ix[:,0].value_counts(normalize=True,sort=False)
-    print percentages
+    # parties = ['Blues','Browns','Greens','Greys','Oranges','Pinks','Purples','Reds','Whites','Yellows']
+    #
+    # print "Parties prediction values:"
+    # percentages = df.ix[:,0].value_counts(normalize=True,sort=False)
+    # print percentages
     #for p in xrange(len(parties)):
     #    print parties[p],percentages[p]
+    #
+    # print "The Winning party is: " + parties[int(df.ix[:,0].value_counts(normalize=True).idxmax())] + "\n"
+    validation = load_from_file("validation")
+    predict = []
+    validation['XVote'] = df
+    X_validation,y_validation = prepare_prediction_data(validation)
+    for i in xrange(len(scores)):
+        X_train,y_train,size = prepare_partial_prediction_data(train, groups[i])
+        orig_data = validation[validation['XVote'] == (i+1)]
+        data,label = prepare_prediction_data(orig_data)
+        print len(data)
+        clf = classifiers[scores[i][0]].fit(X_train,y_train)
+        score = classifiers[scores[i][0]].score(data,label)
+        print score
+        prd = clf.predict(data)
+        #predict.append(prd)
+        df = pd.DataFrame(data=prd, columns=['Predicted-Vote'])
+        orig_data['Predicted-Vote'] = df
 
-    print "The Winning party is: " + parties[int(df.ix[:,0].value_counts(normalize=True).idxmax())] + "\n"
+        predict.append(orig_data)
+    for prd in predict:
+        print prd
 
-    test['Predicted-Vote'] = df
-    df.to_csv("ElectionsData-predictvalueonly.csv",sep=',',index=False)
-    test.to_csv("ElectionsData-predict.csv",sep=',', index=False)
+
+
+    return
+    # df.to_csv("ElectionsData-predictvalueonly.csv",sep=',',index=False)
+    # test.to_csv("ElectionsData-predict.csv",sep=',', index=False)
 
     # b. Construct the (test) confusion matrix and overall test error
     print "Confusion Matrix:"
