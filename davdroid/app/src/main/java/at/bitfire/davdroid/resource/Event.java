@@ -192,19 +192,18 @@ public class Event extends Resource {
 
 
 
-    protected String generateEventSummary(byte[] key, String summary) {
+    protected Summary generateEventSummary(byte[] key, String summary) {
         StringBuffer sb = new StringBuffer();
-        sb.append(KeyManager.getInstance().getSK(summary));
+        sb.append(KeyManager.getInstance().generateEncSKList());
         sb.append("::");
         sb.append(CryptoUtils.encrypt(key,summary.getBytes()));
 
-        return sb.toString();
+        return new Summary(sb.toString());
     }
 
     protected byte[] readSkFromEvent(String summary) {
         String skList = summary.split("(\\s+)::(\\s+)")[0];
-        KeyManager.getInstance().getSK(skList);
-        return null;
+        return KeyManager.getInstance().getSKFromEncSKList(skList);
     }
 
     protected String readSummaryFromEvent(byte[] key, String summary) {
@@ -217,16 +216,18 @@ public class Event extends Resource {
         summary = event.getSummary().getValue();
         byte[] key = readSkFromEvent(summary);
 
-        // Check the signature of the summary
-        if(CryptoUtils.checkSignedProperty(key, summary)) {
-            // The signature is valid - decrypt
-            summary= readSummaryFromEvent(key,summary);
-            location = CryptoUtils.decryptProperty(key, location);
-            description = CryptoUtils.decryptProperty(key, description);
+        if (key != null) {
+            // Check the signature of the summary
+            if (CryptoUtils.checkSignedProperty(key, summary)) {
+                // The signature is valid - decrypt
+                summary = readSummaryFromEvent(key, summary);
+                location = CryptoUtils.decryptProperty(key, location);
+                description = CryptoUtils.decryptProperty(key, description);
 
-        } else {
-            // The signature is invalid - do not decrypt
-            // ( Do nothing )
+            } else {
+                // The signature is invalid - do not decrypt
+                // ( Do nothing )
+            }
         }
 
 		if (event.getUid() != null)
@@ -349,11 +350,13 @@ public class Event extends Resource {
     // TODO - add a mode where we don't encrypt / decrypt if key isn't defined
     protected VEvent toVEvent() {
 
+        Log.i(TAG,"toVEvent: start");
+                //Log.i(TAG, "toVEvent: Encrypting event with key '" + Hex.encodeHexString(key) + "'");
         VEvent event = new VEvent();
         PropertyList props = event.getProperties();
 
-        byte[] key = KeyManager.getInstance().getSK("");
-        Log.i(TAG, "toVEvent: Encrypting event with key '" + Hex.encodeHexString(key) + "'");
+        byte[] key = KeyManager.getInstance().getSK();
+        //Log.i(TAG, "toVEvent: Encrypting event with key '" + Hex.encodeHexString(key) + "'");
 
         // TODO - Sign (for validation) and encrypt the summary. Only encrypt the rest of the properties
         if (summary != null)

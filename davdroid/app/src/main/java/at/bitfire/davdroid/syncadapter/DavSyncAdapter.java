@@ -84,7 +84,10 @@ public abstract class DavSyncAdapter extends AbstractThreadedSyncAdapter impleme
         SharedPreferences preferences = context.getSharedPreferences("caldavkeys", Context.MODE_PRIVATE);
 
         KeyManager keyManager = KeyManager.getInstance();
-        preferences.edit().remove(KEYPAIR_PREFERENCE);
+
+//        SharedPreferences.Editor editor_temp = preferences.edit();
+//        editor_temp.remove(KEYPAIR_PREFERENCE);
+//        editor_temp.commit();
 
         if (!preferences.contains(KEYPAIR_PREFERENCE)) {
             SharedPreferences.Editor editor = preferences.edit();
@@ -156,10 +159,8 @@ public abstract class DavSyncAdapter extends AbstractThreadedSyncAdapter impleme
 				try {
 					for (Map.Entry<LocalCollection<?>, RemoteCollection<?>> entry : syncCollections.entrySet()) {
                         SyncManager mn = new SyncManager(entry.getKey(), entry.getValue(), account.name);
-                        // If we don't have to sync the calendars, we still need to read the keys for each calendar.
-                        if (syncCollections == null) {
-                            mn.synchronizeKeys();
-                        } else {
+                        mn.synchronizeKeys();
+                        if (syncCollections != null) {
                             mn.synchronize(extras.containsKey(ContentResolver.SYNC_EXTRAS_MANUAL), syncResult);
                         }
                     }

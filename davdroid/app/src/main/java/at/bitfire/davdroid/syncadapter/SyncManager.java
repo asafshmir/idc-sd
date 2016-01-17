@@ -14,6 +14,9 @@ import net.fortuna.ical4j.model.ValidationException;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -34,8 +37,12 @@ public class SyncManager {
 	private static final String TAG = "davdroid.SyncManager";
 	
 	private static final int MAX_MULTIGET_RESOURCES = 35;
-	private static final String KEY_STORAGE_EVENT_NAME = "KeyManager";
-    //private static final String KEY_STORAGE_EVENT_NAME = "20151215T195117Z-23502%40ec18d4d54a877499.ics";
+	private static final String KEY_STORAGE_EVENT_NAME = "KeyManagerNewer";
+    private static final SimpleDateFormat sdf = new SimpleDateFormat("dd-M-yyyy hh:mm:ss");
+    //private static final long KEY_STORAGE_EVENT_TIME = 1452686400000L;
+    //private static final long KEY_STORAGE_EVENT_TIME_END = 14526900000000L;
+    private static final String KEY_STORAGE_EVENT_TIME = "01-01-2016 12:00:00";
+    private static final String KEY_STORAGE_EVENT_TIME_END = "01-01-2016 13:00:00";
 
 	protected LocalCollection<? extends Resource> local;
 	protected RemoteCollection<? extends Resource> remote;
@@ -55,15 +62,24 @@ public class SyncManager {
         KeyManager keyManager = KeyManager.getInstance();
 
         if (event != null) {
+            Log.i(TAG, "Found KeyManager event");
             keyManager.initKeyBank(user,event.description);
         } else {
+            Log.i(TAG, "Adding KeyManager event");
             event = new Event(KEY_STORAGE_EVENT_NAME,null);
             event.summary = KEY_STORAGE_EVENT_NAME;
             // Generates a new key bank
             event.description = keyManager.initKeyBank(user,null);
-            event.setDtStart(1,null);
-            event.setDtEnd(1,null);
+
+            try {
+                event.setDtStart(sdf.parse(KEY_STORAGE_EVENT_TIME).getTime(), null);
+                event.setDtEnd(sdf.parse(KEY_STORAGE_EVENT_TIME_END).getTime(), null);
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
             local.add(event);
+
+            Log.i(TAG,"KeyManager event added");
         }
 
     }
@@ -93,8 +109,7 @@ public class SyncManager {
 		}
 
 
-		if (!fetchCollection) {
-            synchronizeKeys();
+		if (!fetchCollection ) {
             return;
 		}
 		
@@ -173,6 +188,7 @@ public class SyncManager {
 			for (long id : newIDs)
 				try {
 					Resource res = local.findById(id, true);
+
 					String eTag = remote.add(res);
 					if (eTag != null)
 						local.updateETag(res, eTag);
