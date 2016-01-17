@@ -192,15 +192,36 @@ def prepare_prediction_data(electionsData):
     return x,y
 
 def prepare_joint_prediction_data(electionsData):
+<<<<<<< HEAD
+    electionsData['XVOTE'] = [1 if (x == 1 or x == 6) else 2 if (x == 0 or x == 3 or x == 7 or x == 9) else 3 for x in electionsData['Vote']]
+    x = electionsData.drop(['XVOTE'], axis=1).values
+    y = electionsData.XVOTE.values
+=======
     electionsData['XVOTE'] = [1 if (x == 1 or x == 6) else 2 if (x ==3 or x == 7) else 3 if (x == 0 or x==4 or x == 9) else 4 for x in electionsData['Vote']]
     x = electionsData.drop(['XVOTE'], axis=1).drop(['Vote'], axis=1).values
     y = electionsData.XVOTE.values
     electionsData = electionsData.drop(['XVOTE'], axis=1).values
+>>>>>>> 6dc5e6702c7a3da65fb0c09a73d27ce8deab354c
     return x,y
 
 def prepare_partial_prediction_data(electionsData, parties):
     electionsData = electionsData[electionsData['Vote'].isin(parties)]
+<<<<<<< HEAD
+    print len(electionsData.index)    
+    x = electionsData.drop(['Vote'], axis=1).values
+    y = electionsData.Vote.values
+    return x,y
 
+# Run cross validation prediction with different classifiers
+def run_prediction_with_cross_validation(x,y,classifiers,parts):
+    
+    results = {}    
+    
+    for classifier_name, classifier in classifiers.items():
+        
+        scores = cross_validation.cross_val_score(classifier, x, y, cv=parts)
+              
+=======
     print len(electionsData.index)
     x = electionsData.drop(['Vote'], axis=1).values
     y = electionsData.Vote.values
@@ -215,6 +236,7 @@ def run_prediction_with_cross_validation(x,y,classifiers,parts):
 
         scores = cross_validation.cross_val_score(classifier, x, y, cv=parts)
 
+>>>>>>> 6dc5e6702c7a3da65fb0c09a73d27ce8deab354c
         results[np.mean(scores)] = classifier_name
 
     return results
@@ -227,7 +249,7 @@ def find_best_prediction_classifier(x,y,classifiers,parts):
     print "Model scores:"
     for key in keys:
         print "%s (%.3f)" % (res[key], key)
-    return res[keys[0]],key
+<<<<<<< HEAD
 
 def main():
     
@@ -239,14 +261,34 @@ def main():
     
     # Train at least two discriminative models (including cross validation)        
     classifiers = {
-    #"Ensemble" : ec,
-    #"Ensemble2" : ec2,
-    #"GradientBoostingClassifier" : GradientBoostingClassifier(n_estimators=100, learning_rate=1.0, max_depth=1, random_state=0),
+    "Ensemble" : ec,
+    "Ensemble2" : ec2,    
+    "GradientBoostingClassifier" : GradientBoostingClassifier(n_estimators=100, learning_rate=1.0, max_depth=1, random_state=0),
 #    "GradientBoostingRegressor" : GradientBoostingRegressor(n_estimators=100, learning_rate=0.1, max_depth=11, random_state=0, loss='ls'),
 #    "Decision Tree(10)-entropy" : DecisionTreeClassifier(max_depth=10, criterion="entropy"),
 #    "Decision Tree(11)-entropy" : DecisionTreeClassifier(max_depth=11, criterion="entropy"),
 #    "Decision Tree(12)-entropy" : DecisionTreeClassifier(max_depth=12, criterion="entropy"), 
+=======
+	return res[keys[0]],key
 
+def main():
+
+    # Load the prepared training set
+    train = load_from_file("train")
+
+    ec = EnsembleClassifier(clfs=[SVC(kernel="rbf", gamma=0.35, C=1e3),  GradientBoostingClassifier(n_estimators=100, learning_rate=1.0, max_depth=1, random_state=0), RandomForestClassifier(max_depth=11, n_estimators=25, max_features=5)], voting='hard')
+    ec2 = EnsembleClassifier(clfs=[RandomForestClassifier(max_depth=11, n_estimators=25, max_features=5), KNeighborsClassifier(8), GradientBoostingClassifier(n_estimators=100, learning_rate=1.0, max_depth=1, random_state=0)], voting='soft')
+
+    # Train at least two discriminative models (including cross validation)
+    classifiers = {
+    # "Ensemble" : ec,
+    # "Ensemble2" : ec2,
+    # "GradientBoostingClassifier" : GradientBoostingClassifier(n_estimators=100, learning_rate=1.0, max_depth=1, random_state=0),
+#    "GradientBoostingRegressor" : GradientBoostingRegressor(n_estimators=100, learning_rate=0.1, max_depth=11, random_state=0, loss='ls'),
+    "Decision Tree(10)-entropy" : DecisionTreeClassifier(max_depth=10, criterion="entropy"),
+#    "Decision Tree(11)-entropy" : DecisionTreeClassifier(max_depth=11, criterion="entropy"),
+#    "Decision Tree(12)-entropy" : DecisionTreeClassifier(max_depth=12, criterion="entropy"),
+>>>>>>> 6dc5e6702c7a3da65fb0c09a73d27ce8deab354c
 #    "Decision Tree(13)-entropy" : DecisionTreeClassifier(max_depth=13, criterion="entropy"),
 #
 #    "Decision Tree(10)" : DecisionTreeClassifier(max_depth=10), # Gini is default
@@ -257,16 +299,25 @@ def main():
 #	"Random Forest (8)" : RandomForestClassifier(max_depth=8, n_estimators=20, max_features=5),
 #	"Random Forest (9)" : RandomForestClassifier(max_depth=9, n_estimators=25, max_features=5),
 #    "Random Forest (10)" : RandomForestClassifier(max_depth=10, n_estimators=25, max_features=5),
-
+<<<<<<< HEAD
     "Random Forest (11)" : RandomForestClassifier(max_depth=11, n_estimators=25, max_features=5),
-
+=======
+#     "Random Forest (11) e" : RandomForestClassifier(max_depth=11, n_estimators=25, max_features=5, criterion="entropy"),
+     "Random Forest (11) 6" : RandomForestClassifier(max_depth=11, n_estimators=25, max_features=6),
+#     "Random Forest (11) 7" : RandomForestClassifier(max_depth=11, n_estimators=25, max_features=7),
+ #    "Random Forest (11) 4" : RandomForestClassifier(max_depth=11, n_estimators=25, max_features=4),
+  #   "Random Forest (11) n50" : RandomForestClassifier(max_depth=11, n_estimators=50, max_features=5),
+  #   "Random Forest (11) n5" : RandomForestClassifier(max_depth=11, n_estimators=5, max_features=5)
+>>>>>>> 6dc5e6702c7a3da65fb0c09a73d27ce8deab354c
 #    "Random Forest (12)" : RandomForestClassifier(max_depth=12, n_estimators=20, max_features=5),
 #
 #    "BaggingClassifier(Random Forest11)" : BaggingClassifier(RandomForestClassifier(max_depth=11, n_estimators=25, max_features=5)),
 #
-
+<<<<<<< HEAD
+#    "ExtraTreesClassifier (11)" : ExtraTreesClassifier(max_depth=11, n_estimators=25, max_features=5),
+=======
     "ExtraTreesClassifier (11)" : ExtraTreesClassifier(max_depth=11, n_estimators=25, max_features=5),
-
+>>>>>>> 6dc5e6702c7a3da65fb0c09a73d27ce8deab354c
 #    "ExtraTreesClassifier (7)" : ExtraTreesClassifier(max_depth=7, n_estimators=25, max_features=5),
 #    "ExtraTreesClassifier (11-50estimators)" : ExtraTreesClassifier(max_depth=11, n_estimators=50, max_features=5),
 #    "ExtraTreesClassifier (11-8features)" : ExtraTreesClassifier(max_depth=11, n_estimators=25, max_features=8),
@@ -274,22 +325,30 @@ def main():
 #
 #    "BaggingClassifier(ExtraTrees11)" : BaggingClassifier(RandomForestClassifier(max_depth=11, n_estimators=25, max_features=5)),
 #
-
+<<<<<<< HEAD
 #     "LinearRegression" :  LinearRegression(),
 #     "LogisticRegression" :  LogisticRegression(),
 #     
 #     "Nearest Neighbors(4)" : KNeighborsClassifier(4),
-      #"Nearest Neighbors(8)" : KNeighborsClassifier(8),
+      "Nearest Neighbors(8)" : KNeighborsClassifier(8),
 #      "Nearest Neighbors(7)" : KNeighborsClassifier(7),
 #     
-
+=======
+     "LinearRegression" :  LinearRegression(),
+#     "LogisticRegression" :  LogisticRegression(C=10),
+#
+     "Nearest Neighbors(4)" : KNeighborsClassifier(4),
+#       "Nearest Neighbors(8)" : KNeighborsClassifier(8),
+#      "Nearest Neighbors(7)" : KNeighborsClassifier(7),
+#
+>>>>>>> 6dc5e6702c7a3da65fb0c09a73d27ce8deab354c
 #      "Nearest Neighbors(8)-distance" : KNeighborsClassifier(8, weights='distance'),
 #     "Nearest Neighbors(9)-distance" : KNeighborsClassifier(9, weights='distance'),
 #      "Nearest Neighbors(7)-distance" : KNeighborsClassifier(7, weights='distance'),
 #      "Nearest Neighbors(6)-distance" : KNeighborsClassifier(6, weights='distance'),
 #      "Nearest Neighbors(5)-distance" : KNeighborsClassifier(5, weights='distance'),
 #      "Nearest Neighbors(4)-distance" : KNeighborsClassifier(4, weights='distance'),
-
+<<<<<<< HEAD
 #     
 #     "Naive Bayes" : GaussianNB(),
 #     
@@ -298,7 +357,16 @@ def main():
      "Linear SVM OVO" : SVC(kernel="linear", C=1),
 #     
 #     "Linear SVM OVR" : LinearSVC(C=1),
-
+=======
+#
+#     "Naive Bayes" : GaussianNB(),
+#
+     # "Perceptron" : Perceptron(n_iter=50, penalty='elasticnet',alpha=10),
+#
+      "Linear SVM OVO" : SVC(kernel="linear", C=1),
+#
+     "Linear SVM OVR" : LinearSVC(C=1)
+>>>>>>> 6dc5e6702c7a3da65fb0c09a73d27ce8deab354c
 #
 #    "SVC 0.025" : SVC(kernel="linear", C=0.025),
 #    "SVC 1" : SVC(kernel="rbf", gamma=1e-1, C=1e-2),
@@ -309,9 +377,11 @@ def main():
 #"SVC 6" : SVC(kernel="rbf", gamma=1e1, C=1),
 #"SVC 7" : SVC(kernel="rbf", gamma=1e-1, C=1e2),
 #     "SVC 8 g=0.05" : SVC(kernel="rbf", gamma=0.05, C=1e2),
-
+<<<<<<< HEAD
 #"SVC 8 g=0.35 2" : SVC(kernel="rbf", gamma=0.35, C=1e2),
-
+=======
+# "SVC 8 g=0.35 2" : SVC(kernel="poly", gamma=2,degree=5)
+>>>>>>> 6dc5e6702c7a3da65fb0c09a73d27ce8deab354c
 #"SVC 8 g=0.35 3" : SVC(kernel="rbf", gamma=0.35, C=1e3),
 #"SVC 8 g=-0.35 3" : SVC(kernel="rbf", gamma=-0.35, C=1e3),
 #"SVC 8 g=0.35 4" : SVC(kernel="rbf", gamma=0.35, C=1e4),
@@ -320,12 +390,60 @@ def main():
 #"SVC 8 g=1.5" : SVC(kernel="rbf", gamma=1.5, C=1e2),
 #"SVC 8 gamma=10" : SVC(kernel="rbf", gamma=10, C=1e2),
 #"SVC 9" : SVC(kernel="rbf", gamma=1e1, C=1e2),
+<<<<<<< HEAD
+     
+     
+=======
 
+
+>>>>>>> 6dc5e6702c7a3da65fb0c09a73d27ce8deab354c
 #    "SVC rbf gamma" : SVC(kernel="rbf", gamma=2, C=1),
 #    "SVC rbf gamma 2" : SVC(kernel="rbf", gamma=2, C=2),
 #    "SVC gamma" : SVC(gamma=2, C=1),
 #    "SVC si" : SVC(kernel="sigmoid", coef0=0.0, C=0.01),
+<<<<<<< HEAD
+    "AdaBoost" : AdaBoostClassifier()
+#   "LDA" : LinearDiscriminantAnalysis(),
+#    "QDA" : QuadraticDiscriminantAnalysis()
+    }
+    
+    
+    #print "Seperating groups:" 
+    #X_train,y_train = prepare_joint_prediction_data(train)   
+    #find_best_prediction_classifier(X_train,y_train,classifiers,10)
+    
+    
+    print "Seperating parties:"
+    #for l in ([1,6], [0,3,7,9], [2,4,5,8]):    
+     #   print l
+     #   X_train,y_train = prepare_partial_prediction_data(train, l)   
+     #   find_best_prediction_classifier(X_train,y_train,classifiers,10)
+    
+    l = [0,3,7,9]    
+    print l
+    X_train,y_train = prepare_partial_prediction_data(train, l)   
+    find_best_prediction_classifier(X_train,y_train,classifiers,10)
+    
+#    
+#    X_train,y_train = prepare_partial_prediction_data(train, [0,3,7,9])   
+##    C_range = np.logspace(-2, 10, 13)
+##    gamma_range = np.logspace(-9, 3, 13)
+#    C_range = np.logspace(-2, 10, 4)
+#    gamma_range = np.logspace(-9, 3, 4)
+#        
+#    param_grid = dict(gamma=gamma_range, C=C_range)
+#    cv = StratifiedShuffleSplit(y_train, n_iter=5, test_size=0.2, random_state=42)
+#    grid = GridSearchCV(SVC(), param_grid=param_grid, cv=cv)
+#    grid.fit(X_train, y_train)
+#
+#    print("The best parameters are %s with a score of %0.2f"
+#      % (grid.best_params_, grid.best_score_))
 
+    
+    return ##########################################################
+    
+    # Load the prepared test set    
+=======
 #     "AdaBoost" : AdaBoostClassifier()
 #   "LDA" : LinearDiscriminantAnalysis(),
 #    "QDA" : QuadraticDiscriminantAnalysis()
@@ -334,7 +452,7 @@ def main():
 
     print "Seperating groups:"
     X_train,y_train = prepare_joint_prediction_data(train)
-    separator = find_best_prediction_classifier(X_train,y_train,classifiers,10)
+    find_best_prediction_classifier(X_train,y_train,classifiers,10)
 
 
 
@@ -357,60 +475,86 @@ def main():
 	    overall += scores[i][1]*(sizes[i]/total)
     print overall
 
+    #l = [0,3,7,9]
+    #print l
+    #X_train,y_train = prepare_partial_prediction_data(train, l)
+    #find_best_prediction_classifier(X_train,y_train,classifiers,10)
+
+
+#     X_train,y_train = prepare_partial_prediction_data(train, [0,3,7,9])
+# #    C_range = np.logspace(-2, 10, 13)
+# #    gamma_range = np.logspace(-9, 3, 13)
+#     C_range = np.logspace(-2, 10, 4)
+#     gamma_range = np.logspace(-9, 3, 4)
+#
+#     param_grid = dict(gamma=gamma_range, C=C_range)
+#     cv = StratifiedShuffleSplit(y_train, n_iter=5, test_size=0.2, random_state=42)
+#     grid = GridSearchCV(SVC(), param_grid=param_grid, cv=cv)
+#     grid.fit(X_train, y_train)
+#
+#     print("The best parameters are %s with a score of %0.2f"
+#      % (grid.best_params_, grid.best_score_))
+
+
+    return ##########################################################
 
     # Load the prepared test set
-    validation = load_from_file("validation")
-    data,label= prepare_prediction_data(validation)
-    X_train,y_train = prepare_joint_prediction_data(train)
-    validation = load_from_file("validation")
-    X_validation,y_validation = prepare_joint_prediction_data(validation)
+>>>>>>> 6dc5e6702c7a3da65fb0c09a73d27ce8deab354c
+    test = load_from_file("test")
+    test.loc[:,'Will_vote_only_large_party'] = -1
+    #test.loc[:,'Avg_Residancy_Altitude'] = 1
+    #test.loc[:,'Yearly_ExpensesK'] = 0
+    test.loc[:,'Financial_agenda_matters'] = -1
+    #test.loc[:,'Most_Important_Issue'] = 0
+    #test.loc[:,'Yearly_IncomeK'] = 0
+    #test.loc[:,'Overall_happiness_score'] = 0
 
-    seperating_classifier = classifiers[separator[0]]
-    #print "The best prediction model: ", chosen_classifier_name + "\n"
+<<<<<<< HEAD
+    X_test,y_test = prepare_prediction_data(test)   
+    
+    # Apply the trained models on the test set and check performance
+    
+    
+    # Select the best model for the prediction tasks
+    chosen_classifier_name = res[keys[0]]
+    chosen_classifier = classifiers[chosen_classifier_name] 
+    print "The best prediction model: ", chosen_classifier_name + "\n"
 
-    seperating_classifier.fit(X_train, y_train)
-    print seperating_classifier.score(X_validation, y_validation)
+    chosen_classifier.fit(X_train, y_train)
+   
+=======
+    X_test,y_test = prepare_prediction_data(test)
 
-    print X_train
-    print data
-    prediction = seperating_classifier.predict(data)
+    # Apply the trained models on the test set and check performance
+
+
+    # Select the best model for the prediction tasks
+    chosen_classifier_name = res[keys[0]]
+    chosen_classifier = classifiers[chosen_classifier_name]
+    print "The best prediction model: ", chosen_classifier_name + "\n"
+
+    chosen_classifier.fit(X_train, y_train)
+
+>>>>>>> 6dc5e6702c7a3da65fb0c09a73d27ce8deab354c
+    # Use the selected model to provide the following:
+    # a. Predict to which party each person in the test set will vote
+    prediction = chosen_classifier.predict(X_test)
+    print prediction
 
     df = pd.DataFrame(data=prediction, columns=['Predicted-Vote'])
-    # parties = ['Blues','Browns','Greens','Greys','Oranges','Pinks','Purples','Reds','Whites','Yellows']
-    #
-    # print "Parties prediction values:"
-    # percentages = df.ix[:,0].value_counts(normalize=True,sort=False)
-    # print percentages
+    parties = ['Blues','Browns','Greens','Greys','Oranges','Pinks','Purples','Reds','Whites','Yellows']
+
+    print "Parties prediction values:"
+    percentages = df.ix[:,0].value_counts(normalize=True,sort=False)
+    print percentages
     #for p in xrange(len(parties)):
     #    print parties[p],percentages[p]
-    #
-    # print "The Winning party is: " + parties[int(df.ix[:,0].value_counts(normalize=True).idxmax())] + "\n"
-    validation = load_from_file("validation")
-    predict = []
-    validation['XVote'] = df
-    X_validation,y_validation = prepare_prediction_data(validation)
-    for i in xrange(len(scores)):
-        X_train,y_train,size = prepare_partial_prediction_data(train, groups[i])
-        orig_data = validation[validation['XVote'] == (i+1)]
-        data,label = prepare_prediction_data(orig_data)
-        print len(data)
-        clf = classifiers[scores[i][0]].fit(X_train,y_train)
-        score = classifiers[scores[i][0]].score(data,label)
-        print score
-        prd = clf.predict(data)
-        #predict.append(prd)
-        df = pd.DataFrame(data=prd, columns=['Predicted-Vote'])
-        orig_data['Predicted-Vote'] = df
 
-        predict.append(orig_data)
-    for prd in predict:
-        print prd
+    print "The Winning party is: " + parties[int(df.ix[:,0].value_counts(normalize=True).idxmax())] + "\n"
 
-
-
-    return
-    # df.to_csv("ElectionsData-predictvalueonly.csv",sep=',',index=False)
-    # test.to_csv("ElectionsData-predict.csv",sep=',', index=False)
+    test['Predicted-Vote'] = df
+    df.to_csv("ElectionsData-predictvalueonly.csv",sep=',',index=False)
+    test.to_csv("ElectionsData-predict.csv",sep=',', index=False)
 
     # b. Construct the (test) confusion matrix and overall test error
     print "Confusion Matrix:"
