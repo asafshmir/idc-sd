@@ -190,44 +190,6 @@ public class Event extends Resource {
 		}
 	}
 
-
-    /**
-     * Attach the SK list to the data of a given event property
-     * @param key
-     * @param data
-     * @return
-     */
-    protected String attachSKList(byte[] key, String data) {
-
-        StringBuffer sb = new StringBuffer();
-        sb.append(KeyManager.getInstance().generateEncSKList());
-        sb.append("::");
-        sb.append(CryptoUtils.encrypt(key,data.getBytes()));
-
-        return sb.toString();
-    }
-
-    /**
-     * Detach the SK list from the given property data and select the current SK
-     * @param data
-     * @return
-     */
-    protected byte[] readAttachedSk(String data) {
-        String skList = data.split("(\\s+)::(\\s+)")[0];
-        return KeyManager.getInstance().getSKFromEncSKList(skList);
-    }
-
-    /**
-     * Detach the original data from the property (discarding SK list information)
-     * @param key
-     * @param summary
-     * @return
-     */
-    protected String readAttachedData(byte[] key, String summary) {
-        return CryptoUtils.decryptProperty(key,summary.split("(\\s+)::(\\s+)")[1]);
-    }
-
-
     protected void fromVEvent(VEvent event) throws InvalidResourceException {
 
         if (event.getSummary() != null)
@@ -240,19 +202,20 @@ public class Event extends Resource {
         boolean shouldDecrypt = !(summary.equals(KeyManager.KEY_STORAGE_EVENT_NAME));
         byte[] key = null;
         if (shouldDecrypt) {
-            key = readAttachedSk(description);
+            key = Decoder.readAttachedSk(description);
         }
 
         if (shouldDecrypt && key != null) {
             // Check the signature of the summary
-            if (CryptoUtils.checkSignedProperty(key, summary)) {
+            if (Decoder.checkSignedProperty(key, summary)) {
                 // The signature is valid - decrypt
-                summary = CryptoUtils.decryptProperty(key, summary);
-                location = CryptoUtils.decryptProperty(key, location);
-                description = readAttachedData(key, description);
+                summary = Decoder.decryptSignedProperty(key, summary);
+                location = Decoder.decryptProperty(key, location);
+                description = Decoder.readAttachedData(key, description);
 
             } else {
                 // The signature is invalid - do not decrypt
+                Log.i(TAG, "Event isn't signed correctly");
                 // ( Do nothing )
             }
         }
@@ -380,18 +343,17 @@ public class Event extends Resource {
         // TODO - Sign (for validation) and encrypt the summary. Only encrypt the rest of the properties
 
 
-        if (summary != null) {
+        if (description != null) {
             if (shouldEncrypt) {
                 // Add the SK list to the event's description
                 if (description == null)
                     description = "";
 
-                props.add(new Description(attachSKList(key, description)));
+                props.add(new Description(Decoder.attachSKList(key, description)));
             } else {
-                props.add(new Summary(summary));
+                props.add(new Description(description));
             }
         }
-
 
         if (uid != null)
             props.add(new Uid(uid));
@@ -414,11 +376,11 @@ public class Event extends Resource {
             props.add(exdate);
 
         if (shouldEncrypt) {
-            CryptoUtils.encryptProperty(props, key, location, Location.class);
-            CryptoUtils.encryptProperty(props, key, description, Description.class);
+            Decoder.encryptProperty(props, key, location, Location.class);
+            Decoder.encryptAndSignProperty(props, key, summary, Summary.class);
         } else {
-            if (description != null)
-                props.add(new Description(description));
+            if (summary != null)
+                props.add(new Description(summary));
             if (location != null)
                 props.add(new Location(location));
         }
