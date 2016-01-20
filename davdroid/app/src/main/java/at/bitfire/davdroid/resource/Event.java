@@ -190,45 +190,43 @@ public class Event extends Resource {
 		}
 	}
 
-
-
-    protected Summary generateEventSummary(byte[] key, String summary) {
+    /**
+     * Attach the SK list to the data of a given event property
+     * @param key
+     * @param data
+     * @return
+     */
+    protected String attachSKList(byte[] key, String data) {
         StringBuffer sb = new StringBuffer();
         sb.append(KeyManager.getInstance().generateEncSKList());
         sb.append("::");
-        sb.append(CryptoUtils.encrypt(key,summary.getBytes()));
+        sb.append(CryptoUtils.encrypt(key,data.getBytes()));
 
-        return new Summary(sb.toString());
+        return sb.toString();
     }
 
-    protected byte[] readSkFromEvent(String summary) {
-        String skList = summary.split("(\\s+)::(\\s+)")[0];
+    /**
+     * Detach the SK list from the given property data and select the current SK
+     * @param data
+     * @return
+     */
+    protected byte[] readAttachedSk(String data) {
+        String skList = data.split("(\\s+)::(\\s+)")[0];
         return KeyManager.getInstance().getSKFromEncSKList(skList);
     }
 
-    protected String readSummaryFromEvent(byte[] key, String summary) {
+    /**
+     * Detach the original data from the property (discarding SK list information)
+     * @param key
+     * @param summary
+     * @return
+     */
+    protected String readAttachedData(byte[] key, String summary) {
         return CryptoUtils.decryptProperty(key,summary.split("(\\s+)::(\\s+)")[1]);
     }
 
 
     protected void fromVEvent(VEvent event) throws InvalidResourceException {
-
-        summary = event.getSummary().getValue();
-        byte[] key = readSkFromEvent(summary);
-
-        if (key != null) {
-            // Check the signature of the summary
-            if (CryptoUtils.checkSignedProperty(key, summary)) {
-                // The signature is valid - decrypt
-                summary = readSummaryFromEvent(key, summary);
-                location = CryptoUtils.decryptProperty(key, location);
-                description = CryptoUtils.decryptProperty(key, description);
-
-            } else {
-                // The signature is invalid - do not decrypt
-                // ( Do nothing )
-            }
-        }
 
 		if (event.getUid() != null)
 			uid = event.getUid().getValue();
@@ -262,12 +260,29 @@ public class Event extends Resource {
 		exrule = (ExRule)event.getProperty(Property.EXRULE);
 		exdate = (ExDate)event.getProperty(Property.EXDATE);
 
-		if (event.getSummary() != null)
-			summary = event.getSummary().getValue();
-		if (event.getLocation() != null)
-			location = event.getLocation().getValue();
-		if (event.getDescription() != null)
-			description = event.getDescription().getValue();
+        // Get the SK from the event's description
+        description = event.getDescription().getValue();
+        byte[] key = readAttachedSk(description);
+
+        if (key != null) {
+            // Check the signature of the summary
+            if (CryptoUtils.checkSignedProperty(key, summary)) {
+                // The signature is valid - decrypt
+
+                if (event.getSummary() != null)
+                    summary = CryptoUtils.decryptProperty(key, summary);
+                if (event.getLocation() != null)
+                    location = CryptoUtils.decryptProperty(key, location);
+
+                // Before decrypting the description, detach the SK list from it
+                if (event.getDescription() != null)
+                    description = readAttachedData(key, description);
+
+            } else {
+                // The signature is invalid - do not decrypt
+                // ( Do nothing )
+            }
+        }
 
 		status = event.getStatus();
 		opaque = event.getTransparency() != Transp.TRANSPARENT;
@@ -359,8 +374,12 @@ public class Event extends Resource {
         //Log.i(TAG, "toVEvent: Encrypting event with key '" + Hex.encodeHexString(key) + "'");
 
         // TODO - Sign (for validation) and encrypt the summary. Only encrypt the rest of the properties
-        if (summary != null)
-            props.add(generateEventSummary(key,summary));
+
+        // Add the SK list to the event's description
+        if (description == null)
+            description = "";
+
+        props.add(attachSKList(key,description));
 
         if (uid != null)
             props.add(new Uid(uid));
@@ -382,10 +401,8 @@ public class Event extends Resource {
         if (exdate != null)
             props.add(exdate);
 
-
+        CryptoUtils.encryptProperty(props, key, summary, Summary.class);
         CryptoUtils.encryptProperty(props, key, location, Location.class);
-        CryptoUtils.encryptProperty(props, key, description, Description.class);
-
 
         if (status != null)
             props.add(status);
