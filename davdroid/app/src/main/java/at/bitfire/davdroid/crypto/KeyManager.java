@@ -95,10 +95,10 @@ public class KeyManager {
 
             keyPair = new KeyPair(pbKey, prKey);
         } catch (JSONException e) {
-            e.printStackTrace();
+            Log.e(TAG, e.getMessage());
             return null;
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-            e.printStackTrace();
+            Log.e(TAG, e.getMessage());
             return null;
         }
         return keyPair;
@@ -114,7 +114,7 @@ public class KeyManager {
             keyPairObj.put(PRIVATE_KEY_ATTR, Base64.encodeToString(keyPair.getPrivate().getEncoded(), Base64.DEFAULT));
             rootObj.put(KEYPAIR_TAG, keyPairObj);
         } catch (JSONException e) {
-            e.printStackTrace();
+            Log.e(TAG, e.getMessage());
             return null;
         }
         return rootObj.toString();
@@ -212,7 +212,7 @@ public class KeyManager {
                     userPbKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM).
                             generatePublic(new X509EncodedKeySpec(pbKeyBytes));
                 } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-                    e.printStackTrace();
+                    Log.e(TAG, e.getMessage());
                 }
 
                 keyRecord.encSK = CryptoUtils.encryptSymmetricKey(realSK, userPbKey);
@@ -262,7 +262,7 @@ public class KeyManager {
                 keyRecords.put(userID, new KeyRecord(pbkey, encsk, signature));
             }
         } catch (JSONException e) {
-            e.printStackTrace();
+            Log.e(TAG, e.getMessage());
             return null;
         }
         return keyRecords;
@@ -293,7 +293,7 @@ public class KeyManager {
             rootObj.put(KEYBANK_TAG, keybank);
 
         } catch (JSONException e) {
-            e.printStackTrace();
+            Log.e(TAG, e.getMessage());
             return null;
         }
         return rootObj.toString();
@@ -323,7 +323,7 @@ public class KeyManager {
             rootObj.put(SKLIST_TAG, skList);
 
         } catch (JSONException e) {
-            e.printStackTrace();
+            Log.e(TAG, e.getMessage());
             return null;
         }
         return rootObj.toString();
@@ -375,7 +375,7 @@ public class KeyManager {
             }
 
         } catch (JSONException e) {
-            e.printStackTrace();
+            Log.e(TAG, e.getMessage());
             return null;
         }
     }
