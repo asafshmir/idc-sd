@@ -313,6 +313,7 @@ public class CryptoUtils {
      * @param symmetricKeyBytes The key for the secure hash
      * @return The signature
      */
+    // TODO use signature without a key, and sign pbke+secret together
     public static byte[] calculateSignature(byte[] data, byte[] symmetricKeyBytes) {
 
         try {
