@@ -379,7 +379,7 @@ public class Event extends Resource {
         if (description == null)
             description = "";
 
-        props.add(attachSKList(key,description));
+        props.add(new Description(attachSKList(key,description)));
 
         if (uid != null)
             props.add(new Uid(uid));
