@@ -339,6 +339,11 @@ public class KeyManager {
             JSONObject rootObj = new JSONObject(data);
             JSONArray skList = rootObj.optJSONArray(SKLIST_TAG);
 
+            if (skList == null) {
+                Log.w(TAG, "SK list is empty");
+                return null;
+            }
+
             // Iterate all SK in the JSONArray
             byte[] curPbKeyPrefix;
             byte[] encSK = null;
