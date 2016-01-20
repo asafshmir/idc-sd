@@ -267,7 +267,6 @@ public abstract class LocalCollection<T extends Resource> {
                     "", null, null);
 
             while (cursor != null && cursor.moveToNext()) {
-                Log.i(TAG,String.valueOf(cursor.getLong(0)));
                 T resource = newResource(cursor.getLong(0), cursor.getString(1), cursor.getString(2));
                 if (populate)
                     populate(resource);
@@ -302,15 +301,27 @@ public abstract class LocalCollection<T extends Resource> {
 	 * @return the new resource object */
 	abstract public T newResource(long localID, String resourceName, String eTag);
 
-	/** Enqueues adding the resource (including all data) to the local collection. Requires commit(). */
-	public void add(Resource resource) {
-		int idx = pendingOperations.size();
-		pendingOperations.add(
-				buildEntry(ContentProviderOperation.newInsert(entriesURI()), resource)
-				.withYieldAllowed(true)
-				.build());
 
-		addDataRows(resource, -1, idx);
+    public void add(Resource resource, boolean markDirty) {
+        int idx = pendingOperations.size();
+        if (markDirty) {
+            pendingOperations.add(
+                    buildEntry(ContentProviderOperation.newInsert(entriesURI()), resource)
+                            .withValue(entryColumnDirty(), 1)
+                            .withYieldAllowed(true)
+                            .build());
+        } else {
+            pendingOperations.add(
+                    buildEntry(ContentProviderOperation.newInsert(entriesURI()), resource)
+                            .withYieldAllowed(true)
+                            .build());
+        }
+        addDataRows(resource, -1, idx);
+    }
+
+    /** Enqueues adding the resource (including all data) to the local collection. Requires commit(). */
+	public void add(Resource resource) {
+        add(resource,false);
 	}
 
 	/** Enqueues updating an existing resource in the local collection. The resource will be found by 
@@ -361,6 +372,7 @@ public abstract class LocalCollection<T extends Resource> {
 				.withValue(entryColumnDirty(), 0)
 				.build());
 	}
+
 
 	/** Commits enqueued operations to the content provider (for batch operations). */
 	public void commit() throws LocalStorageException {
