@@ -1,6 +1,7 @@
 package at.bitfire.davdroid.crypto;
 
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * A dummy implementation of UsersManager.
@@ -8,15 +9,18 @@ import java.util.HashMap;
  */
 public class DummyUsersManager implements UsersManager {
 
-    private HashMap<String, String> usersData;
+    private Map<String, String> usersData;
 
     public DummyUsersManager() {
-        usersData.put("xcfdxcfd", "VeryStrongPassword");
+        usersData = new HashMap<>();
+        usersData.put("xcfdxcfd-5", "VeryStrongPassword");
     }
 
     @Override
     public String getSecret(String userID) {
-        return usersData.get(userID);
+        //return usersData.get(userID);
+        //TODO change this to read from userData
+        return "VeryStrongPassword";
     }
 
     @Override
