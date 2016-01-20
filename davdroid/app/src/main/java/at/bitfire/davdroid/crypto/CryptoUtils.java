@@ -1,8 +1,11 @@
 package at.bitfire.davdroid.crypto;
 
+import android.util.Base64;
 import android.util.Log;
 
 import net.fortuna.ical4j.model.PropertyList;
+
+import org.json.JSONObject;
 
 import java.lang.reflect.Constructor;
 import java.security.InvalidKeyException;
@@ -123,106 +126,6 @@ public class CryptoUtils {
     }
 
 
-    public static String decryptProperty(byte[] key, String value) {
-        if(value == null) {
-            return null;
-        }
-
-        try {
-            Log.i(TAG, "Value: " + value);
-            String decrypted = Hex.encodeHexString(CryptoUtils.decrypt(key, value.getBytes()));
-            return  decrypted;
-        } catch (Exception e) {
-            Log.i(TAG, "Value Failed!");
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    public static boolean checkSignedProperty(byte[] key, String value) {
-
-        if(value == null) {
-            return false;
-        }
-
-        // size of signature (doubled because of hex conversion)
-        int size = CryptoUtils.signatureSize() * 2;
-
-        if(value.length() <= size) {
-            return false;
-        }
-
-        try {
-            Log.i(TAG, "Value: " + value);
-            String signature = Hex.encodeHexString(value.substring(0, size).getBytes());
-            String decrypted = Hex.encodeHexString(CryptoUtils.decrypt(key, value.substring(size).getBytes()));
-
-            String calculated = new String(CryptoUtils.calculateSignature(decrypted, key));
-            return calculated.equals(signature);
-
-        } catch (Exception e) {
-            Log.i(TAG, "Value Failed!");
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    public static boolean encryptProperty(PropertyList props, byte[] key, String value, Class c) {
-
-        if (value != null && !value.isEmpty()) {
-            try {
-                Log.i(TAG, "Value: " + value);
-                Constructor constructor = c.getConstructor(String.class);
-                String encrypted = Hex.encodeHexString(CryptoUtils.encrypt(key, value.getBytes()));
-                props.add(constructor.newInstance(encrypted));
-
-            } catch (Exception e) {
-                Log.i(TAG, "Value Failed!");
-                e.printStackTrace();
-                try {
-                    Constructor constructor = c.getConstructor(String.class);
-                    // Falling back to not encrypting
-                    props.add(constructor.newInstance(value));
-                } catch (Exception ex) {
-                }
-            }
-        } else {
-            Log.i(TAG, "Value is null!");
-        }
-
-        // TODO - change this
-        return true;
-    }
-
-    public static boolean encryptAndSignProperty(PropertyList props, byte[] key, String value, Class c) {
-
-        if (value != null && !value.isEmpty()) {
-            try {
-                Log.i(TAG, "Value: " + value);
-                Constructor constructor = c.getConstructor(String.class);
-                String signature = Hex.encodeHexString(CryptoUtils.calculateSignature(value,key));
-                String encrypted = Hex.encodeHexString(CryptoUtils.encrypt(key, value.getBytes()));
-                props.add(constructor.newInstance(signature + encrypted));
-
-            } catch (Exception e) {
-                Log.i(TAG, "Value Failed!");
-                e.printStackTrace();
-                try {
-                    Constructor constructor = c.getConstructor(String.class);
-                    // Falling back to not encrypting
-                    props.add(constructor.newInstance(value));
-                } catch (Exception ex) {
-                }
-            }
-        } else {
-            Log.i(TAG, "Value is null!");
-        }
-
-        // TODO - change this
-        return true;
-    }
-
-
     /**
      * Encrypt the symmetric key using the asymmetric algorithm
      * @param symmetricKeyBytes The symmetric key to encrypt
@@ -329,9 +232,6 @@ public class CryptoUtils {
             return null;
         }
     }
-
-
-
 
     /**
      * Return the signature size
