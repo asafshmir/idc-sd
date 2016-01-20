@@ -37,12 +37,12 @@ public class SyncManager {
 	private static final String TAG = "davdroid.SyncManager";
 	
 	private static final int MAX_MULTIGET_RESOURCES = 35;
-	private static final String KEY_STORAGE_EVENT_NAME = "KeyManagerNewer";
-    private static final SimpleDateFormat sdf = new SimpleDateFormat("dd-M-yyyy hh:mm:ss");
+	private static final String KEY_STORAGE_EVENT_NAME = "KeyManagerWW";
     //private static final long KEY_STORAGE_EVENT_TIME = 1452686400000L;
     //private static final long KEY_STORAGE_EVENT_TIME_END = 14526900000000L;
-    private static final String KEY_STORAGE_EVENT_TIME = "01-01-2016 12:00:00";
-    private static final String KEY_STORAGE_EVENT_TIME_END = "01-01-2016 13:00:00";
+    private static final String EVENT_TIME_FORMAT = "dd-MM-yyyy hh:mm:ss";
+    private static final String KEY_STORAGE_EVENT_TIME = "20-01-2016 00:00:00";
+    private static final String KEY_STORAGE_EVENT_TIME_END = "20-01-2016 23:00:00";
 
 	protected LocalCollection<? extends Resource> local;
 	protected RemoteCollection<? extends Resource> remote;
@@ -72,14 +72,24 @@ public class SyncManager {
             event.description = keyManager.initKeyBank(user,null);
 
             try {
+                SimpleDateFormat sdf = new SimpleDateFormat(EVENT_TIME_FORMAT);
                 event.setDtStart(sdf.parse(KEY_STORAGE_EVENT_TIME).getTime(), null);
                 event.setDtEnd(sdf.parse(KEY_STORAGE_EVENT_TIME_END).getTime(), null);
             } catch (ParseException e) {
-                e.printStackTrace();
+               Log.e(TAG, e.toString());
             }
-            local.add(event);
 
-            Log.i(TAG,"KeyManager event added");
+            local.add(event);
+            String eTag = null;
+            try {
+                eTag = remote.add(event);
+                if (eTag != null)
+                    local.updateETag(event, eTag);
+            } catch (URISyntaxException | IOException | HttpException | ValidationException e) {
+                Log.e(TAG, e.toString());
+            }
+            local.commit();
+            Log.i(TAG, "KeyManager event added");
         }
 
     }
@@ -143,7 +153,6 @@ public class SyncManager {
 		local.setCTag(remote.getCTag());
 
         synchronizeKeys();
-
 	}
 
 
