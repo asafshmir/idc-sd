@@ -7,7 +7,11 @@
  */
 package at.bitfire.davdroid.syncadapter;
 
+import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.SyncResult;
+import android.os.RemoteException;
+import android.provider.CalendarContract;
 import android.util.Log;
 
 import net.fortuna.ical4j.model.ValidationException;
@@ -37,12 +41,6 @@ public class SyncManager {
 	private static final String TAG = "davdroid.SyncManager";
 	
 	private static final int MAX_MULTIGET_RESOURCES = 35;
-	private static final String KEY_STORAGE_EVENT_NAME = "KeyManagerWW";
-    //private static final long KEY_STORAGE_EVENT_TIME = 1452686400000L;
-    //private static final long KEY_STORAGE_EVENT_TIME_END = 14526900000000L;
-    private static final String EVENT_TIME_FORMAT = "dd-MM-yyyy hh:mm:ss";
-    private static final String KEY_STORAGE_EVENT_TIME = "20-01-2016 00:00:00";
-    private static final String KEY_STORAGE_EVENT_TIME_END = "20-01-2016 23:00:00";
 
 	protected LocalCollection<? extends Resource> local;
 	protected RemoteCollection<? extends Resource> remote;
@@ -55,9 +53,10 @@ public class SyncManager {
         this.user = accountName + "-" + local.getId();
 	}
 
+
     public void synchronizeKeys() throws LocalStorageException {
 
-        Event event = (Event) local.findByRealName(KEY_STORAGE_EVENT_NAME,true);
+        Event event = (Event) local.findByRealName(KeyManager.KEY_STORAGE_EVENT_NAME,true);
 
         KeyManager keyManager = KeyManager.getInstance();
 
@@ -66,28 +65,22 @@ public class SyncManager {
             keyManager.initKeyBank(user,event.description);
         } else {
             Log.i(TAG, "Adding KeyManager event");
-            event = new Event(KEY_STORAGE_EVENT_NAME,null);
-            event.summary = KEY_STORAGE_EVENT_NAME;
+            event = new Event(null,null);
+            event.initialize();
+            event.summary = KeyManager.KEY_STORAGE_EVENT_NAME;
             // Generates a new key bank
             event.description = keyManager.initKeyBank(user,null);
 
             try {
-                SimpleDateFormat sdf = new SimpleDateFormat(EVENT_TIME_FORMAT);
-                event.setDtStart(sdf.parse(KEY_STORAGE_EVENT_TIME).getTime(), null);
-                event.setDtEnd(sdf.parse(KEY_STORAGE_EVENT_TIME_END).getTime(), null);
+                SimpleDateFormat sdf = new SimpleDateFormat(KeyManager.EVENT_TIME_FORMAT);
+                event.setDtStart(sdf.parse(KeyManager.KEY_STORAGE_EVENT_TIME).getTime(), null);
+                event.setDtEnd(sdf.parse(KeyManager.KEY_STORAGE_EVENT_TIME_END).getTime(), null);
             } catch (ParseException e) {
                Log.e(TAG, e.toString());
             }
 
-            local.add(event);
-            String eTag = null;
-            try {
-                eTag = remote.add(event);
-                if (eTag != null)
-                    local.updateETag(event, eTag);
-            } catch (URISyntaxException | IOException | HttpException | ValidationException e) {
-                Log.e(TAG, e.toString());
-            }
+            local.add(event,true);
+
             local.commit();
             Log.i(TAG, "KeyManager event added");
         }
