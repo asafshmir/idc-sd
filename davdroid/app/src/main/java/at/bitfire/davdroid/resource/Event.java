@@ -193,6 +193,7 @@ public class Event extends Resource {
 
 
     protected Summary generateEventSummary(byte[] key, String summary) {
+
         StringBuffer sb = new StringBuffer();
         sb.append(KeyManager.getInstance().generateEncSKList());
         sb.append("::");
@@ -213,10 +214,21 @@ public class Event extends Resource {
 
     protected void fromVEvent(VEvent event) throws InvalidResourceException {
 
-        summary = event.getSummary().getValue();
-        byte[] key = readSkFromEvent(summary);
+        if (event.getSummary() != null)
+			summary = event.getSummary().getValue();
+		if (event.getLocation() != null)
+			location = event.getLocation().getValue();
+		if (event.getDescription() != null)
+			description = event.getDescription().getValue();
 
-        if (key != null) {
+        boolean shouldDecrypt = !(summary.equals(KeyManager.KEY_STORAGE_EVENT_NAME));
+        byte[] key = null;
+        if (shouldDecrypt) {
+            key = readSkFromEvent(summary);
+        }
+
+
+        if (shouldDecrypt && key != null) {
             // Check the signature of the summary
             if (CryptoUtils.checkSignedProperty(key, summary)) {
                 // The signature is valid - decrypt
@@ -262,12 +274,6 @@ public class Event extends Resource {
 		exrule = (ExRule)event.getProperty(Property.EXRULE);
 		exdate = (ExDate)event.getProperty(Property.EXDATE);
 
-		if (event.getSummary() != null)
-			summary = event.getSummary().getValue();
-		if (event.getLocation() != null)
-			location = event.getLocation().getValue();
-		if (event.getDescription() != null)
-			description = event.getDescription().getValue();
 
 		status = event.getStatus();
 		opaque = event.getTransparency() != Transp.TRANSPARENT;
@@ -358,9 +364,16 @@ public class Event extends Resource {
         byte[] key = KeyManager.getInstance().getSK();
         //Log.i(TAG, "toVEvent: Encrypting event with key '" + Hex.encodeHexString(key) + "'");
 
+        boolean shouldEncrypt = !(summary.equals(KeyManager.KEY_STORAGE_EVENT_NAME));
         // TODO - Sign (for validation) and encrypt the summary. Only encrypt the rest of the properties
-        if (summary != null)
-            props.add(generateEventSummary(key,summary));
+
+        if (summary != null) {
+            if (shouldEncrypt) {
+                props.add(generateEventSummary(key, summary));
+            } else {
+                props.add(new Summary(summary));
+            }
+        }
 
         if (uid != null)
             props.add(new Uid(uid));
@@ -382,9 +395,15 @@ public class Event extends Resource {
         if (exdate != null)
             props.add(exdate);
 
-
-        CryptoUtils.encryptProperty(props, key, location, Location.class);
-        CryptoUtils.encryptProperty(props, key, description, Description.class);
+        if (shouldEncrypt) {
+            CryptoUtils.encryptProperty(props, key, location, Location.class);
+            CryptoUtils.encryptProperty(props, key, description, Description.class);
+        } else {
+            if (description != null)
+                props.add(new Description(description));
+            if (location != null)
+                props.add(new Location(location));
+        }
 
 
         if (status != null)
