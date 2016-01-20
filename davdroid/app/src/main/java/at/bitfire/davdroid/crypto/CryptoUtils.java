@@ -107,7 +107,7 @@ public class CryptoUtils {
             cipher.init(Cipher.ENCRYPT_MODE, skeySpec);
             encrypted = cipher.doFinal(clear);
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, e.getMessage());
         }
         return encrypted;
     }
@@ -120,7 +120,7 @@ public class CryptoUtils {
             cipher.init(Cipher.DECRYPT_MODE, skeySpec);
             decrypted = cipher.doFinal(encrypted);
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, e.getMessage());
         }
         return decrypted;
     }
