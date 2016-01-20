@@ -35,6 +35,7 @@ public class KeyManager {
     // TODO support keyBank per account-name
     // TODO add setActiveAccount to support multiple accounts
     protected Map<String, KeyRecord> keyBank;
+    protected  UsersManager usersManager;
 
     // Asymmetric key-pair
     protected KeyPair asymKeyPair;
@@ -56,6 +57,7 @@ public class KeyManager {
 
     private KeyManager() {
         keyBank = new HashMap<>();
+        usersManager = new DummyUsersManager();
     }
 
     public static KeyManager getInstance() {
@@ -143,9 +145,9 @@ public class KeyManager {
             if (!keyBank.containsKey(userID)) {
                 keyBank.put(userID, new KeyRecord(pbkey, null, signature));
             }
+            // TODO if there's already a record with your ID (i.e lost your private key), replace it with a request record
         }
 
-        // TODO only if you are the owner, validate all other records and add their encSK
         validateAllUsers();
 
         // Return the new key-bank
@@ -175,31 +177,35 @@ public class KeyManager {
 
     private void validateAllUsers() {
         Log.i(TAG, "Validating all users in the KeyBank");
-        // TODO make sure i can validate users - i.e owner
-        byte[] realSK = getSK();
+
         // My user doesn't have a valid SK so it can't validate others
-        if (realSK == null)
+        byte[] realSK = getSK();
+        if (realSK == null) {
+            Log.i(TAG, "My user: " + this.userID + " has no encSK, can't validate others");
             return;
+        }
 
         // Iterate the users validate them
-        for (String userID : keyBank.keySet()) {
+        for (String curUserID : keyBank.keySet()) {
 
             // No need to validate my user
-            if (this.userID.equals(userID))
+            if (this.userID.equals(curUserID))
                 continue;
 
-            KeyRecord keyRecord = keyBank.get(userID);
+            KeyRecord keyRecord = keyBank.get(curUserID);
             // User has an SK, so we don't need to validate it
-            if (keyRecord.encSK != null)
+            if (keyRecord.encSK != null) {
+                Log.i(TAG, "User: " + curUserID + " has encSK - no need to validated him");
                 continue;
+            }
 
-            Log.i(TAG, "User: " + userID + " has no encSK and need to be validated");
+            Log.i(TAG, "User: " + curUserID + " has no encSK and need to be validated");
             // Validate the user's KeyRecord
-            boolean valid = validateSignature(userID, keyRecord);
+            boolean valid = validateSignature(curUserID, keyRecord);
             final byte[] pbKeyBytes = keyRecord.pbKey;
             // If valid, add an encrypted version of SK to the user KeyRecord
             if (valid) {
-                Log.i(TAG, "User: " + userID + " has a valid signature, create encSK with his PublicKey");
+                Log.i(TAG, "User: " + curUserID + " has a valid signature, create encSK with his PublicKey");
                 PublicKey userPbKey = null;
 
                 try {
@@ -220,8 +226,6 @@ public class KeyManager {
 
     private boolean validateSignature(byte[] signature, byte[] pbkey, String userID) {
 
-        // TODO use signature without a key, and sign pbke+secret together
-
         // Get the user's secret
         byte[] secret = getSecret(userID);
 
@@ -232,9 +236,9 @@ public class KeyManager {
         return Arrays.equals(realSignature, signature);
     }
 
-    // TODO figure out which key to use instead of 'secret'
     private byte[] getSecret(String userID) {
-        return "secret".getBytes();
+        String secret = usersManager.getSecret(userID);
+        return secret.getBytes();
     }
 
     private Map<String, KeyRecord> stringToKeyBank(String data) {
