@@ -50,7 +50,7 @@ public class SyncManager {
 	public SyncManager(LocalCollection<? extends Resource> local, RemoteCollection<? extends Resource> remote, String accountName) {
 		this.local = local;
 		this.remote = remote;
-        this.user = accountName + "-" + local.getId();
+        this.user = accountName;
 	}
 
 
