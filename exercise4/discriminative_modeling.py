@@ -227,12 +227,13 @@ def find_best_prediction_classifier(x,y,classifiers,parts):
     print "Model scores:"
     for key in keys:
         print "%s (%.3f)" % (res[key], key)
-    return res[keys[0]],key
+    return res[keys[0]],keys[0]
 
 def main():
     
     # Load the prepared training set
     train = load_from_file("train")
+    
     
     ec = EnsembleClassifier(clfs=[SVC(kernel="rbf", gamma=0.35, C=1e3),  GradientBoostingClassifier(n_estimators=100, learning_rate=1.0, max_depth=1, random_state=0), RandomForestClassifier(max_depth=11, n_estimators=25, max_features=5)], voting='hard')    
     ec2 = EnsembleClassifier(clfs=[RandomForestClassifier(max_depth=11, n_estimators=25, max_features=5), KNeighborsClassifier(8), GradientBoostingClassifier(n_estimators=100, learning_rate=1.0, max_depth=1, random_state=0)], voting='soft')    
@@ -336,8 +337,6 @@ def main():
     X_train,y_train = prepare_joint_prediction_data(train)
     separator = find_best_prediction_classifier(X_train,y_train,classifiers,10)
 
-
-
     print "Seperating parties:"
     groups = ([1,6], [3,7], [0,4,9],[2,5,8])
     scores = []
@@ -355,14 +354,17 @@ def main():
     for i in xrange(len(scores)):
 	    print scores[i], sizes[i], scores[i][1]*(sizes[i]/total)
 	    overall += scores[i][1]*(sizes[i]/total)
-    print overall
+    print "Overall: ", overall
 
 
+    #VALIDATION_FILE = "train"
+    VALIDATION_FILE = "test"
     # Load the prepared test set
-    validation = load_from_file("validation")
+    validation = load_from_file(VALIDATION_FILE)
+
     data,label= prepare_prediction_data(validation)
     X_train,y_train = prepare_joint_prediction_data(train)
-    validation = load_from_file("validation")
+    validation = load_from_file(VALIDATION_FILE)
     X_validation,y_validation = prepare_joint_prediction_data(validation)
 
     seperating_classifier = classifiers[separator[0]]
@@ -371,11 +373,10 @@ def main():
     seperating_classifier.fit(X_train, y_train)
     print seperating_classifier.score(X_validation, y_validation)
 
-    print X_train
-    print data
     prediction = seperating_classifier.predict(data)
 
     df = pd.DataFrame(data=prediction, columns=['Predicted-Vote'])
+
     # parties = ['Blues','Browns','Greens','Greys','Oranges','Pinks','Purples','Reds','Whites','Yellows']
     #
     # print "Parties prediction values:"
@@ -385,28 +386,33 @@ def main():
     #    print parties[p],percentages[p]
     #
     # print "The Winning party is: " + parties[int(df.ix[:,0].value_counts(normalize=True).idxmax())] + "\n"
-    validation = load_from_file("validation")
+    X_train,y_train = prepare_joint_prediction_data(train)
+    validation = load_from_file(VALIDATION_FILE)
     predict = []
-    validation['XVote'] = df
-    X_validation,y_validation = prepare_prediction_data(validation)
+    validation['XVOTE'] = df
+
     for i in xrange(len(scores)):
         X_train,y_train,size = prepare_partial_prediction_data(train, groups[i])
-        orig_data = validation[validation['XVote'] == (i+1)]
-        data,label = prepare_prediction_data(orig_data)
-        print len(data)
+        train_sub_group = validation[validation['XVOTE'] == (i+1)]
+
+        data,label = prepare_prediction_data(train_sub_group)
+
         clf = classifiers[scores[i][0]].fit(X_train,y_train)
-        score = classifiers[scores[i][0]].score(data,label)
+        score = clf.score(data,label)
+        print scores[i]
         print score
-        prd = clf.predict(data)
-        #predict.append(prd)
-        df = pd.DataFrame(data=prd, columns=['Predicted-Vote'])
-        orig_data['Predicted-Vote'] = df
+        train_sub_group['Predicted-Vote'] = clf.predict(data)
 
-        predict.append(orig_data)
-    for prd in predict:
-        print prd
+        predict.append(train_sub_group)
 
+    test = pd.concat(predict,axis=0)
 
+    print len(test[test['Vote'] == test['Predicted-Vote']])
+    print len(test)
+    print len(test[test['Vote'] == test['Predicted-Vote']])/(len(test)*1.0)
+
+    #for p in predict:
+    #    print p.info()
 
     return
     # df.to_csv("ElectionsData-predictvalueonly.csv",sep=',',index=False)
