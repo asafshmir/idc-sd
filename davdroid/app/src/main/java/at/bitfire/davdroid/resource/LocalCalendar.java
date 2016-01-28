@@ -65,6 +65,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import at.bitfire.davdroid.DateUtils;
+import at.bitfire.davdroid.crypto.KeyManager;
 import lombok.Cleanup;
 import lombok.Getter;
 
@@ -525,7 +526,13 @@ public class LocalCalendar extends LocalCollection<Event> {
 
 	@Override
 	protected Builder buildEntry(Builder builder, Resource resource) {
-		Event event = (Event)resource;
+		Event encryptedEvent = (Event)resource;
+
+        Event event = new Event(encryptedEvent.localID,encryptedEvent.name, encryptedEvent.ETag);
+        try {
+            event.fromVEvent(encryptedEvent.toVEvent(false));
+        } catch (InvalidResourceException e) {
+        }
 
 		builder = builder
 				.withValue(Events.CALENDAR_ID, id)
