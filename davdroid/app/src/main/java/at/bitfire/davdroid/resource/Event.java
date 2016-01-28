@@ -380,7 +380,7 @@ public class Event extends Resource {
             Decoder.encryptAndSignProperty(props, key, summary, Summary.class);
         } else {
             if (summary != null)
-                props.add(new Description(summary));
+                props.add(new Summary(summary));
             if (location != null)
                 props.add(new Location(location));
         }

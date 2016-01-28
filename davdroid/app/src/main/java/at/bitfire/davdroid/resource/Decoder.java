@@ -153,10 +153,11 @@ public class Decoder {
             JSONObject json = new JSONObject();
             json.put("sk-list", KeyManager.getInstance().generateEncSKList());
             json.put("data", Base64.encodeToString(CryptoUtils.encrypt(key, data.getBytes()), Base64.DEFAULT));
-
+            Log.i(TAG, "Data: " + json.toString());
             return json.toString();
         } catch (JSONException e) {
-            Log.i(TAG, "JSON Failed!");
+            Log.e(TAG, "JSON Failed! - attachSKList");
+            Log.e(TAG, e.getMessage());
             return null;
         }
     }
@@ -175,12 +176,14 @@ public class Decoder {
         try {
 
             // Get the SK list from the JSON object
+            Log.i(TAG, "Data: " + data);
             JSONObject json = new JSONObject(data);
             String skList = (String)json.get("sk-list");
             return KeyManager.getInstance().getSKFromEncSKList(skList);
 
         } catch (JSONException e) {
-            Log.i(TAG, "JSON Failed!");
+            Log.e(TAG, "JSON Failed! - readAttachedSk");
+            Log.e(TAG, e.getMessage());
             return null;
         }
     }
@@ -200,12 +203,14 @@ public class Decoder {
         try {
 
             // Get the SK list from the JSON object
+            Log.i(TAG, "Data: " + data);
             JSONObject json = new JSONObject(data);
             String decrypted = new String(decryptProperty(key, ((String) json.get("data"))));
             return decrypted;
 
         } catch (JSONException e) {
-            Log.i(TAG, "JSON Failed!");
+            Log.e(TAG, "JSON Failed! - readAttachedData");
+            Log.e(TAG, e.getMessage());
             return null;
         }
     }
