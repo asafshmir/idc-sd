@@ -17,7 +17,6 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Map;
 
 import at.bitfire.davdroid.resource.Event;
 
@@ -42,8 +41,9 @@ public class KeyManager {
     protected String userID;
     // TODO support keyBank per account-name
     // TODO add setActiveAccount to support multiple accounts
-    protected Map<String, KeyRecord> keyBank;
-    protected  UsersManager usersManager;
+    //protected Map<String, KeyRecord> keyBank;
+    protected KeyBank keyBank;
+    protected UsersManager usersManager;
 
     // Asymmetric key-pair
     protected KeyPair asymKeyPair;
@@ -64,7 +64,7 @@ public class KeyManager {
     private final static int PUBLIC_KEY_PREFIX_SIZE = 64;
 
     private KeyManager() {
-        keyBank = new HashMap<>();
+        keyBank = new KeyBank();
         usersManager = new DummyUsersManager();
     }
 
@@ -145,7 +145,7 @@ public class KeyManager {
             keyBank = stringToKeyBank(keyBankData);
             // TODO handle corrupted keyBankData?
 
-            // userID is not in yet in the KeyBank - add a key record for him
+            // userID is not in yet in the KeyBank - add a KeyRecord for him
             // The sk is null because this user is not validated yet
             if (!keyBank.containsKey(userID)) {
                 Log.i(TAG, "User: " + this.userID + " doesn't exist in KeyBank, add it");
@@ -156,7 +156,7 @@ public class KeyManager {
                 if (getSK() != null) {
                     Log.w(TAG, "User: " + this.userID + " already exists, and has a valid SK");
                 } else {
-                    Log.w(TAG, "User: " + this.userID + " has an SK, but can't decrypt it. Add a new key record for him");
+                    Log.w(TAG, "User: " + this.userID + " has an SK, but can't decrypt it. Add a new KeyRecord for him");
                     addKeyRecord(userID, pbkey, null);
                 }
             }
@@ -170,14 +170,14 @@ public class KeyManager {
     }
 
     private void addKeyRecord(String userID, byte[] pbkey, byte[] sk) {
-        Log.i(TAG, "Adding key record to user: " + this.userID);
+        Log.i(TAG, "Adding KeyRecord to user: " + this.userID);
         byte[] signature = CryptoUtils.calculateMAC(pbkey, getSecret(this.userID));
         byte[] encSK = null;
         if (sk != null) {
-            Log.i(TAG, "Key record for user: " + this.userID + " have a valid SK");
+            Log.i(TAG, "KeyRecord for user: " + this.userID + " have a valid SK");
             encSK = CryptoUtils.encryptSymmetricKey(sk, asymKeyPair.getPublic());
         } else {
-            Log.i(TAG, "Key record for user: " + this.userID + " doesn't have a valid SK yet");
+            Log.i(TAG, "KeyRecord for user: " + this.userID + " doesn't have a valid SK yet");
         }
         keyBank.put(userID, new KeyRecord(pbkey, encSK, signature));
     }
@@ -277,9 +277,9 @@ public class KeyManager {
         return secret.getBytes();
     }
 
-    private Map<String, KeyRecord> stringToKeyBank(String data) {
+    private KeyBank stringToKeyBank(String data) {
         Log.i(TAG, "Converting a string to KeyBank");
-        Map<String, KeyRecord> keyRecords = new HashMap<>();
+        KeyBank keyRecords = new KeyBank();
 
         try {
             JSONObject rootObj = new JSONObject(data);
@@ -416,7 +416,11 @@ public class KeyManager {
         }
     }
 
-    public class KeyRecord {
+    protected class KeyBank extends HashMap<String, KeyRecord> {
+
+    }
+
+    protected class KeyRecord {
 
         public KeyRecord(byte[] pbKey, byte[] encSK, byte[] signature) {
             this.pbKey = pbKey;
