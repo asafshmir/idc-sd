@@ -211,13 +211,13 @@ public class CryptoUtils {
     }
 
     /**
-     * Calculate the hashed signature of the given data
+     * Calculate the MAC of the given data using the given key
      * @param data The data
      * @param symmetricKeyBytes The key for the secure hash
-     * @return The signature
+     * @return The MAC
      */
-    // TODO use signature without a key, and sign pbke+secret together
-    public static byte[] calculateSignature(byte[] data, byte[] symmetricKeyBytes) {
+    // TODO use signature without a key, and sign pbke+secret together - send email to Tal
+    public static byte[] calculateMAC(byte[] data, byte[] symmetricKeyBytes) {
 
         try {
             SecretKeySpec signingKey = new SecretKeySpec(symmetricKeyBytes, SIGNATURE_ALGORITHM);
