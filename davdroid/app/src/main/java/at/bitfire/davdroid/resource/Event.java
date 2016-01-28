@@ -203,6 +203,11 @@ public class Event extends Resource {
         byte[] key = null;
         if (shouldDecrypt) {
             key = Decoder.readAttachedSk(description);
+
+            if(key == null) {
+                Log.i(TAG, "No attached SK");
+                summary = "Unauthorized!";
+            }
         }
 
         if (shouldDecrypt && key != null) {
@@ -327,9 +332,12 @@ public class Event extends Resource {
 		}
 		return os;
 	}
+    protected VEvent toVEvent() {
+        return toVEvent(true);
+    }
 
     // TODO - add a mode where we don't encrypt / decrypt if key isn't defined
-    protected VEvent toVEvent() {
+    protected VEvent toVEvent(boolean shouldEncrypt) {
 
         Log.i(TAG,"toVEvent: start");
                 //Log.i(TAG, "toVEvent: Encrypting event with key '" + Hex.encodeHexString(key) + "'");
@@ -339,21 +347,26 @@ public class Event extends Resource {
         byte[] key = KeyManager.getInstance().getSK();
         //Log.i(TAG, "toVEvent: Encrypting event with key '" + Hex.encodeHexString(key) + "'");
 
-        boolean shouldEncrypt = !(summary.equals(KeyManager.KEY_STORAGE_EVENT_NAME));
+        shouldEncrypt = !(summary.equals(KeyManager.KEY_STORAGE_EVENT_NAME)) && shouldEncrypt;
         // TODO - Sign (for validation) and encrypt the summary. Only encrypt the rest of the properties
 
+        Log.i(TAG,"Should Encrypt: " + shouldEncrypt);
+        Log.i(TAG,"Key: " + key.toString());
 
-        if (description != null) {
-            if (shouldEncrypt) {
-                // Add the SK list to the event's description
-                if (description == null)
-                    description = "";
 
-                props.add(new Description(Decoder.attachSKList(key, description)));
-            } else {
+        if (shouldEncrypt) {
+            // Add the SK list to the event's description
+            if (description == null)
+                description = "";
+            String tempDesc = Decoder.attachSKList(key, description);
+            props.add(new Description(tempDesc));
+            Log.i(TAG,"TempDesc: " + tempDesc);
+        } else {
+            if (description != null) {
                 props.add(new Description(description));
             }
         }
+
 
         if (uid != null)
             props.add(new Uid(uid));
