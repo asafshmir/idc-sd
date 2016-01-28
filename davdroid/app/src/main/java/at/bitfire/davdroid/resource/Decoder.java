@@ -22,7 +22,7 @@ public class Decoder {
 
         if (value != null && !value.isEmpty()) {
             try {
-                Log.i(TAG, "Value: " + value);
+                Log.d(TAG, "encryptProperty Value: " + value);
                 Constructor constructor = c.getConstructor(String.class);
                 String encrypted = Base64.encodeToString(CryptoUtils.encrypt(key, value.getBytes()), Base64.DEFAULT);
                 props.add(constructor.newInstance(encrypted));
@@ -48,7 +48,7 @@ public class Decoder {
         }
 
         try {
-            Log.i(TAG, "Value: " + value);
+            Log.d(TAG, "decryptProperty Value: " + value);
             String decrypted = new String(CryptoUtils.decrypt(key, Base64.decode(value.getBytes(), Base64.DEFAULT)));
             return  decrypted;
         } catch (Exception e) {
@@ -62,7 +62,7 @@ public class Decoder {
 
         if (value != null && !value.isEmpty()) {
             try {
-                Log.i(TAG, "Value: " + value);
+                Log.i(TAG, "encryptAndSignProperty Value: " + value);
                 Constructor constructor = c.getConstructor(String.class);
                 String signature = Base64.encodeToString(CryptoUtils.calculateSignature(value,key), Base64.DEFAULT);
                 String encrypted = Base64.encodeToString(CryptoUtils.encrypt(key, value.getBytes()), Base64.DEFAULT);
@@ -94,16 +94,21 @@ public class Decoder {
             return false;
         }
 
-        Log.i(TAG, "Value: " + value);
+        Log.i(TAG, "checkSignedProperty Value: " + value);
 
         try {
+
             // Extract the signature and encrypted data from the JSON object
             JSONObject json = new JSONObject(value);
+
 
             String signature = new String(Base64.decode(((String)json.get("signature")).getBytes(), Base64.DEFAULT));
             String decrypted = new String(CryptoUtils.decrypt(key, Base64.decode(((String)json.get("data")).getBytes(), Base64.DEFAULT)));
 
             String calculated = new String(CryptoUtils.calculateSignature(decrypted, key));
+
+            Log.d(TAG, "checkSignedProperty Equals: " + calculated.equals(signature));
+
             return calculated.equals(signature);
 
         } catch (Exception e) {
@@ -119,7 +124,7 @@ public class Decoder {
             return null;
         }
 
-        Log.i(TAG, "Value: " + value);
+        Log.d(TAG, "decryptSignedProperty Value: " + value);
 
         try {
             // Extract the encrypted data from the JSON object
