@@ -19,13 +19,21 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import at.bitfire.davdroid.resource.Event;
+
 public class KeyManager {
 
     private static final String TAG = "davdroid.KeyManager";
+
+    //TODO move constants to SyncManager
     public static final String KEY_STORAGE_EVENT_NAME = "KeyManagerZZ";
     public  static final String EVENT_TIME_FORMAT = "dd-MM-yyyy hh:mm:ss";
     public  static final String KEY_STORAGE_EVENT_TIME = "20-01-2016 00:00:00";
     public  static final String KEY_STORAGE_EVENT_TIME_END = "20-01-2016 23:00:00";
+    //TODO move to SyncManager
+    public boolean isKeyManagerEvent(Event e) {
+        return e.summary == KEY_STORAGE_EVENT_NAME;
+    }
 
     // Singleton instance
     private static KeyManager instance = null;
@@ -125,33 +133,53 @@ public class KeyManager {
 
         this.userID = userID;
         byte[] pbkey = asymKeyPair.getPublic().getEncoded();
-        byte[] signature = CryptoUtils.calculateSignature(pbkey, getSecret(this.userID));
 
         // KeyBank is empty, create the first record
         if (keyBankData == null) {
             Log.i(TAG, "Got an empty KeyBank data, generating random symmetric key");
             byte[] sk = CryptoUtils.generateRandomSymmetricKey();
-            byte[] encSK = CryptoUtils.encryptSymmetricKey(sk, asymKeyPair.getPublic());
-            keyBank.put(userID, new KeyRecord(pbkey, encSK, signature));
-
+            Log.i(TAG, "Adding first user: " + this.userID + " to the KeyBank");
+            addKeyRecord(userID, pbkey, sk);
         } else {
-            Log.i(TAG, "Got a KeyBank data");
+            Log.i(TAG, "Got a KeyBank data, parse it");
             keyBank = stringToKeyBank(keyBankData);
             // TODO handle corrupted keyBankData?
 
-            // Add a KeyRecord if userID is not in yet in the KeyBank
-            // The encSK is empty because this user is not validated yet
-            // TODO if you are not the owner, add a request record
+            // userID is not in yet in the KeyBank - add a key record for him
+            // The sk is null because this user is not validated yet
             if (!keyBank.containsKey(userID)) {
-                keyBank.put(userID, new KeyRecord(pbkey, null, signature));
+                Log.i(TAG, "User: " + this.userID + " doesn't exist in KeyBank, add it");
+                addKeyRecord(userID, pbkey, null);
+            // userID exists
+            } else {
+                // Make sure that the SK is valid - maybe userID lost his private key
+                if (getSK() != null) {
+                    Log.w(TAG, "User: " + this.userID + " already exists, and has a valid SK");
+                } else {
+                    Log.w(TAG, "User: " + this.userID + " has an SK, but can't decrypt it. Add a new key record for him");
+                    addKeyRecord(userID, pbkey, null);
+                }
             }
-            // TODO if there's already a record with your ID (i.e lost your private key), replace it with a request record
         }
 
+        // Try to validate other users
         validateAllUsers();
 
         // Return the new key-bank
         return keyBankToString();
+    }
+
+    private void addKeyRecord(String userID, byte[] pbkey, byte[] sk) {
+        Log.i(TAG, "Adding key record to user: " + this.userID);
+        byte[] signature = CryptoUtils.calculateMAC(pbkey, getSecret(this.userID));
+        byte[] encSK = null;
+        if (sk != null) {
+            Log.i(TAG, "Key record for user: " + this.userID + " have a valid SK");
+            encSK = CryptoUtils.encryptSymmetricKey(sk, asymKeyPair.getPublic());
+        } else {
+            Log.i(TAG, "Key record for user: " + this.userID + " doesn't have a valid SK yet");
+        }
+        keyBank.put(userID, new KeyRecord(pbkey, encSK, signature));
     }
 
     public byte[] getSK() {
@@ -162,7 +190,6 @@ public class KeyManager {
             Log.w(TAG, "No KeyRecord for user: " + this.userID);
             return null;
         }
-
 
         byte[] encSK = keyRecord.encSK;
         // User is not validated yet
@@ -194,29 +221,38 @@ public class KeyManager {
 
             KeyRecord keyRecord = keyBank.get(curUserID);
             // User has an SK, so we don't need to validate it
+            // TODO maybe it's an empty string and not null
             if (keyRecord.encSK != null) {
                 Log.i(TAG, "User: " + curUserID + " has encSK - no need to validated him");
                 continue;
+            } else {
+                Log.i(TAG, "User: " + curUserID + " has no encSK and need to be validated");
+                validateUser(realSK, curUserID, keyRecord);
             }
+        }
+    }
 
-            Log.i(TAG, "User: " + curUserID + " has no encSK and need to be validated");
-            // Validate the user's KeyRecord
-            boolean valid = validateSignature(curUserID, keyRecord);
+    private void validateUser(byte[] realSK, String userID, KeyRecord keyRecord) {
+
+        // Validate the user's KeyRecord
+        boolean valid = validateSignature(userID, keyRecord);
+
+        // If valid, add an encrypted version of SK to the user KeyRecord
+        if (valid) {
+            Log.i(TAG, "User: " + userID + " has a valid signature, create encSK with his PublicKey");
+            PublicKey userPbKey = null;
             final byte[] pbKeyBytes = keyRecord.pbKey;
-            // If valid, add an encrypted version of SK to the user KeyRecord
-            if (valid) {
-                Log.i(TAG, "User: " + curUserID + " has a valid signature, create encSK with his PublicKey");
-                PublicKey userPbKey = null;
 
-                try {
-                    userPbKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM).
-                            generatePublic(new X509EncodedKeySpec(pbKeyBytes));
-                } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-                    Log.e(TAG, e.getMessage());
-                }
-
-                keyRecord.encSK = CryptoUtils.encryptSymmetricKey(realSK, userPbKey);
+            try {
+                userPbKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM).
+                        generatePublic(new X509EncodedKeySpec(pbKeyBytes));
+            } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+                Log.e(TAG, e.getMessage());
             }
+
+            keyRecord.encSK = CryptoUtils.encryptSymmetricKey(realSK, userPbKey);
+        } else {
+            Log.w(TAG, "User: " + userID + " doesn't have a valid signature, ignore him");
         }
     }
 
@@ -230,10 +266,10 @@ public class KeyManager {
         byte[] secret = getSecret(userID);
 
         // Apply the signature process on the given public-key
-        byte[] realSignature = CryptoUtils.calculateSignature(pbkey, secret);
+        byte[] mac = CryptoUtils.calculateMAC(pbkey, secret);
 
         // Compare the given signature with the real one
-        return Arrays.equals(realSignature, signature);
+        return Arrays.equals(mac, signature);
     }
 
     private byte[] getSecret(String userID) {
