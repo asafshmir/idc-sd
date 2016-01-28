@@ -45,6 +45,38 @@ VOTES = {0:'Blues', 1:'Browns', 2:'Greens', 3:'Greys', 4:'Oranges', 5:'Pinks', 6
 PARTIES = map(lambda x: x[1], sorted(VOTES.items()))
 CV_PARTS = 10
 GROUPS = ([1,6], [2,5,8],[0,4,9,3,7])
+CLASSIFIERS = [{
+    "Random Forest (11)" : RandomForestClassifier(max_depth=11, n_estimators=25, max_features=5),
+    "BaggingClassifier(ExtraTrees11)" : BaggingClassifier(RandomForestClassifier(max_depth=11, n_estimators=25, max_features=5)),
+    },
+     {
+     "Random Forest (11)" : RandomForestClassifier(max_depth=11, n_estimators=25, max_features=5),
+     "ExtraTreesClassifier (11)" : ExtraTreesClassifier(max_depth=11, n_estimators=25, max_features=5),
+     "BaggingClassifier(ExtraTrees11)" : BaggingClassifier(RandomForestClassifier(max_depth=11, n_estimators=25, max_features=5)),
+    "Linear SVM linear" : SVC(kernel="linear", C=100),
+    "Linear SVM rbf" : SVC(kernel="rbf", C=100),
+    # "AdaBoost1" : AdaBoostClassifier(base_estimator=ExtraTreesClassifier(max_depth=11, n_estimators=25, max_features=8)),
+    #  "AdaBoost2" : AdaBoostClassifier(base_estimator=SVC(kernel="rbf", C=100), algorithm = 'SAMME')
+    },
+     {
+      "Random Forest (11)" : RandomForestClassifier(max_depth=11, n_estimators=25, max_features=5),
+     "ExtraTreesClassifier (11)" : ExtraTreesClassifier(max_depth=12, n_estimators=25, max_features=5),
+     "BaggingClassifier(ExtraTrees11)" : BaggingClassifier(ExtraTreesClassifier(max_depth=11, n_estimators=25, max_features=3)),
+      "Linear SVM linear" : SVC(kernel="linear", C=100),
+     "Linear SVM rbf" : SVC(kernel="rbf", C=100),
+    # "AdaBoost1" : AdaBoostClassifier(base_estimator=ExtraTreesClassifier(max_depth=11, n_estimators=25, max_features=8)),
+    #  "AdaBoost2" : AdaBoostClassifier(base_estimator=SVC(kernel="rbf", C=100), algorithm = 'SAMME')
+    },
+     {
+     "Random Forest (11)" : RandomForestClassifier(max_depth=11, n_estimators=25, max_features=5),
+      "ExtraTreesClassifier (11)" : ExtraTreesClassifier(max_depth=11, n_estimators=25, max_features=5),
+     "BaggingClassifier(ExtraTrees11)" : BaggingClassifier(RandomForestClassifier(max_depth=11, n_estimators=25, max_features=5)),
+     "Linear SVM linear" : SVC(kernel="linear", C=100),
+     "Linear SVM rbf" : SVC(kernel="rbf", C=100),
+      "SVM poly" : SVC(kernel='poly',C=100),
+     # "AdaBoost1" : AdaBoostClassifier(base_estimator=ExtraTreesClassifier(max_depth=11, n_estimators=25, max_features=8)),
+     # "AdaBoost2" : AdaBoostClassifier(base_estimator=SVC(kernel="rbf", C=100), algorithm = 'SAMME')
+    }]
 DEFAULT_TEST_SIZE = .3
 
 
@@ -234,7 +266,9 @@ def prepare_partial_prediction_data(electionsData, parties,SVC=False):
 
     if (SVC):
         #x = electionsData[['Overall_happiness_score','Yearly_ExpensesK', 'Yearly_IncomeK']].values
-        x = electionsData[['Yearly_IncomeK','Yearly_ExpensesK','Most_Important_Issue','Will_vote_only_large_party','Financial_agenda_matters','Avg_Residancy_Altitude','Overall_happiness_score']].values
+
+        x = electionsData[['Most_Important_Issue', 'Yearly_ExpensesK', 'Yearly_IncomeK', 'Overall_happiness_score']].values
+        #x = electionsData[['Yearly_IncomeK','Yearly_ExpensesK','Most_Important_Issue','Will_vote_only_large_party','Financial_agenda_matters','Avg_Residancy_Altitude','Overall_happiness_score']].values
         #'Most_Important_Issue','Will_vote_only_large_party','Financial_agenda_matters','Avg_Residancy_Altitude','Overall_happiness_score'
     else:
         x = electionsData.drop(['Vote'], axis=1).values
@@ -267,50 +301,17 @@ def find_best_prediction_classifier(x,y,classifiers,parts,x_svc=[],y_svc=[]):
     return res[keys[0]],keys[0]
 
 def find_classifiers():
-    classifiers = [{
-    "Random Forest (11)" : RandomForestClassifier(max_depth=11, n_estimators=25, max_features=5),
 
-    "BaggingClassifier(ExtraTrees11)" : BaggingClassifier(RandomForestClassifier(max_depth=11, n_estimators=25, max_features=5)),
-
-    },
-     {
-     "Random Forest (11)" : RandomForestClassifier(max_depth=11, n_estimators=25, max_features=5),
-     "ExtraTreesClassifier (11)" : ExtraTreesClassifier(max_depth=11, n_estimators=25, max_features=5),
-     "BaggingClassifier(ExtraTrees11)" : BaggingClassifier(RandomForestClassifier(max_depth=11, n_estimators=25, max_features=5)),
-    "Linear SVM linear" : SVC(kernel="linear", C=100),
-    "Linear SVM rbf" : SVC(kernel="rbf", C=100),
-    # "AdaBoost1" : AdaBoostClassifier(base_estimator=ExtraTreesClassifier(max_depth=11, n_estimators=25, max_features=8)),
-    #  "AdaBoost2" : AdaBoostClassifier(base_estimator=SVC(kernel="rbf", C=100), algorithm = 'SAMME')
-    },
-     {
-      "Random Forest (11)" : RandomForestClassifier(max_depth=11, n_estimators=25, max_features=5),
-     "ExtraTreesClassifier (11)" : ExtraTreesClassifier(max_depth=12, n_estimators=25, max_features=5),
-     "BaggingClassifier(ExtraTrees11)" : BaggingClassifier(ExtraTreesClassifier(max_depth=11, n_estimators=25, max_features=3)),
-      "Linear SVM linear" : SVC(kernel="linear", C=100),
-     "Linear SVM rbf" : SVC(kernel="rbf", C=100),
-    # "AdaBoost1" : AdaBoostClassifier(base_estimator=ExtraTreesClassifier(max_depth=11, n_estimators=25, max_features=8)),
-    #  "AdaBoost2" : AdaBoostClassifier(base_estimator=SVC(kernel="rbf", C=100), algorithm = 'SAMME')
-    },
-     {
-     "Random Forest (11)" : RandomForestClassifier(max_depth=11, n_estimators=25, max_features=5),
-      "ExtraTreesClassifier (11)" : ExtraTreesClassifier(max_depth=11, n_estimators=25, max_features=5),
-     "BaggingClassifier(ExtraTrees11)" : BaggingClassifier(RandomForestClassifier(max_depth=11, n_estimators=25, max_features=5)),
-     "Linear SVM linear" : SVC(kernel="linear", C=100),
-     "Linear SVM rbf" : SVC(kernel="rbf", C=100),
-      "SVM poly" : SVC(kernel='poly',C=100),
-     # "AdaBoost1" : AdaBoostClassifier(base_estimator=ExtraTreesClassifier(max_depth=11, n_estimators=25, max_features=8)),
-     # "AdaBoost2" : AdaBoostClassifier(base_estimator=SVC(kernel="rbf", C=100), algorithm = 'SAMME')
-    }]
     train = load_from_file("train")
 
     print "Seperating groups:"
     X_train,y_train = prepare_joint_prediction_data(train)
-    classifier_name,score = find_best_prediction_classifier(X_train,y_train,classifiers[0],CV_PARTS)
+    classifier_name,score = find_best_prediction_classifier(X_train,y_train,CLASSIFIERS[0],CV_PARTS)
     print X_train.shape, classifier_name
     train = load_from_file("train")
     X_train,y_train = prepare_joint_prediction_data(train)
 
-    seperating_classifier = copy.copy(classifiers[0][classifier_name]).fit(X_train, y_train)
+    seperating_classifier = copy.copy(CLASSIFIERS[0][classifier_name]).fit(X_train, y_train)
 
     validation = load_from_file("validation")
     X_validation,y_validation = prepare_joint_prediction_data(validation)
@@ -324,9 +325,9 @@ def find_classifiers():
        print GROUPS[l]
        X_train,y_train,size = prepare_partial_prediction_data(train, GROUPS[l])
        X_SVC_train,y_SVC_train,size = prepare_partial_prediction_data(train, GROUPS[l],True)
-       classifier_name, classifier_score = find_best_prediction_classifier(X_train,y_train, classifiers[l],CV_PARTS, X_SVC_train,y_SVC_train)
+       classifier_name, classifier_score = find_best_prediction_classifier(X_train,y_train, CLASSIFIERS[l],CV_PARTS, X_SVC_train,y_SVC_train)
 
-       best_classifiers.append(copy.copy(classifiers[l][classifier_name]).fit(X_train,y_train))
+       best_classifiers.append(copy.copy(CLASSIFIERS[l][classifier_name]).fit(X_train,y_train))
        sizes.append(size)
        scores.append(classifier_score)
 
@@ -365,10 +366,6 @@ def validate_classification(seperating_classifier,group_classifiers, VALIDATION_
 
     # Load the prepared test set
 
-    # validation = load_from_file(VALIDATION_FILE)
-    # X_validation,y_validation = prepare_joint_prediction_data(validation)
-    # print "Separation Score: " + str(seperating_classifier.score(X_validation, y_validation))
-
     validation = load_from_file(VALIDATION_FILE)
     data,label= prepare_prediction_data(validation)
     prediction = seperating_classifier.predict(data)
@@ -377,7 +374,7 @@ def validate_classification(seperating_classifier,group_classifiers, VALIDATION_
 
     validation = load_from_file(VALIDATION_FILE)
     predict = []
-    validation['XVOTE'] = df
+    validation.loc[:,('XVOTE')] = df
 
     for i in xrange(len(group_classifiers)):
         #X_train,y_train,size = prepare_partial_prediction_data(train, GROUPS[i])
@@ -389,7 +386,7 @@ def validate_classification(seperating_classifier,group_classifiers, VALIDATION_
         score = clf.score(data,label)
 
         print GROUPS[i],score
-        validation_sub_group['PredictVote'] = clf.predict(data)
+        validation_sub_group.loc[:,('PredictVote')] = clf.predict(data)
 
         predict.append(validation_sub_group)
 
@@ -401,106 +398,101 @@ def validate_classification(seperating_classifier,group_classifiers, VALIDATION_
 def summarize_prediction(test):
 
     print VOTES[test['PredictVote'].value_counts().idxmax()]
-    #print VOTES[test['Vote'].value_counts().idxmax()]
 
     percentages = test['PredictVote'].value_counts(normalize=True,sort=False)
     print percentages
     for p in xrange(len(PARTIES)):
         print PARTIES[p],percentages[p]
-    #print "Parties prediction values:"
 
 
-    #print "The Winning party is: " + parties[int(df.ix[:,0].value_counts(normalize=True).idxmax())] + "\n"
+
+def plot_3d(train,relevant_parties=PARTIES):
+	fig = plt.figure(figsize=(8,8))
+	ax = fig.add_subplot(111, projection='3d')
+
+	for i, name in zip(range(len(PARTIES)), PARTIES):
+		if i in relevant_parties:
+
+			cur = train[train['PredictVote']==i]
+			ax.scatter(cur.Overall_happiness_score, cur.Yearly_ExpensesK, cur.Yearly_IncomeK, label=name, color=name[:-1])
 
 
-# TODO - Remove me
-# def plot_3d(train,relevant_parties=PARTIES):
-# 	fig = plt.figure(figsize=(8,8))
-# 	ax = fig.add_subplot(111, projection='3d')
-#
-# 	for i, name in zip(range(len(PARTIES)), PARTIES):
-# 		if i in relevant_parties:
-#
-# 			cur = train[train['PredictVote']==i]
-# 			ax.scatter(cur.Overall_happiness_score, cur.Avg_Residancy_Altitude, cur.Yearly_IncomeK, label=name, color=name[:-1])
-# 			#ax.scatter(cur.Overall_happiness_score, cur.Yearly_ExpensesK, cur.Yearly_IncomeK, label=name, color=name[:-1])
-#
-#
-# 	ax.view_init(elev=65, azim=-71)
-#
-# 	plt.legend(loc='best')
-# 	plt.show()
-#
-#
-#
-#
-# def add_bin_plot(n_clusters,column, y_train, plot_spot,title):
-# 	clf = KMeans(n_clusters=n_clusters)
-# 	y_pred = clf.fit(column)
-# 	values = y_pred.cluster_centers_.squeeze()
-# 	labels = y_pred.labels_
-# 	comp = np.choose(labels,values)
-#
-# 	plt.subplot(plot_spot)
-# 	plt.scatter(comp, y_train, c=y_train)
-# 	plt.title(title)
-#
-#
-# def plot_bins(X_train, y_train):
-#
-# 	n_clusters = 4
-#
-# 	add_bin_plot(n_clusters,X_train[:, 0:1], y_train,331,"Yearly_Expense")
-# 	add_bin_plot(n_clusters,X_train[:, 1:2], y_train,332,"Yearly_Income")
-# 	add_bin_plot(n_clusters,X_train[:, 2:3], y_train,333,"Overall_Happiness_Score")
-#
-# 	plt.subplot(334)
-# 	plt.scatter(X_train[:, 3], y_train, c=y_train)
-# 	plt.title("Most_Important_Issue")
-#
-# 	add_bin_plot(n_clusters,X_train[:, 5:6], y_train,335,"Avg_Residancy_Alt")
-#
-# 	plt.subplot(336)
-# 	plt.scatter(X_train[:, 5], y_train, c=y_train)
-# 	plt.title("Will_only_vote_large_party")
-#
-# 	plt.subplot(337)
-# 	plt.scatter(X_train[:, 6], y_train, c=y_train)
-# 	plt.title("Financial_Agenda_matters")
-#
-# 	plt.show()
+	ax.view_init(elev=65, azim=-71)
+
+	plt.legend(loc='best')
+	plt.show()
+
+
+
+
+def add_bin_plot(n_clusters,column, y_train, plot_spot,title):
+	clf = KMeans(n_clusters=n_clusters)
+	y_pred = clf.fit(column)
+	values = y_pred.cluster_centers_.squeeze()
+	labels = y_pred.labels_
+	comp = np.choose(labels,values)
+
+	plt.subplot(plot_spot)
+	plt.scatter(comp, y_train, c=y_train)
+	plt.title(title)
+
+
+def plot_bins(X_train, y_train):
+
+	n_clusters = 4
+
+	add_bin_plot(n_clusters,X_train[:, 0:1], y_train,331,"Yearly_Expense")
+	add_bin_plot(n_clusters,X_train[:, 1:2], y_train,332,"Yearly_Income")
+	add_bin_plot(n_clusters,X_train[:, 2:3], y_train,333,"Overall_Happiness_Score")
+
+	plt.subplot(334)
+	plt.scatter(X_train[:, 3], y_train, c=y_train)
+	plt.title("Most_Important_Issue")
+
+	add_bin_plot(n_clusters,X_train[:, 5:6], y_train,335,"Avg_Residancy_Alt")
+
+	plt.subplot(336)
+	plt.scatter(X_train[:, 5], y_train, c=y_train)
+	plt.title("Will_only_vote_large_party")
+
+	plt.subplot(337)
+	plt.scatter(X_train[:, 6], y_train, c=y_train)
+	plt.title("Financial_Agenda_matters")
+
+	plt.show()
 
 
 def main():
 
-    prepare_data("ElectionsData",[0.5,0.25,0.25], RIGHT_FEATURE_SET,True)
-    prepare_data("ElectionsData_Pred_Features",[1,0,0],RIGHT_FEATURE_SET_PRED,False)
+    #prepare_data("ElectionsData",[0.5,0.25,0.25], RIGHT_FEATURE_SET,True)
+    #prepare_data("ElectionsData_Pred_Features",[1,0,0],RIGHT_FEATURE_SET_PRED,False)
 
     seperating_classifier,group_classifiers = find_classifiers()
 
-    prediction = validate_classification(seperating_classifier,group_classifiers)
-    #validate_classification(seperating_classifier,group_classifiers)
+    #prediction = validate_classification(seperating_classifier,group_classifiers)
+    validate_classification(seperating_classifier,group_classifiers)
     prediction = predict_elections(seperating_classifier,group_classifiers)
 
     summarize_prediction(prediction)
 
+    # plot_3d(prediction,[0,7,9])
+    # plot_3d(prediction,[0,4,7,9])
+    # plot_3d(prediction,[0,3,7,9])
+    # plot_3d(prediction,[0,3,4,7,9])
+    # plot_bins(prediction.drop(['PredictVote'],axis=1).values, prediction['PredictVote'].values)
+
     out_columns = ['IdentityCard_Num','PredictVote']
-    prediction['PredictVote'] = prediction['PredictVote'].map(VOTES)
-    prediction['IdentityCard_Num'] = prediction['IdentityCard_Num'].astype(int)
+    prediction.loc[:,('PredictVote')] = prediction['PredictVote'].map(VOTES)
+    prediction.loc[:,('IdentityCard_Num')] = prediction['IdentityCard_Num'].astype(int)
 
     df = pd.DataFrame(data=prediction[out_columns],columns=out_columns)
     df = df.sort(['IdentityCard_Num'],ascending=[1])
     df.to_csv("ElectionsPrediction.csv", sep=',',index=False)
 
 
-    return
 
-    # TODO - remove
-    # plot_3d(prediction,[4,5,6,7,9])
-    # plot_3d(prediction,[0,7,9])
-    # plot_3d(prediction,[1,2,3,4])
-    # plot_3d(prediction,[5,6,8])
-    # plot_bins(prediction.drop(['PredictVote'],axis=1).values, prediction['PredictVote'].values)
+
+
 
 
 
