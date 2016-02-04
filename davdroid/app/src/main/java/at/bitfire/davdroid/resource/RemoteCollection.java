@@ -130,8 +130,11 @@ public abstract class RemoteCollection<T extends Resource> {
     }
 
 
+    public Resource[] multiGet(Resource[] resources) throws URISyntaxException, IOException, DavException, HttpException {
+        return multiGet(resources,true);
+    }
     @SuppressWarnings("unchecked")
-	public Resource[] multiGet(Resource[] resources) throws URISyntaxException, IOException, DavException, HttpException {
+	public Resource[] multiGet(Resource[] resources, boolean shouldDecrypt) throws URISyntaxException, IOException, DavException, HttpException {
 		try {
 			if (resources.length == 1)
 				return (T[]) new Resource[]{get(resources[0])};
@@ -152,7 +155,7 @@ public abstract class RemoteCollection<T extends Resource> {
 				try {
 					if (member.getContent() != null) {
 						@Cleanup InputStream is = new ByteArrayInputStream(member.getContent());
-						resource.parseEntity(is, getDownloader());
+						resource.parseEntity(is, getDownloader(), shouldDecrypt);
 						foundResources.add(resource);
 					} else
 						Log.e(TAG, "Ignoring entity without content");

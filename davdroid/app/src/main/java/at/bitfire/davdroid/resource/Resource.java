@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 
 import at.bitfire.davdroid.webdav.DavException;
 import at.bitfire.davdroid.webdav.HttpException;
@@ -42,12 +41,20 @@ public abstract class Resource {
 	
 	/** initializes UID and remote file name (required for first upload) */
 	public abstract void initialize();
-	
+
+    /** fills the resource data from an input stream (for instance, .vcf file for Contact)
+     * @param entity        entity to parse
+     * @param downloader    will be used to fetch additional resources like contact images
+     **/
+    public void parseEntity(InputStream entity, AssetDownloader downloader) throws IOException, InvalidResourceException {
+        parseEntity(entity,downloader,true);
+    }
+
 	/** fills the resource data from an input stream (for instance, .vcf file for Contact)
 	 * @param entity        entity to parse
 	 * @param downloader    will be used to fetch additional resources like contact images
 	 **/
-	public abstract void parseEntity(InputStream entity, AssetDownloader downloader) throws IOException, InvalidResourceException;
+	public abstract void parseEntity(InputStream entity, AssetDownloader downloader, boolean shouldDecrypt) throws IOException, InvalidResourceException;
 
 
 	/* returns the MIME type that toEntity() will produce */

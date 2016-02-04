@@ -149,7 +149,7 @@ public class Event extends Resource {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public void parseEntity(@NonNull InputStream entity, AssetDownloader downloader) throws IOException, InvalidResourceException {
+	public void parseEntity(@NonNull InputStream entity, AssetDownloader downloader, boolean shouldDecrypt) throws IOException, InvalidResourceException {
 		net.fortuna.ical4j.model.Calendar ical;
 		try {
 			CalendarBuilder builder = new CalendarBuilder();
@@ -177,20 +177,24 @@ public class Event extends Resource {
 		if (master == null)
 			throw new InvalidResourceException("No VEVENT without RECURRENCE-ID found");
 		// set event data from master VEVENT
-		fromVEvent(master);
+		fromVEvent(master, shouldDecrypt);
 
 		// find and process exceptions
 		for (Object objEvent : events) {
 			VEvent event = (VEvent)objEvent;
 			if (event.getRecurrenceId() != null) {
 				Event exception = new Event(name, null);
-				exception.fromVEvent(event);
+				exception.fromVEvent(event, shouldDecrypt);
 				exceptions.add(exception);
 			}
 		}
 	}
 
     protected void fromVEvent(VEvent event) throws InvalidResourceException {
+        fromVEvent(event,true);
+    }
+
+    protected void fromVEvent(VEvent event, boolean shouldDecrypt) throws InvalidResourceException {
 
         if (event.getSummary() != null)
 			summary = event.getSummary().getValue();
@@ -199,7 +203,8 @@ public class Event extends Resource {
 		if (event.getDescription() != null)
 			description = event.getDescription().getValue();
 
-        boolean shouldDecrypt = !(summary.equals(KeyManager.KEY_STORAGE_EVENT_NAME));
+        shouldDecrypt = !KeyManager.isKeyManagerEvent(this) && shouldDecrypt;
+
         byte[] key = null;
         if (shouldDecrypt) {
             key = Decoder.readAttachedSk(description);
@@ -351,10 +356,9 @@ public class Event extends Resource {
         // TODO - Sign (for validation) and encrypt the summary. Only encrypt the rest of the properties
 
         Log.i(TAG,"Should Encrypt: " + shouldEncrypt);
-        Log.i(TAG,"Key: " + key.toString());
 
-
-        if (shouldEncrypt) {
+        if (shouldEncrypt && key != null) {
+            Log.i(TAG,"Key: " + key.toString());
             // Add the SK list to the event's description
             if (description == null)
                 description = "";
@@ -362,6 +366,7 @@ public class Event extends Resource {
             props.add(new Description(tempDesc));
             Log.i(TAG,"TempDesc: " + tempDesc);
         } else {
+            Log.i(TAG,"Key: " + key);
             if (description != null) {
                 props.add(new Description(description));
             }

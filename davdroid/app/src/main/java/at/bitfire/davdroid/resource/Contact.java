@@ -9,20 +9,14 @@ package at.bitfire.davdroid.resource;
 
 import android.util.Log;
 
-import net.fortuna.ical4j.model.property.ProdId;
-
 import org.apache.commons.lang.StringUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URL;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import at.bitfire.davdroid.Constants;
@@ -30,7 +24,6 @@ import ezvcard.Ezvcard;
 import ezvcard.VCard;
 import ezvcard.VCardVersion;
 import ezvcard.ValidationWarnings;
-import ezvcard.Warning;
 import ezvcard.parameter.EmailType;
 import ezvcard.parameter.ImageType;
 import ezvcard.parameter.RelatedType;
@@ -60,8 +53,6 @@ import ezvcard.property.Telephone;
 import ezvcard.property.Title;
 import ezvcard.property.Uid;
 import ezvcard.property.Url;
-import ezvcard.property.VCardProperty;
-import ezvcard.util.ListMultimap;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -152,7 +143,7 @@ public class Contact extends Resource {
 
 	@SuppressWarnings("LoopStatementThatDoesntLoop")
     @Override
-	public void parseEntity(InputStream is, AssetDownloader downloader) throws IOException {
+	public void parseEntity(InputStream is, AssetDownloader downloader, boolean shouldDecrypt) throws IOException {
 		VCard vcard = Ezvcard.parse(is).first();
 		if (vcard == null)
 			return;
