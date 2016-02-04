@@ -160,7 +160,7 @@ public abstract class DavSyncAdapter extends AbstractThreadedSyncAdapter impleme
 					for (Map.Entry<LocalCollection<?>, RemoteCollection<?>> entry : syncCollections.entrySet()) {
                         SyncManager mn = new SyncManager(entry.getKey(), entry.getValue(), account.name);
                         //TODO should remove?
-                        mn.synchronizeKeys();
+                        mn.synchronizeKeys(false);
                         if (syncCollections != null) {
                             mn.synchronize(extras.containsKey(ContentResolver.SYNC_EXTRAS_MANUAL), syncResult);
                         }

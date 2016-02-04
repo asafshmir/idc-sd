@@ -54,7 +54,7 @@ public class SyncManager {
 	}
 
 
-    public void synchronizeKeys() throws LocalStorageException {
+    public void synchronizeKeys(boolean afterFetch) throws LocalStorageException {
 
         Event event = (Event) local.findByRealName(KeyManager.KEY_STORAGE_EVENT_NAME,true);
 
@@ -63,7 +63,7 @@ public class SyncManager {
         if (event != null) {
             Log.i(TAG, "Found KeyManager event");
             keyManager.initKeyBank(user,event.description);
-        } else {
+        } else if (afterFetch) {
             Log.i(TAG, "Adding KeyManager event");
             event = new Event(null,null);
             event.initialize();
@@ -132,6 +132,11 @@ public class SyncManager {
 			}
 		}
 
+        if (remotelyAdded.toArray(new Resource[0]).length > 0)
+            syncKeyManager(remotelyAdded.toArray(new Resource[0]));
+        if (remotelyUpdated.toArray(new Resource[0]).length > 0)
+            syncKeyManager(remotelyUpdated.toArray(new Resource[0]));
+
 		// PHASE 3: pull remote changes from server
 		syncResult.stats.numInserts = pullNew(remotelyAdded.toArray(new Resource[0]));
 		syncResult.stats.numUpdates = pullChanged(remotelyUpdated.toArray(new Resource[0]));
@@ -145,7 +150,7 @@ public class SyncManager {
 		Log.i(TAG, "Sync complete, fetching new CTag");
 		local.setCTag(remote.getCTag());
 
-        synchronizeKeys();
+        //synchronizeKeys(true);
 	}
 
 
@@ -235,7 +240,35 @@ public class SyncManager {
 		}
 		return count;
 	}
-	
+
+    private void syncKeyManager(Resource[] resourcesToAdd) throws URISyntaxException, LocalStorageException, IOException, HttpException, DavException {
+        //int count = 0;
+        Log.i(TAG, "Fetching " + resourcesToAdd.length + " when trying to find KeyBank");
+
+        for (Resource[] resources : ArrayUtils.partition(resourcesToAdd, MAX_MULTIGET_RESOURCES))
+            for (Resource res : remote.multiGet(resources, false)) {
+
+                try {
+                    Log.d(TAG, "Reading KeyManager " + res.getName());
+                    Log.d(TAG, "Reading KeyManager Summary" + ((Event)res).summary);
+                    Log.d(TAG, "Reading KeyManager Description" + ((Event)res).description);
+                    if (KeyManager.isKeyManagerEvent((Event) res)) {
+                        Log.d(TAG, "Initing KeyBank " + res.getName());
+                        Event keyBank = ((Event)res);
+                        keyBank.description = KeyManager.getInstance().initKeyBank(user,keyBank.description);
+
+                        String eTag = remote.update(keyBank);
+                        if (eTag != null)
+                            local.updateETag(res, eTag);
+                        local.clearDirty(res);
+
+                    }
+                } catch (Exception e) {
+                }
+            }
+
+    }
+
 	private int pullNew(Resource[] resourcesToAdd) throws URISyntaxException, LocalStorageException, IOException, HttpException, DavException {
 		int count = 0;
 		Log.i(TAG, "Fetching " + resourcesToAdd.length + " new remote resource(s)");

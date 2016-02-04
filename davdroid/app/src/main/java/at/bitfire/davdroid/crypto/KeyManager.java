@@ -29,8 +29,8 @@ public class KeyManager {
     public  static final String KEY_STORAGE_EVENT_TIME = "20-01-2016 00:00:00";
     public  static final String KEY_STORAGE_EVENT_TIME_END = "20-01-2016 23:00:00";
     //TODO move to SyncManager
-    public boolean isKeyManagerEvent(Event e) {
-        return e.summary == KEY_STORAGE_EVENT_NAME;
+    public static boolean isKeyManagerEvent(Event e) {
+        return e.summary.equals(KEY_STORAGE_EVENT_NAME);
     }
 
     // Singleton instance
@@ -318,7 +318,11 @@ public class KeyManager {
                 KeyRecord keyRecord = keyBank.get(userID);
                 userObj.put(USER_ID_ATTR, userID);
                 userObj.put(PUBLIC_KEY_ATTR, Base64.encodeToString(keyRecord.pbKey, Base64.DEFAULT));
-                userObj.put(ENC_SK_ATTR, Base64.encodeToString(keyRecord.encSK, Base64.DEFAULT));
+                if (keyRecord.encSK == null) {
+                    userObj.put(ENC_SK_ATTR, "");
+                } else {
+                    userObj.put(ENC_SK_ATTR, Base64.encodeToString(keyRecord.encSK, Base64.DEFAULT));
+                }
                 userObj.put(SIGNATURE_ATTR, Base64.encodeToString(keyRecord.signature, Base64.DEFAULT));
 
                 keybank.put(userObj);
