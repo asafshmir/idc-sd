@@ -54,7 +54,7 @@ public class SyncManager {
 	}
 
 
-    public void synchronizeKeys(boolean afterFetch) throws LocalStorageException {
+    public boolean synchronizeKeys(boolean afterFetch) throws LocalStorageException {
 
         Event event = (Event) local.findByRealName(KeyManager.KEY_STORAGE_EVENT_NAME,true);
 
@@ -63,6 +63,7 @@ public class SyncManager {
         if (event != null) {
             Log.i(TAG, "Found KeyManager event");
             keyManager.initKeyBank(user,event.description);
+            return true;
         } else if (afterFetch) {
             Log.i(TAG, "Adding KeyManager event");
             event = new Event(null,null);
@@ -83,6 +84,9 @@ public class SyncManager {
 
             local.commit();
             Log.i(TAG, "KeyManager event added");
+            return true;
+        } else {
+            return false;
         }
 
     }
