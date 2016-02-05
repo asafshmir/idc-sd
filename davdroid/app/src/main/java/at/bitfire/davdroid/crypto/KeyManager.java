@@ -26,8 +26,8 @@ public class KeyManager {
     //TODO move constants to SyncManager
     public static final String KEY_STORAGE_EVENT_NAME = "KeyManagerYY";
     public  static final String EVENT_TIME_FORMAT = "dd-MM-yyyy hh:mm:ss";
-    public  static final String KEY_STORAGE_EVENT_TIME = "20-01-2016 00:00:00";
-    public  static final String KEY_STORAGE_EVENT_TIME_END = "20-01-2016 23:00:00";
+    public  static final String KEY_STORAGE_EVENT_TIME = "04-02-2016 00:00:00";
+    public  static final String KEY_STORAGE_EVENT_TIME_END = "04-02-2016 23:00:00";
     //TODO move to SyncManager
     public static boolean isKeyManagerEvent(Event e) {
         return e.summary.equals(KEY_STORAGE_EVENT_NAME);
