@@ -201,6 +201,24 @@ public class KeyManager {
         return CryptoUtils.decryptSymmetricKey(encSK, asymKeyPair.getPrivate());
     }
 
+    // Generate list of users
+    public HashMap<String, Boolean> getUsers() {
+        Log.i(TAG, "Generate list of users");
+        HashMap<String, Boolean> users = new HashMap<String, Boolean>();
+
+        // Iterate the users, find if validated
+        for (String curUserID : keyBank.keySet()) {
+            KeyRecord keyRecord = keyBank.get(curUserID);
+            if (keyRecord.encSK != null) {
+                users.put(curUserID,true);
+            } else {
+                users.put(curUserID,false);
+            }
+        }
+
+        return users;
+    }
+
     private void validateAllUsers() {
         Log.i(TAG, "Validating all users in the KeyBank");
 
