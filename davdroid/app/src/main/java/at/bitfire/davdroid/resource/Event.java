@@ -249,16 +249,9 @@ public class Event extends Resource {
                 String signature = event.getProperty(SIGNATURE_PROPERTY).getValue();
 
                 // Calculate the signature
-                String calculated = "";
-                try {
-                    VEvent cloned = (VEvent) event.copy();
-                    cloned.getProperties().remove(cloned.getProperty(SIGNATURE_PROPERTY));
-                    String digest = cloned.toString();
-                    Log.i(TAG,"Digest: " + digest);
-                    calculated = Base64.encodeToString(CryptoUtils.calculateSignature(digest, key), Base64.DEFAULT);
-                } catch (Exception e) {
-                    // No calculated digest. No need to do anything (will fail at comparison)
-                }
+                String digest = eventDigest(event);
+                Log.i(TAG,"Digest: " + digest);
+                String calculated = Base64.encodeToString(CryptoUtils.calculateSignature(digest, key), Base64.DEFAULT);
 
                 if (calculated.equals(signature)) {
                     // The signature is valid - decrypt
@@ -458,12 +451,32 @@ public class Event extends Resource {
         }
 
         // After the VEvent is fully updated, sign it and add the signature
-        String digest = event.toString();
+        String digest = eventDigest(event);
         String signature = Base64.encodeToString(CryptoUtils.calculateSignature(digest, key), Base64.DEFAULT);
         Log.i(TAG,"Digest encrypt: " + digest);
         props.add(new XProperty(SIGNATURE_PROPERTY, signature));
 
         return event;
+    }
+
+    private String eventDigest(VEvent event) {
+
+        // Create a copy of the event with the relevant properties
+        //VEvent cloned = (VEvent) event.copy();
+        PropertyList pl = new PropertyList();
+        if(event.getSummary() != null)
+            pl.add(event.getSummary());
+        if(event.getDescription() != null)
+            pl.add(event.getDescription());
+        if(event.getLocation() != null)
+            pl.add(event.getLocation());
+        if(event.getStartDate() != null)
+            pl.add(event.getStartDate());
+        if(event.getEndDate() != null)
+            pl.add(event.getEndDate());
+        // TODO: add more properties?
+
+        return pl.toString();
     }
 
     public long getDtStartInMillis() {
