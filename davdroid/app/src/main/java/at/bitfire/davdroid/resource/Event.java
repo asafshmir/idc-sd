@@ -111,6 +111,8 @@ public class Event extends Resource {
 	@Getter @Setter protected RRule rrule;
 	@Getter @Setter protected ExDate exdate;
 	@Getter @Setter protected ExRule exrule;
+    @Getter @Setter protected String sklist;
+    @Getter @Setter protected String signature;
 	@Getter protected List<Event> exceptions = new LinkedList<>();
 
 	@Getter @Setter protected Boolean forPublic;
@@ -209,6 +211,10 @@ public class Event extends Resource {
 			location = event.getLocation().getValue();
 		if (event.getDescription() != null)
 			description = event.getDescription().getValue();
+        if (event.getProperty(SKLIST_PROPERTY) != null)
+            sklist = event.getProperty(SKLIST_PROPERTY).getValue();
+        if (event.getProperty(SIGNATURE_PROPERTY) != null)
+            signature = event.getProperty(SIGNATURE_PROPERTY).getValue();
 
         shouldDecrypt = !KeyManager.isKeyManagerEvent(this) && shouldDecrypt;
 
@@ -225,7 +231,6 @@ public class Event extends Resource {
             } else {
 
                 // Read and the specific key
-                String sklist = event.getProperty(SKLIST_PROPERTY).getValue();
                 key = KeyManager.getInstance().getSKFromEncSKList(sklist);
 
                 if(key == null) {
@@ -246,7 +251,7 @@ public class Event extends Resource {
                 markUnauthorized("Invalid event format");
             } else {
 
-                String signature = event.getProperty(SIGNATURE_PROPERTY).getValue();
+
 
                 // Calculate the signature
                 String digest = eventDigest(event);
@@ -393,9 +398,11 @@ public class Event extends Resource {
 
         Log.i(TAG,"Should Encrypt: " + shouldEncrypt);
 
+
         if (shouldEncrypt && key != null) {
             props.add(new XProperty(SKLIST_PROPERTY, KeyManager.getInstance().generateEncSKList()));
-
+        } else if (sklist != null) {
+            props.add(new XProperty(SKLIST_PROPERTY, sklist));
         }
 
         if (uid != null)
@@ -454,6 +461,8 @@ public class Event extends Resource {
                 props.add(new Location(location));
             if (description != null)
                 props.add(new Description(description));
+            if (signature != null)
+                props.add(new XProperty(SIGNATURE_PROPERTY, signature));
         }
 
         return event;
@@ -465,7 +474,7 @@ public class Event extends Resource {
         //VEvent cloned = (VEvent) event.copy();
         PropertyList pl = new PropertyList();
         if(event.getSummary() != null)
-            pl.add(event.getSummary());
+            pl.add(new Summary(event.getSummary().getValue().trim()));
         if(event.getDescription() != null)
             pl.add(event.getDescription());
         if(event.getLocation() != null)
@@ -586,6 +595,9 @@ public class Event extends Resource {
      */
     public static String decodeAndDecrypt(byte[] key, String data) {
         Log.d(TAG, "decoding and decrypting data: '" + data + "'");
+        if (data == null) {
+            return null;
+        }
         return new String(CryptoUtils.decrypt(key, Base64.decode(data.getBytes(), Base64.DEFAULT)));
     }
 

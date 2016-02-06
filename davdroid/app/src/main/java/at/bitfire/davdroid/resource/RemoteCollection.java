@@ -134,7 +134,7 @@ public abstract class RemoteCollection<T extends Resource> {
 
 
     public Resource[] multiGet(Resource[] resources) throws URISyntaxException, IOException, DavException, HttpException {
-        return multiGet(resources,true);
+        return multiGet(resources,false);
     }
     @SuppressWarnings("unchecked")
 	public Resource[] multiGet(Resource[] resources, boolean shouldDecrypt) throws URISyntaxException, IOException, DavException, HttpException {
