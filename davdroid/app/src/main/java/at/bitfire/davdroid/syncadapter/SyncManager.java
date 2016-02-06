@@ -134,6 +134,7 @@ public class SyncManager {
 		for (Resource remoteResource : remoteResources) {
 			try {
 				Resource localResource = local.findByRemoteName(remoteResource.getName(), false);
+                Log.i(TAG,"Local Resource ETag " + localResource.getETag());
 				if (localResource.getETag() == null || !localResource.getETag().equals(remoteResource.getETag()))
 					remotelyUpdated.add(remoteResource);
 			} catch(RecordNotFoundException e) {
@@ -156,7 +157,7 @@ public class SyncManager {
 		local.commit();
 
 		// update collection CTag
-		Log.i(TAG, "Sync complete, fetching new CTag");
+		Log.i(TAG, "Sync complete, fetching new CTag " + remote.getCTag());
 		local.setCTag(remote.getCTag());
 
         //synchronizeKeys(true);
@@ -206,6 +207,7 @@ public class SyncManager {
 					Resource res = local.findById(id, true);
 
 					String eTag = remote.add(res);
+                    Log.i(TAG,"Updating with eTag " + eTag);
 					if (eTag != null)
 						local.updateETag(res, eTag);
 					local.clearDirty(res);
@@ -233,12 +235,17 @@ public class SyncManager {
 				try {
 					Resource res = local.findById(id, true);
 					String eTag = remote.update(res);
+                    Log.i(TAG,"Updating eTag " + eTag);
 					if (eTag != null)
 						local.updateETag(res, eTag);
 					local.clearDirty(res);
 					count++;
 				} catch(PreconditionFailedException e) {
 					Log.i(TAG, "Locally changed resource has been changed on the server in the meanwhile");
+//                    Resource res = local.findById(id, true);
+//                    if (res != null) {
+//                        local.clearDirty(res);
+//                    }
 				} catch (ValidationException e) {
 					Log.e(TAG, "Couldn't create entity for updating: " + e.toString());
 				} catch (RecordNotFoundException e) {
