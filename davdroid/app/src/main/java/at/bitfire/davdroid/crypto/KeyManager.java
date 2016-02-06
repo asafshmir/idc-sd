@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 import at.bitfire.davdroid.resource.Event;
+import lombok.Getter;
 
 public class KeyManager {
 
@@ -44,6 +45,8 @@ public class KeyManager {
     protected KeyBank keyBank;
     protected UsersManager usersManager;
 
+    @Getter private boolean updated;
+
     // Asymmetric key-pair
     protected KeyPair asymKeyPair;
 
@@ -65,7 +68,9 @@ public class KeyManager {
     private KeyManager() {
         keyBank = new KeyBank();
         usersManager = new DummyUsersManager();
+        updated = false;
     }
+
 
     public static KeyManager getInstance() {
         if (instance == null) {
@@ -139,6 +144,7 @@ public class KeyManager {
             byte[] sk = CryptoUtils.generateRandomSymmetricKey();
             Log.i(TAG, "Adding first user: " + this.userID + " to the KeyBank");
             addKeyRecord(keyBank, userID, pbkey, sk);
+            updated = true;
         } else {
             Log.i(TAG, "Got a KeyBank data, parse it");
             keyBank = stringToKeyBank(keyBankData);
@@ -162,7 +168,7 @@ public class KeyManager {
         }
 
         // Try to validate other users
-        validateAllUsers();
+        updated = updated || validateAllUsers();
 
         // Return the new key-bank
         return keyBankToString();
@@ -246,17 +252,19 @@ public class KeyManager {
             }
 
             keyBank = newKeyBank;
+            updated = true;
         }
     }
 
-    private void validateAllUsers() {
+    private boolean validateAllUsers() {
         Log.i(TAG, "Validating all users in the KeyBank");
+
 
         // My user doesn't have a valid SK so it can't validate others
         byte[] realSK = getSK();
         if (realSK == null) {
             Log.i(TAG, "My user: " + this.userID + " has no encSK, can't validate others");
-            return;
+            return false;
         }
 
         // Iterate the users validate them
@@ -273,12 +281,14 @@ public class KeyManager {
                 continue;
             } else {
                 Log.i(TAG, "User: " + curUserID + " has no encSK and need to be validated");
-                validateUser(realSK, curUserID, keyRecord);
+                return validateUser(realSK, curUserID, keyRecord);
+
             }
         }
+        return false;
     }
 
-    private void validateUser(byte[] realSK, String userID, KeyRecord keyRecord) {
+    private boolean validateUser(byte[] realSK, String userID, KeyRecord keyRecord) {
 
         // Validate the user's KeyRecord
         boolean valid = validateSignature(userID, keyRecord);
@@ -297,9 +307,11 @@ public class KeyManager {
             }
 
             keyRecord.encSK = CryptoUtils.encryptSymmetricKey(realSK, userPbKey);
+            return true;
         } else {
             Log.w(TAG, "User: " + userID + " doesn't have a valid signature, ignore him");
         }
+        return false;
     }
 
     private boolean validateSignature(String userID, KeyRecord keyRecord) {
