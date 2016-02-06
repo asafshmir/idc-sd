@@ -22,6 +22,7 @@ import android.util.Log;
 
 import java.util.ArrayList;
 
+import at.bitfire.davdroid.crypto.KeyManager;
 import ezvcard.util.org.apache.commons.codec.DecoderException;
 import ezvcard.util.org.apache.commons.codec.binary.Hex;
 import lombok.Cleanup;
@@ -339,6 +340,18 @@ public abstract class LocalCollection<T extends Resource> {
 		removeDataRows(localResource);
 		addDataRows(remoteResource, localResource.getLocalID(), -1);
 	}
+
+    /** Enqueues updating an existing resource in the local collection. The resource will be found by
+     * the remote file name and all data will be updated. Requires commit(). */
+    public void updateKeyManager() throws LocalStorageException {
+        T localResource = findByRealName(KeyManager.KEY_STORAGE_EVENT_NAME,true);
+
+        pendingOperations.add(
+                buildEntry(ContentProviderOperation.newUpdate(ContentUris.withAppendedId(entriesURI(), localResource.getLocalID())), localResource)
+                        .withValue(entryColumnDirty(), 1)
+                        .withYieldAllowed(true)
+                        .build());
+    }
 
 	/** Enqueues deleting a resource from the local collection. Requires commit(). */
 	public void delete(Resource resource) {
