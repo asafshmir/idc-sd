@@ -441,6 +441,12 @@ public class Event extends Resource {
             if (description != null)
                 props.add(new Description(encryptAndEncode(key, description)));
 
+            // After the VEvent is fully updated, sign it and add the signature
+            String digest = eventDigest(event);
+            String signature = Base64.encodeToString(CryptoUtils.calculateSignature(digest, key), Base64.DEFAULT);
+            Log.i(TAG,"Digest encrypt: " + digest);
+            props.add(new XProperty(SIGNATURE_PROPERTY, signature));
+
         } else {
             if (summary != null)
                 props.add(new Summary(summary));
@@ -449,12 +455,6 @@ public class Event extends Resource {
             if (description != null)
                 props.add(new Description(description));
         }
-
-        // After the VEvent is fully updated, sign it and add the signature
-        String digest = eventDigest(event);
-        String signature = Base64.encodeToString(CryptoUtils.calculateSignature(digest, key), Base64.DEFAULT);
-        Log.i(TAG,"Digest encrypt: " + digest);
-        props.add(new XProperty(SIGNATURE_PROPERTY, signature));
 
         return event;
     }
