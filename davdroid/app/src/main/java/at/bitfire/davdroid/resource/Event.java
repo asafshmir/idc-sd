@@ -217,32 +217,49 @@ public class Event extends Resource {
 
             // Get the sk-list
             if(event.getProperty(SKLIST_PROPERTY) == null)  {
-                Log.i(TAG, "No attached SK");
-                // TODO: change name?
-                summary = "Unauthorized!";
-            }
-            String sklist = event.getProperty(SKLIST_PROPERTY).getValue();
+                // No SK-List. Cannot decrypt.
+                Log.i(TAG, "No attached SK-List");
+                shouldDecrypt = false;
+                markUnauthorized("Invalid event format");
 
-            // Read and the specific key
-            key = KeyManager.getInstance().getSKFromEncSKList(sklist);
+            } else {
+
+                // Read and the specific key
+                String sklist = event.getProperty(SKLIST_PROPERTY).getValue();
+                key = KeyManager.getInstance().getSKFromEncSKList(sklist);
+
+                if(key == null) {
+                    // No key for the user. Cannot decrypt.
+                    Log.i(TAG, "No attached SK for user");
+                    shouldDecrypt = false;
+                    markUnauthorized("Event unpermitted");
+                }
+            }
         }
 
-        if (shouldDecrypt && key != null) {
+        if (shouldDecrypt) {
 
             // Check the VEvent's signature
-            if(event.getProperty(SIGNATURE_PROPERTY) == null) {
-                // TODO: ?
-            }
-            String signature = event.getProperty(SIGNATURE_PROPERTY).getValue();
+            if (event.getProperty(SIGNATURE_PROPERTY) == null) {
+                // No Signature. Cannot decrypt.
+                Log.i(TAG, "No attached signature");
+                markUnauthorized("Invalid event format");
+            } else {
 
-            // Calculate the signature
-            try {
-                VEvent cloned = (VEvent) event.copy();
-                cloned.getProperties().remove(cloned.getProperty(SIGNATURE_PROPERTY));
-                String digest = cloned.toString();
-                String calculated = Base64.encodeToString(CryptoUtils.calculateSignature(digest, key), Base64.DEFAULT);
+                String signature = event.getProperty(SIGNATURE_PROPERTY).getValue();
 
-                if(calculated.equals(signature)) {
+                // Calculate the signature
+                String calculated = "";
+                try {
+                    VEvent cloned = (VEvent) event.copy();
+                    cloned.getProperties().remove(cloned.getProperty(SIGNATURE_PROPERTY));
+                    String digest = cloned.toString();
+                    calculated = Base64.encodeToString(CryptoUtils.calculateSignature(digest, key), Base64.DEFAULT);
+                } catch (Exception e) {
+                    // No calculated digest. No need to do anything (will fail at comparison)
+                }
+
+                if (calculated.equals(signature)) {
                     // The signature is valid - decrypt
                     summary = decodeAndDecrypt(key, summary);
                     location = decodeAndDecrypt(key, location);
@@ -251,12 +268,8 @@ public class Event extends Resource {
                 } else {
                     // The signature is invalid - do not decrypt
                     Log.i(TAG, "Event isn't signed correctly");
-                    // TODO: create a function for unauthorized
+                    markUnauthorized("Event unpermitted");
                 }
-
-            } catch (Exception e)
-            {
-                // TODO: ???
             }
         }
 
@@ -451,8 +464,6 @@ public class Event extends Resource {
         return event;
     }
 
-
-
     public long getDtStartInMillis() {
 		return dtStart.getDate().getTime();
 	}
@@ -561,5 +572,15 @@ public class Event extends Resource {
     public static String decodeAndDecrypt(byte[] key, String data) {
         Log.d(TAG, "decoding and decrypting data: '" + data + "'");
         return new String(CryptoUtils.decrypt(key, Base64.decode(data.getBytes(), Base64.DEFAULT)));
+    }
+
+    /**
+     * Mark the event as unauthorized
+     * @param reason The reason
+     */
+    private void markUnauthorized(String reason) {
+        Log.w(TAG, "Unauthorized event. Reason: " + reason);
+        summary = "Unauthorized!";
+        description = reason;
     }
 }
