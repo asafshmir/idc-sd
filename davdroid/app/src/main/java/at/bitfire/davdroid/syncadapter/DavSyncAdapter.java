@@ -166,6 +166,7 @@ public abstract class DavSyncAdapter extends AbstractThreadedSyncAdapter impleme
                                 mn.synchronize(false, syncResult);
                             }
                         }
+
                     }
 
 				} catch (DavException ex) {

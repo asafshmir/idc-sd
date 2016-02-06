@@ -15,12 +15,12 @@ import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
 import at.bitfire.davdroid.resource.Event;
 import lombok.Getter;
-import lombok.Setter;
 
 public class KeyManager {
 
@@ -40,13 +40,17 @@ public class KeyManager {
 
     // A map from userID to KeyRecord
     protected String userID;
+
+    protected ArrayList<String> usersToRemove;
+    protected boolean usersRemoved;
+
     // TODO support keyBank per account-name
     // TODO add setActiveAccount to support multiple accounts
     //protected Map<String, KeyRecord> keyBank;
     protected KeyBank keyBank;
     protected UsersManager usersManager;
 
-    @Getter @Setter private boolean updated;
+    @Getter private boolean updated;
 
     // Asymmetric key-pair
     protected KeyPair asymKeyPair;
@@ -69,6 +73,8 @@ public class KeyManager {
     private KeyManager() {
         keyBank = new KeyBank();
         usersManager = new DummyUsersManager();
+        usersToRemove = new ArrayList<String>();
+        usersRemoved = true;
         updated = false;
     }
 
@@ -216,6 +222,7 @@ public class KeyManager {
 
         // Iterate the users, find if validated
         for (String curUserID : keyBank.keySet()) {
+            Log.i(TAG,"Adding user " + curUserID);
             KeyRecord keyRecord = keyBank.get(curUserID);
             if (keyRecord.encSK != null) {
                 users.put(curUserID,true);
@@ -228,39 +235,19 @@ public class KeyManager {
     }
 
     // update new SK for users after deletion
-    public void updateUsers(HashMap<String, Boolean> users) {
+    public void removeUser(String user) {
 
-        Log.i(TAG, "Generate list of users");
+        Log.i(TAG, "remove User " + user);
+        usersToRemove.add(user);
+        usersRemoved = false;
+        updated = true;
 
-        boolean shouldUpdateUsers = false;
-        for (String curUserID : users.keySet()) {
-            if (users.get(curUserID) == false) {
-                shouldUpdateUsers = true;
-                break;
-            }
-        }
-
-        if (shouldUpdateUsers) {
-            KeyBank newKeyBank = new KeyBank();
-            byte[] sk = CryptoUtils.generateRandomSymmetricKey();
-
-            // Iterate the users, find if validated
-            for (String curUserID : users.keySet()) {
-                if ((users.get(curUserID) == true) ||
-                        (curUserID == this.userID)) {
-                    KeyRecord record = keyBank.get(curUserID);
-                    addKeyRecord(newKeyBank, curUserID, record.pbKey, sk);
-                }
-            }
-
-            keyBank = newKeyBank;
-            updated = true;
-        }
     }
 
     private boolean validateAllUsers() {
         Log.i(TAG, "Validating all users in the KeyBank");
 
+        boolean userValidated = false;
 
         // My user doesn't have a valid SK so it can't validate others
         byte[] realSK = getSK();
@@ -269,26 +256,44 @@ public class KeyManager {
             return false;
         }
 
+        // Generate new random SK since user has been removed
+        if (usersToRemove.size() > 0 && !usersRemoved) {
+            realSK = CryptoUtils.generateRandomSymmetricKey();;
+        }
+
         // Iterate the users validate them
         for (String curUserID : keyBank.keySet()) {
-
-            // No need to validate my user
-            if (this.userID.equals(curUserID))
+            if (usersToRemove.contains(curUserID)) {
+                keyBank.remove(curUserID);
                 continue;
+            }
 
             KeyRecord keyRecord = keyBank.get(curUserID);
-            // User has an SK, so we don't need to validate it
-            if (keyRecord.encSK != null) {
-                Log.i(TAG, "User: " + curUserID + " has encSK - no need to validated him");
-                continue;
+            if (usersToRemove.size() > 0 && !usersRemoved) {
+                Log.i(TAG, "All Users revalidated, a user has been removed");
+                validateUser(realSK, curUserID, keyRecord);
+                userValidated = true;
             } else {
-                Log.i(TAG, "User: " + curUserID + " has no encSK and need to be validated");
-                return validateUser(realSK, curUserID, keyRecord);
 
+                // No need to validate my user
+                if (this.userID.equals(curUserID))
+                    continue;
+
+                // User has an SK, so we don't need to validate it
+                if (keyRecord.encSK != null) {
+                    Log.i(TAG, "User: " + curUserID + " has encSK - no need to validated him");
+                    continue;
+                } else {
+                    Log.i(TAG, "User: " + curUserID + " has no encSK and need to be validated");
+                    validateUser(realSK, curUserID, keyRecord);
+                    userValidated = true;
+                }
             }
         }
-        return false;
+
+        return userValidated;
     }
+
 
     private boolean validateUser(byte[] realSK, String userID, KeyRecord keyRecord) {
 
@@ -366,9 +371,16 @@ public class KeyManager {
         return keyRecords;
     }
 
+    public void setUpdated(boolean state) {
+        usersToRemove.clear();
+        usersRemoved = !state;
+        updated = state;
+    }
+
     private String keyBankToString()  {
         Log.i(TAG, "Converting a KeyBank to string");
         JSONObject rootObj = new JSONObject();
+
 
         try {
 

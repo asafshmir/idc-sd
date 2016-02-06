@@ -24,6 +24,7 @@ import at.bitfire.davdroid.Constants;
 import at.bitfire.davdroid.R;
 import at.bitfire.davdroid.ui.setup.AddAccountActivity;
 import at.bitfire.davdroid.ui.settings.SettingsActivity;
+import at.bitfire.davdroid.ui.setup.RemoveAccountActivity;
 
 public class MainActivity extends Activity {
 
@@ -57,7 +58,11 @@ public class MainActivity extends Activity {
 		startActivity(new Intent(this, AddAccountActivity.class));
 	}
 
-	public void showSettings(MenuItem item) {
+    public void removeAccount(MenuItem item) {
+        startActivity(new Intent(this, RemoveAccountActivity.class));
+    }
+
+    public void showSettings(MenuItem item) {
 		startActivity(new Intent(this, SettingsActivity.class));
 	}
 	

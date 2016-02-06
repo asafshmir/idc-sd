@@ -98,6 +98,7 @@
     <string name="login_type_email_description">Service details will be auto-detected by domain name. Example: myaccount@icloud.com</string>
     <string name="login_type_url">Login with URL and user name</string>
     <string name="login_type_url_description">Service details will be auto-detected by initial URL and user name. Mostly used for self-hosted services.</string>
+
     
     <string name="login_email_description">Please enter your email address. Its domain name will be used to auto-detect service settings.</string>
     <string name="login_email_address">Email:</string>
@@ -112,6 +113,9 @@
     <string name="login_auth_preemptive">Preemptive authentication (recommended, but incompatible with Digest auth)</string>
 
     <string name="login_password">Password:</string>
+
+    <!-- Remove Account activity -->
+    <string name="remove_account_choose">Uncheck an account to remove it from calendar.</string>
 
     <!-- Settings activity -->
     <string name="settings_title">Settings</string>
@@ -160,6 +164,7 @@
     <string name="setup_select_collections">DAVdroid: Select collections</string>
     <string name="setup_neither_caldav_nor_carddav">No CalDAV-/CardDAV service is available at this location.</string>
     <string name="setup_add_account">Add account</string>
+    <string name="setup_remove_account">Remove account</string>
     <string name="setup_querying_server">Querying server. Please wait…</string>
     <string name="setup_what_to_sync">Which collections shall be synchronized?</string>
     <string name="setup_address_books">Address books</string>

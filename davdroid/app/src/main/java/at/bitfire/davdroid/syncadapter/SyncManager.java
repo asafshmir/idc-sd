@@ -67,7 +67,7 @@ public class SyncManager {
                 Log.i(TAG, "Updating KeyManager event");
                 local.updateKeyManager();
                 local.commit();
-                KeyManager.getInstance().setUpdated(false);
+//                KeyManager.getInstance().setUpdated(false);
                 return true;
             }
 
@@ -161,7 +161,7 @@ public class SyncManager {
 		Log.i(TAG, "Sync complete, fetching new CTag " + remote.getCTag());
 		local.setCTag(remote.getCTag());
 
-        //synchronizeKeys(true);
+
 	}
 
 
