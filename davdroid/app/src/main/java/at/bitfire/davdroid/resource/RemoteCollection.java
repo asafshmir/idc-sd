@@ -137,7 +137,7 @@ public abstract class RemoteCollection<T extends Resource> {
 	public Resource[] multiGet(Resource[] resources, boolean shouldDecrypt) throws URISyntaxException, IOException, DavException, HttpException {
 		try {
 			if (resources.length == 1)
-				return (T[]) new Resource[]{get(resources[0])};
+				return (T[]) new Resource[]{get(resources[0],shouldDecrypt)};
 
 			Log.i(TAG, "Multi-getting " + resources.length + " remote resource(s)");
 
@@ -174,8 +174,10 @@ public abstract class RemoteCollection<T extends Resource> {
 	
 	
 	/* internal member operations */
-
-	public Resource get(Resource resource) throws URISyntaxException, IOException, HttpException, DavException, InvalidResourceException {
+    public Resource get(Resource resource) throws URISyntaxException, IOException, HttpException, DavException, InvalidResourceException {
+        return get(resource, true);
+    }
+	public Resource get(Resource resource, boolean shouldDecrypt) throws URISyntaxException, IOException, HttpException, DavException, InvalidResourceException {
 		WebDavResource member = new WebDavResource(collection, resource.getName());
 
 		member.get(memberAcceptedMimeTypes());
@@ -186,7 +188,7 @@ public abstract class RemoteCollection<T extends Resource> {
 
 		@Cleanup InputStream is = new ByteArrayInputStream(data);
 		try {
-			resource.parseEntity(is, getDownloader());
+			resource.parseEntity(is, getDownloader(),shouldDecrypt);
 		} catch (VCardParseException e) {
 			throw new InvalidResourceException(e);
 		}
