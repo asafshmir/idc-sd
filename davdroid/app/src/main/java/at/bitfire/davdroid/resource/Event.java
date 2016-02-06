@@ -244,9 +244,9 @@ public class Event extends Resource {
 
                 if(calculated.equals(signature)) {
                     // The signature is valid - decrypt
-                    summary = Decoder.decryptProperty(key, summary);
-                    location = Decoder.decryptProperty(key, location);
-                    description = Decoder.decryptProperty(key, description);
+                    summary = decodeAndDecrypt(key, summary);
+                    location = decodeAndDecrypt(key, location);
+                    description = decodeAndDecrypt(key, description);
 
                 } else {
                     // The signature is invalid - do not decrypt
@@ -427,9 +427,13 @@ public class Event extends Resource {
         // After all the VEvent's data is up to date and encrypted, sign the complete event
         // in order to prevent unauthorized modification and\or reply attack
         if (shouldEncrypt) {
-            Decoder.encryptProperty(props, key, location, Location.class);
-            Decoder.encryptProperty(props, key, description, Description.class);
-            Decoder.encryptProperty(props, key, summary, Summary.class);
+            if (summary != null)
+                props.add(new Summary(encryptAndEncode(key, summary)));
+            if (location != null)
+                props.add(new Location(encryptAndEncode(key, location)));
+            if (description != null)
+                props.add(new Description(encryptAndEncode(key, description)));
+
         } else {
             if (summary != null)
                 props.add(new Summary(summary));
@@ -535,4 +539,27 @@ public class Event extends Resource {
 		}
 		throw new IllegalArgumentException();
 	}
+
+    /**
+     * Encrypt the given data with the given key and encode it in Base64 format in order to be
+     * legal readable text
+     * @param key The encryption key
+     * @param data The plain data
+     * @return The encrypted and encoded data
+     */
+    public static String encryptAndEncode(byte[] key, String data) {
+        Log.d(TAG, "encrypting data: '" + data + "'");
+        return Base64.encodeToString(CryptoUtils.encrypt(key, data.getBytes()), Base64.DEFAULT);
+    }
+
+    /**
+     * Decode the given Base64 data and decrypt it with the given key
+     * @param key The decryption key
+     * @param data The encoded and encrypted data
+     * @return The plain data
+     */
+    public static String decodeAndDecrypt(byte[] key, String data) {
+        Log.d(TAG, "decoding and decrypting data: '" + data + "'");
+        return new String(CryptoUtils.decrypt(key, Base64.decode(data.getBytes(), Base64.DEFAULT)));
+    }
 }
