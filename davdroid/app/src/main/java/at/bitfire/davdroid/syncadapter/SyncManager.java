@@ -67,6 +67,7 @@ public class SyncManager {
                 Log.i(TAG, "Updating KeyManager event");
                 local.updateKeyManager();
                 local.commit();
+                KeyManager.getInstance().setUpdated(false);
                 return true;
             }
 
@@ -274,11 +275,13 @@ public class SyncManager {
                         Event keyBank = ((Event)res);
                         keyBank.description = KeyManager.getInstance().initKeyBank(user,keyBank.description);
 
-                        String eTag = remote.update(keyBank);
-                        if (eTag != null)
-                            local.updateETag(res, eTag);
-                        local.clearDirty(res);
-
+                        if (KeyManager.getInstance().isUpdated()) {
+                            String eTag = remote.update(keyBank);
+                            if (eTag != null)
+                                local.updateETag(res, eTag);
+                            local.clearDirty(res);
+                            KeyManager.getInstance().setUpdated(false);
+                        }
                     }
                 } catch (Exception e) {
                 }

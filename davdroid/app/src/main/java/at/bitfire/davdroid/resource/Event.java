@@ -254,6 +254,7 @@ public class Event extends Resource {
                     VEvent cloned = (VEvent) event.copy();
                     cloned.getProperties().remove(cloned.getProperty(SIGNATURE_PROPERTY));
                     String digest = cloned.toString();
+                    Log.i(TAG,"Digest: " + digest);
                     calculated = Base64.encodeToString(CryptoUtils.calculateSignature(digest, key), Base64.DEFAULT);
                 } catch (Exception e) {
                     // No calculated digest. No need to do anything (will fail at comparison)
@@ -459,6 +460,7 @@ public class Event extends Resource {
         // After the VEvent is fully updated, sign it and add the signature
         String digest = event.toString();
         String signature = Base64.encodeToString(CryptoUtils.calculateSignature(digest, key), Base64.DEFAULT);
+        Log.i(TAG,"Digest encrypt: " + digest);
         props.add(new XProperty(SIGNATURE_PROPERTY, signature));
 
         return event;

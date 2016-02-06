@@ -20,6 +20,7 @@ import java.util.HashMap;
 
 import at.bitfire.davdroid.resource.Event;
 import lombok.Getter;
+import lombok.Setter;
 
 public class KeyManager {
 
@@ -45,7 +46,7 @@ public class KeyManager {
     protected KeyBank keyBank;
     protected UsersManager usersManager;
 
-    @Getter private boolean updated;
+    @Getter @Setter private boolean updated;
 
     // Asymmetric key-pair
     protected KeyPair asymKeyPair;
@@ -134,7 +135,7 @@ public class KeyManager {
 
     // TODO handle multiple accounts per KeyManager
     public String initKeyBank(String userID, String keyBankData) {
-
+        updated = false;
         this.userID = userID;
         byte[] pbkey = asymKeyPair.getPublic().getEncoded();
 
@@ -163,6 +164,7 @@ public class KeyManager {
                 } else {
                     Log.w(TAG, "User: " + this.userID + " has an SK, but can't decrypt it. Add a new KeyRecord for him");
                     addKeyRecord(keyBank,userID, pbkey, null);
+                    updated = true;
                 }
             }
         }
