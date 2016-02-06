@@ -276,6 +276,7 @@ public abstract class LocalCollection<T extends Resource> {
                     return resource;
                 } else {
                     Log.i(TAG,"SUMMARY!!! " + ((Event)resource).summary);
+                    Log.i(TAG,"DATE!!! " + ((Event)resource).dtStart);
                 }
             }
 
