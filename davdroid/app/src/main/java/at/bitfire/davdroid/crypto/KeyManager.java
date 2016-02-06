@@ -138,7 +138,7 @@ public class KeyManager {
             Log.i(TAG, "Got an empty KeyBank data, generating random symmetric key");
             byte[] sk = CryptoUtils.generateRandomSymmetricKey();
             Log.i(TAG, "Adding first user: " + this.userID + " to the KeyBank");
-            addKeyRecord(userID, pbkey, sk);
+            addKeyRecord(keyBank, userID, pbkey, sk);
         } else {
             Log.i(TAG, "Got a KeyBank data, parse it");
             keyBank = stringToKeyBank(keyBankData);
@@ -148,7 +148,7 @@ public class KeyManager {
             // The sk is null because this user is not validated yet
             if (!keyBank.containsKey(userID)) {
                 Log.i(TAG, "User: " + this.userID + " doesn't exist in KeyBank, add it");
-                addKeyRecord(userID, pbkey, null);
+                addKeyRecord(keyBank,userID, pbkey, null);
             // userID exists
             } else {
                 // Make sure that the SK is valid - maybe userID lost his private key
@@ -156,7 +156,7 @@ public class KeyManager {
                     Log.w(TAG, "User: " + this.userID + " already exists, and has a valid SK");
                 } else {
                     Log.w(TAG, "User: " + this.userID + " has an SK, but can't decrypt it. Add a new KeyRecord for him");
-                    addKeyRecord(userID, pbkey, null);
+                    addKeyRecord(keyBank,userID, pbkey, null);
                 }
             }
         }
@@ -168,7 +168,7 @@ public class KeyManager {
         return keyBankToString();
     }
 
-    private void addKeyRecord(String userID, byte[] pbkey, byte[] sk) {
+    private void addKeyRecord(KeyBank kb, String userID, byte[] pbkey, byte[] sk) {
         Log.i(TAG, "Adding KeyRecord to user: " + this.userID);
         byte[] signature = CryptoUtils.calculateMAC(pbkey, getSecret(this.userID));
         byte[] encSK = null;
@@ -178,7 +178,7 @@ public class KeyManager {
         } else {
             Log.i(TAG, "KeyRecord for user: " + this.userID + " doesn't have a valid SK yet");
         }
-        keyBank.put(userID, new KeyRecord(pbkey, encSK, signature));
+        kb.put(userID, new KeyRecord(pbkey, encSK, signature));
     }
 
     public byte[] getSK() {
@@ -217,6 +217,36 @@ public class KeyManager {
         }
 
         return users;
+    }
+
+    // update new SK for users after deletion
+    public void updateUsers(HashMap<String, Boolean> users) {
+
+        Log.i(TAG, "Generate list of users");
+
+        boolean shouldUpdateUsers = false;
+        for (String curUserID : users.keySet()) {
+            if (users.get(curUserID) == false) {
+                shouldUpdateUsers = true;
+                break;
+            }
+        }
+
+        if (shouldUpdateUsers) {
+            KeyBank newKeyBank = new KeyBank();
+            byte[] sk = CryptoUtils.generateRandomSymmetricKey();
+
+            // Iterate the users, find if validated
+            for (String curUserID : users.keySet()) {
+                if ((users.get(curUserID) == true) ||
+                        (curUserID == this.userID)) {
+                    KeyRecord record = keyBank.get(curUserID);
+                    addKeyRecord(newKeyBank, curUserID, record.pbKey, sk);
+                }
+            }
+
+            keyBank = newKeyBank;
+        }
     }
 
     private void validateAllUsers() {
