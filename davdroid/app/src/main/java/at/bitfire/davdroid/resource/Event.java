@@ -8,6 +8,7 @@
 package at.bitfire.davdroid.resource;
 
 import android.text.format.Time;
+import android.util.Base64;
 import android.util.Log;
 
 import net.fortuna.ical4j.data.CalendarBuilder;
@@ -47,6 +48,7 @@ import net.fortuna.ical4j.model.property.Summary;
 import net.fortuna.ical4j.model.property.Transp;
 import net.fortuna.ical4j.model.property.Uid;
 import net.fortuna.ical4j.model.property.Version;
+import net.fortuna.ical4j.model.property.XProperty;
 import net.fortuna.ical4j.util.CompatibilityHints;
 import net.fortuna.ical4j.util.SimpleHostInfo;
 import net.fortuna.ical4j.util.UidGenerator;
@@ -86,8 +88,13 @@ import lombok.Setter;
 
 public class Event extends Resource {
 	private final static String TAG = "davdroid.Event";
-	
-	private final static TimeZoneRegistry tzRegistry = new DefaultTimeZoneRegistryFactory().createRegistry();
+
+    // Using fields in the DAV format that are reserved for future use for the SK list
+    // and the signature for data validation
+    private final static String SKLIST_PROPERTY = Property.EXPERIMENTAL_PREFIX + "SKLIST";
+    private final static String SIGNATURE_PROPERTY = Property.EXPERIMENTAL_PREFIX + "SIGNATURE";
+
+    private final static TimeZoneRegistry tzRegistry = new DefaultTimeZoneRegistryFactory().createRegistry();
 
 
 	@Getter @Setter protected RecurrenceId recurrenceId;
@@ -207,26 +214,49 @@ public class Event extends Resource {
 
         byte[] key = null;
         if (shouldDecrypt) {
-            key = Decoder.readAttachedSk(description);
 
-            if(key == null) {
+            // Get the sk-list
+            if(event.getProperty(SKLIST_PROPERTY) == null)  {
                 Log.i(TAG, "No attached SK");
+                // TODO: change name?
                 summary = "Unauthorized!";
             }
+            String sklist = event.getProperty(SKLIST_PROPERTY).getValue();
+
+            // Read and the specific key
+            key = KeyManager.getInstance().getSKFromEncSKList(sklist);
         }
 
         if (shouldDecrypt && key != null) {
-            // Check the signature of the summary
-            if (Decoder.checkSignedProperty(key, summary)) {
-                // The signature is valid - decrypt
-                summary = Decoder.decryptSignedProperty(key, summary);
-                location = Decoder.decryptProperty(key, location);
-                description = Decoder.readAttachedData(key, description);
 
-            } else {
-                // The signature is invalid - do not decrypt
-                Log.i(TAG, "Event isn't signed correctly");
-                // ( Do nothing )
+            // Check the VEvent's signature
+            if(event.getProperty(SIGNATURE_PROPERTY) == null) {
+                // TODO: ?
+            }
+            String signature = event.getProperty(SIGNATURE_PROPERTY).getValue();
+
+            // Calculate the signature
+            try {
+                VEvent cloned = (VEvent) event.copy();
+                cloned.getProperties().remove(cloned.getProperty(SIGNATURE_PROPERTY));
+                String digest = cloned.toString();
+                String calculated = Base64.encodeToString(CryptoUtils.calculateSignature(digest, key), Base64.DEFAULT);
+
+                if(calculated.equals(signature)) {
+                    // The signature is valid - decrypt
+                    summary = Decoder.decryptProperty(key, summary);
+                    location = Decoder.decryptProperty(key, location);
+                    description = Decoder.decryptProperty(key, description);
+
+                } else {
+                    // The signature is invalid - do not decrypt
+                    Log.i(TAG, "Event isn't signed correctly");
+                    // TODO: create a function for unauthorized
+                }
+
+            } catch (Exception e)
+            {
+                // TODO: ???
             }
         }
 
@@ -353,25 +383,13 @@ public class Event extends Resource {
         //Log.i(TAG, "toVEvent: Encrypting event with key '" + Hex.encodeHexString(key) + "'");
 
         shouldEncrypt = !(summary.equals(KeyManager.KEY_STORAGE_EVENT_NAME)) && shouldEncrypt;
-        // TODO - Sign (for validation) and encrypt the summary. Only encrypt the rest of the properties
 
         Log.i(TAG,"Should Encrypt: " + shouldEncrypt);
 
         if (shouldEncrypt && key != null) {
-            Log.i(TAG,"Key: " + key.toString());
-            // Add the SK list to the event's description
-            if (description == null)
-                description = "";
-            String tempDesc = Decoder.attachSKList(key, description);
-            props.add(new Description(tempDesc));
-            Log.i(TAG,"TempDesc: " + tempDesc);
-        } else {
-            Log.i(TAG,"Key: " + key);
-            if (description != null) {
-                props.add(new Description(description));
-            }
-        }
+            props.add(new XProperty(SKLIST_PROPERTY, KeyManager.getInstance().generateEncSKList()));
 
+        }
 
         if (uid != null)
             props.add(new Uid(uid));
@@ -392,17 +410,6 @@ public class Event extends Resource {
             props.add(exrule);
         if (exdate != null)
             props.add(exdate);
-
-        if (shouldEncrypt) {
-            Decoder.encryptProperty(props, key, location, Location.class);
-            Decoder.encryptAndSignProperty(props, key, summary, Summary.class);
-        } else {
-            if (summary != null)
-                props.add(new Summary(summary));
-            if (location != null)
-                props.add(new Location(location));
-        }
-
         if (status != null)
             props.add(status);
         if (!opaque)
@@ -416,6 +423,27 @@ public class Event extends Resource {
         event.getAlarms().addAll(alarms);
 
         props.add(new LastModified());
+
+        // After all the VEvent's data is up to date and encrypted, sign the complete event
+        // in order to prevent unauthorized modification and\or reply attack
+        if (shouldEncrypt) {
+            Decoder.encryptProperty(props, key, location, Location.class);
+            Decoder.encryptProperty(props, key, description, Description.class);
+            Decoder.encryptProperty(props, key, summary, Summary.class);
+        } else {
+            if (summary != null)
+                props.add(new Summary(summary));
+            if (location != null)
+                props.add(new Location(location));
+            if (description != null)
+                props.add(new Description(description));
+        }
+
+        // After the VEvent is fully updated, sign it and add the signature
+        String digest = event.toString();
+        String signature = Base64.encodeToString(CryptoUtils.calculateSignature(digest, key), Base64.DEFAULT);
+        props.add(new XProperty(SIGNATURE_PROPERTY, signature));
+
         return event;
     }
 
