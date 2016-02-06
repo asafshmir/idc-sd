@@ -63,6 +63,11 @@ public class SyncManager {
         if (event != null) {
             Log.i(TAG, "Found KeyManager event");
             keyManager.initKeyBank(user,event.description);
+            if (KeyManager.getInstance().isUpdated()) {
+                local.updateKeyManager();
+                local.commit();
+            }
+
             return true;
         } else if (afterFetch) {
             Log.i(TAG, "Adding KeyManager event");
@@ -219,6 +224,7 @@ public class SyncManager {
 	}
 	
 	private int pushDirty() throws URISyntaxException, LocalStorageException, IOException, HttpException {
+
 		int count = 0;
 		long[] dirtyIDs = local.findUpdated();
 		Log.i(TAG, "Uploading " + dirtyIDs.length + " modified resource(s) (if not changed)");
