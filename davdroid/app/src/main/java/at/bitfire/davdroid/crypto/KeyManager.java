@@ -220,7 +220,6 @@ public class KeyManager {
 
             KeyRecord keyRecord = keyBank.get(curUserID);
             // User has an SK, so we don't need to validate it
-            // TODO maybe it's an empty string and not null
             if (keyRecord.encSK != null) {
                 Log.i(TAG, "User: " + curUserID + " has encSK - no need to validated him");
                 continue;
@@ -291,7 +290,9 @@ public class KeyManager {
                 // Read user data
                 String userID = userObj.optString(USER_ID_ATTR);
                 byte[] pbkey = Base64.decode(userObj.optString(PUBLIC_KEY_ATTR), Base64.DEFAULT);
-                byte[] encsk = Base64.decode(userObj.optString(ENC_SK_ATTR), Base64.DEFAULT);
+                String encskStr = userObj.optString(ENC_SK_ATTR);
+                Log.d(TAG, "JSON encsk: " + encskStr);
+                byte[] encsk = encskStr.isEmpty() ? null : Base64.decode(encskStr, Base64.DEFAULT);
                 byte[] signature = Base64.decode(userObj.optString(SIGNATURE_ATTR), Base64.DEFAULT);
 
                 keyRecords.put(userID, new KeyRecord(pbkey, encsk, signature));
