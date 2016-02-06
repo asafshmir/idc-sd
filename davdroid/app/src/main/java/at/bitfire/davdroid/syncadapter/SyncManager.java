@@ -64,11 +64,12 @@ public class SyncManager {
             Log.i(TAG, "Found KeyManager event");
             keyManager.initKeyBank(user,event.description);
             if (KeyManager.getInstance().isUpdated()) {
+                Log.i(TAG, "Updating KeyManager event");
                 local.updateKeyManager();
                 local.commit();
+                return true;
             }
 
-            return true;
         } else if (afterFetch) {
             Log.i(TAG, "Adding KeyManager event");
             event = new Event(null,null);
@@ -90,9 +91,8 @@ public class SyncManager {
             local.commit();
             Log.i(TAG, "KeyManager event added");
             return true;
-        } else {
-            return false;
         }
+        return false;
 
     }
 
