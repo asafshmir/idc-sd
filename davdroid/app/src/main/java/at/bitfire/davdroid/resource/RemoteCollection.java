@@ -69,8 +69,11 @@ public abstract class RemoteCollection<T extends Resource> {
 
 	public String getCTag() throws URISyntaxException, IOException, HttpException {
 		try {
-			if (collection.getCTag() == null && collection.getMembers() == null)    // not already fetched
-				collection.propfind(HttpPropfind.Mode.COLLECTION_CTAG);
+			if (collection.getCTag() == null) {  // not already fetched
+                //&& collection.getMembers() == null
+                Log.i(TAG,"RemoteCollection Fetching CTag from remote");
+                collection.propfind(HttpPropfind.Mode.COLLECTION_CTAG);
+            }
 		} catch (DavException e) {
 			return null;
 		}
