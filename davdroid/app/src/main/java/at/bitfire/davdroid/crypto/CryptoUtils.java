@@ -8,6 +8,7 @@ import net.fortuna.ical4j.model.PropertyList;
 import org.json.JSONObject;
 
 import java.lang.reflect.Constructor;
+import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -246,5 +247,14 @@ public class CryptoUtils {
             Log.i(TAG, "NoSuchAlgorithmException");
             return -1;
         }
+    }
+
+    // TODO: comment
+    public static long deriveLong(byte[] key) {
+        // TODO: Change to a real crypto algo (spongycastle key derivation?)
+        ByteBuffer buffer = ByteBuffer.allocate(Long.SIZE / Byte.SIZE);
+        buffer.put(key);
+        buffer.flip();//need flip
+        return buffer.getLong();
     }
 }
