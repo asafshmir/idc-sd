@@ -85,16 +85,13 @@ public abstract class DavSyncAdapter extends AbstractThreadedSyncAdapter impleme
 
         KeyManager keyManager = KeyManager.getInstance();
 
-//        SharedPreferences.Editor editor_temp = preferences.edit();
-//        editor_temp.remove(KEYPAIR_PREFERENCE);
-//        editor_temp.commit();
-
         if (!preferences.contains(KEYPAIR_PREFERENCE)) {
+            Log.i(TAG,"Generating Key Pair - " + preferences.getString(KEYPAIR_PREFERENCE,""));
             SharedPreferences.Editor editor = preferences.edit();
             editor.putString(KEYPAIR_PREFERENCE, keyManager.syncAsymKeyPair(null));
             editor.commit();
         } else {
-            Log.i(TAG,"Key-" + preferences.getString(KEYPAIR_PREFERENCE,""));
+            Log.i(TAG,"Found Key Pair - " + preferences.getString(KEYPAIR_PREFERENCE,""));
             keyManager.syncAsymKeyPair(preferences.getString(KEYPAIR_PREFERENCE,""));
         }
 
