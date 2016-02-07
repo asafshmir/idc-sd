@@ -6,6 +6,7 @@ import android.util.Log;
 import net.fortuna.ical4j.model.PropertyList;
 
 import org.json.JSONObject;
+import org.spongycastle.crypto.engines.ElGamalEngine;
 
 import java.lang.reflect.Constructor;
 import java.nio.ByteBuffer;
@@ -16,6 +17,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.security.Security;
 import java.util.Random;
 
 import javax.crypto.BadPaddingException;
@@ -35,10 +37,10 @@ public class CryptoUtils {
     private static final String TAG = "CryptoUtils";
 
     /** The asymmetric crypto algorithm */
-    public static final String ASYMMETRIC_ALGORITHM = "RSA";
+    public static final String ASYMMETRIC_ALGORITHM = "ElGamal";
 
     /** The asymmetric crypto algorithm key size */
-    public static final int ASYMMETRIC_KEY_SIZE = 1024;
+    public static final int ASYMMETRIC_KEY_SIZE = 400;
 
     /** The symmetric crypto algorithm */
     public static final String SYMMETRIC_ALGORITHM = "AES";
@@ -52,7 +54,14 @@ public class CryptoUtils {
     /** The secure hashing algorithm */
     private static final String SIGNATURE_ALGORITHM = "HmacSHA1";
 
+    // Use SpongyCastle (BouncyCastle for Android) as a security provider
+    static {
+        Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 1);
+    }
+
+
     // TODO for user authentication with asymetric signature use bouncy-castle: elyptic curve, DSA
+
 
     /**
      * Generate a random pair (public, private) of keys for the algorithm
@@ -60,16 +69,59 @@ public class CryptoUtils {
      */
     public static KeyPair generateRandomKeyPair() {
 
-        // TODO replace with bouncy-castle: elyptic curve, el-gamal, 400 bits
         try {
-            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(ASYMMETRIC_ALGORITHM);
-            keyPairGenerator.initialize(ASYMMETRIC_KEY_SIZE);
-            return keyPairGenerator.genKeyPair();
-        } catch (NoSuchAlgorithmException e) {
-            Log.i(TAG, "NoSuchAlgorithmException");
+            KeyPairGenerator generator = KeyPairGenerator.getInstance(ASYMMETRIC_ALGORITHM, "SC");
+            SecureRandom random = new SecureRandom();
+            generator.initialize(ASYMMETRIC_KEY_SIZE, random);
+            return generator.generateKeyPair();
+
+        } catch (Exception e) {
+            Log.e(TAG, "generateRandomKeyPair: Fatal error");
+            e.printStackTrace();
             return null;
         }
     }
+
+    /**
+     * Encrypt the symmetric key using the asymmetric algorithm
+     * @param symmetricKeyBytes The symmetric key to encrypt
+     * @param pubKey The asymmetric algorithm public key
+     * @return The encrypted symmetric key
+     */
+    public static byte[] encryptSymmetricKey(byte[] symmetricKeyBytes, PublicKey pubKey) {
+
+        try {
+            Cipher cipher = Cipher.getInstance(ASYMMETRIC_ALGORITHM + "/None/NoPadding", "SC");
+            cipher.init(Cipher.ENCRYPT_MODE, pubKey);
+            return cipher.doFinal(symmetricKeyBytes);
+
+        } catch (Exception e) {
+            Log.e(TAG, "encryptSymmetricKey: Fatal error");
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Decrypt the symmetric key using the asymmetric algorithm
+     * @param symmetricKeyBytes The encrypted symmetric key to decrypt
+     * @param privKey The asymmetric algorithm private key
+     * @return The decrypted symmetric key
+     */
+    public static byte[] decryptSymmetricKey(byte[] symmetricKeyBytes, PrivateKey privKey) {
+
+        try {
+            Cipher cipher = Cipher.getInstance(ASYMMETRIC_ALGORITHM + "/None/NoPadding", "SC");
+            cipher.init(Cipher.DECRYPT_MODE, privKey);
+            return cipher.doFinal(symmetricKeyBytes);
+
+        } catch (Exception e) {
+            Log.e(TAG, "encryptSymmetricKey: Fatal error");
+            e.printStackTrace();
+            return null;
+        }
+    }
+
 
     /**
      * Generate a random symmetric encryption key
@@ -126,68 +178,6 @@ public class CryptoUtils {
         return decrypted;
     }
 
-
-    /**
-     * Encrypt the symmetric key using the asymmetric algorithm
-     * @param symmetricKeyBytes The symmetric key to encrypt
-     * @param key The asymmetric algorithm public key
-     * @return The encrypted symmetric key
-     */
-    public static byte[] encryptSymmetricKey(byte[] symmetricKeyBytes, PublicKey key) {
-
-        try {
-            Cipher cipher = Cipher.getInstance(ASYMMETRIC_ALGORITHM);
-            // encrypt the plain text using the public key
-            cipher.init(Cipher.ENCRYPT_MODE, key);
-            return cipher.doFinal(symmetricKeyBytes);
-        } catch(NoSuchAlgorithmException ae) {
-            Log.i(TAG, "NoSuchAlgorithmException");
-            return null;
-        } catch(NoSuchPaddingException pe) {
-            Log.i(TAG, "NoSuchPaddingException");
-            return null;
-        } catch(InvalidKeyException ke) {
-            Log.i(TAG, "InvalidKeyException");
-            return null;
-        } catch(IllegalBlockSizeException se) {
-            Log.i(TAG, "IllegalBlockSizeException");
-            return null;
-        } catch(BadPaddingException be) {
-            Log.i(TAG, "BadPaddingException");
-            return null;
-        }
-    }
-
-    /**
-     * Decrypt the symmetric key using the asymmetric algorithm
-     * @param symmetricKeyBytes The encrypted symmetric key to decrypt
-     * @param key The asymmetric algorithm private key
-     * @return The decrypted symmetric key
-     */
-    public static byte[] decryptSymmetricKey(byte[] symmetricKeyBytes, PrivateKey key) {
-
-        try {
-            Cipher cipher = Cipher.getInstance(ASYMMETRIC_ALGORITHM);
-            // encrypt the plain text using the public key
-            cipher.init(Cipher.DECRYPT_MODE, key);
-            return cipher.doFinal(symmetricKeyBytes);
-        } catch(NoSuchAlgorithmException ae) {
-            Log.i(TAG, "NoSuchAlgorithmException");
-            return null;
-        } catch(NoSuchPaddingException pe) {
-            Log.i(TAG, "NoSuchPaddingException");
-            return null;
-        } catch(InvalidKeyException ke) {
-            Log.i(TAG, "InvalidKeyException");
-            return null;
-        } catch(IllegalBlockSizeException se) {
-            Log.i(TAG, "IllegalBlockSizeException");
-            return null;
-        } catch(BadPaddingException be) {
-            Log.i(TAG, "BadPaddingException");
-            return null;
-        }
-    }
 
     /**
      * Calculate the hashed signature of the given data
