@@ -162,6 +162,7 @@ public class KeyManager {
             if (!keyBank.containsKey(userID)) {
                 Log.i(TAG, "User: " + this.userID + " doesn't exist in KeyBank, add it");
                 addKeyRecord(keyBank,userID, pbkey, null);
+                updated = true;
             // userID exists
             } else {
                 // Make sure that the SK is valid - maybe userID lost his private key
