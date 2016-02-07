@@ -19,6 +19,7 @@ import net.fortuna.ical4j.model.ComponentList;
 import net.fortuna.ical4j.model.Date;
 import net.fortuna.ical4j.model.DateTime;
 import net.fortuna.ical4j.model.DefaultTimeZoneRegistryFactory;
+import net.fortuna.ical4j.model.Parameter;
 import net.fortuna.ical4j.model.Property;
 import net.fortuna.ical4j.model.PropertyList;
 import net.fortuna.ical4j.model.TimeZoneRegistry;
@@ -60,6 +61,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.lang.reflect.Constructor;
+import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Calendar;
@@ -93,6 +95,8 @@ public class Event extends Resource {
     // and the signature for data validation
     private final static String SKLIST_PROPERTY = Property.EXPERIMENTAL_PREFIX + "SKLIST";
     private final static String SIGNATURE_PROPERTY = Property.EXPERIMENTAL_PREFIX + "SIGNATURE";
+
+    private final static long ENCRYPTED_DATE_TIMEFRAME = 2592000000L; // = one month
 
     private final static TimeZoneRegistry tzRegistry = new DefaultTimeZoneRegistryFactory().createRegistry();
 
@@ -218,6 +222,33 @@ public class Event extends Resource {
 
         shouldDecrypt = !KeyManager.isKeyManagerEvent(this) && shouldDecrypt;
 
+        if (event.getUid() != null)
+            uid = event.getUid().getValue();
+        else {
+            Log.w(TAG, "Received VEVENT without UID, generating new one");
+            generateUID();
+        }
+        recurrenceId = event.getRecurrenceId();
+
+        if ((dtStart = event.getStartDate()) == null || (dtEnd = event.getEndDate()) == null)
+            throw new InvalidResourceException("Invalid start time/end time/duration");
+
+        if (hasTime(dtStart)) {
+            validateTimeZone(dtStart);
+            validateTimeZone(dtEnd);
+        }
+
+        // all-day events and "events on that day":
+        // * related UNIX times must be in UTC
+        // * must have a duration (set to one day if missing)
+        if (!hasTime(dtStart) && !dtEnd.getDate().after(dtStart.getDate())) {
+            Log.i(TAG, "Repairing iCal: DTEND := DTSTART+1");
+            Calendar c = Calendar.getInstance(TimeZone.getTimeZone(Time.TIMEZONE_UTC));
+            c.setTime(dtStart.getDate());
+            c.add(Calendar.DATE, 1);
+            dtEnd.setDate(new Date(c.getTimeInMillis()));
+        }
+
         byte[] key = null;
         if (shouldDecrypt) {
 
@@ -242,6 +273,7 @@ public class Event extends Resource {
             }
         }
 
+        // TODO: why "if (shouldDecrypt)" twice?
         if (shouldDecrypt) {
 
             // Check the VEvent's signature
@@ -250,8 +282,6 @@ public class Event extends Resource {
                 Log.i(TAG, "No attached signature");
                 markUnauthorized("Invalid event format");
             } else {
-
-
 
                 // Calculate the signature
                 String digest = eventDigest(event);
@@ -264,6 +294,8 @@ public class Event extends Resource {
                     location = decodeAndDecrypt(key, location);
                     description = decodeAndDecrypt(key, description);
 
+                    decryptDate(event,key);
+                       
                 } else {
                     // The signature is invalid - do not decrypt
                     Log.i(TAG, "Event isn't signed correctly");
@@ -272,32 +304,6 @@ public class Event extends Resource {
             }
         }
 
-		if (event.getUid() != null)
-			uid = event.getUid().getValue();
-		else {
-			Log.w(TAG, "Received VEVENT without UID, generating new one");
-			generateUID();
-		}
-		recurrenceId = event.getRecurrenceId();
-
-		if ((dtStart = event.getStartDate()) == null || (dtEnd = event.getEndDate()) == null)
-			throw new InvalidResourceException("Invalid start time/end time/duration");
-
-		if (hasTime(dtStart)) {
-			validateTimeZone(dtStart);
-			validateTimeZone(dtEnd);
-		}
-
-		// all-day events and "events on that day":
-		// * related UNIX times must be in UTC
-		// * must have a duration (set to one day if missing)
-		if (!hasTime(dtStart) && !dtEnd.getDate().after(dtStart.getDate())) {
-			Log.i(TAG, "Repairing iCal: DTEND := DTSTART+1");
-			Calendar c = Calendar.getInstance(TimeZone.getTimeZone(Time.TIMEZONE_UTC));
-			c.setTime(dtStart.getDate());
-			c.add(Calendar.DATE, 1);
-			dtEnd.setDate(new Date(c.getTimeInMillis()));
-		}
 
 		rrule = (RRule)event.getProperty(Property.RRULE);
 		rdate = (RDate)event.getProperty(Property.RDATE);
@@ -438,8 +444,6 @@ public class Event extends Resource {
 
         props.add(new LastModified());
 
-        // After all the VEvent's data is up to date and encrypted, sign the complete event
-        // in order to prevent unauthorized modification and\or reply attack
         if (shouldEncrypt) {
             if (summary != null)
                 props.add(new Summary(encryptAndEncode(key, summary)));
@@ -448,7 +452,10 @@ public class Event extends Resource {
             if (description != null)
                 props.add(new Description(encryptAndEncode(key, description)));
 
-            // After the VEvent is fully updated, sign it and add the signature
+            encryptDate(event, key);
+
+            // After all the VEvent's data is up to date and encrypted, sign the complete event
+            // in order to prevent unauthorized modification and\or reply attack
             String digest = eventDigest(event);
             String signature = Base64.encodeToString(CryptoUtils.calculateSignature(digest, key), Base64.DEFAULT);
             Log.i(TAG,"Digest encrypt: " + digest);
@@ -582,7 +589,7 @@ public class Event extends Resource {
      * @param data The plain data
      * @return The encrypted and encoded data
      */
-    public static String encryptAndEncode(byte[] key, String data) {
+    private static String encryptAndEncode(byte[] key, String data) {
         Log.d(TAG, "encrypting data: '" + data + "'");
         return Base64.encodeToString(CryptoUtils.encrypt(key, data.getBytes()), Base64.DEFAULT);
     }
@@ -593,12 +600,70 @@ public class Event extends Resource {
      * @param data The encoded and encrypted data
      * @return The plain data
      */
-    public static String decodeAndDecrypt(byte[] key, String data) {
+    private static String decodeAndDecrypt(byte[] key, String data) {
         Log.d(TAG, "decoding and decrypting data: '" + data + "'");
         if (data == null) {
             return null;
         }
         return new String(CryptoUtils.decrypt(key, Base64.decode(data.getBytes(), Base64.DEFAULT)));
+    }
+
+    // TODO: comment
+    private void encryptDate(VEvent event, byte[] key) {
+
+        // Encrypt the event's date and time
+        Date plain = dtStart.getDate();
+        Log.d(TAG, "Encrypting date: " + plain);
+
+        long originalTime = plain.getTime();
+        long newTime = originalTime - (ENCRYPTED_DATE_TIMEFRAME / 2);
+        newTime += (CryptoUtils.deriveLong(key) % ENCRYPTED_DATE_TIMEFRAME);
+
+        Date encrypted = (Date)plain.clone();
+        encrypted.setTime(newTime);
+        Log.d(TAG, "Encrypted date: " + encrypted);
+
+        // Update the start date
+        PropertyList prop = event.getProperties();
+        dtStart = new DtStart(encrypted);
+        prop.add(dtStart);
+
+        // Fix end time. No need to update duration
+        if(duration != null) {
+            Date fixedEnd = new Date(duration.getDuration().getTime(dtStart.getDate()).getTime());
+            dtEnd = new DtEnd(fixedEnd);
+            prop.add(dtEnd);
+            Log.d(TAG, "Encrypted end date: " + fixedEnd);
+        }
+    }
+
+    // TODO: comment
+    private void decryptDate(VEvent event, byte[] key) {
+
+        // Decrypt the event's date and time
+        Date encrypted = dtStart.getDate();
+        Log.d(TAG, "Decrypting date: " + encrypted);
+
+        long encryptedTime = encrypted.getTime();
+        long newTime = encryptedTime + (ENCRYPTED_DATE_TIMEFRAME / 2);
+        newTime -= (CryptoUtils.deriveLong(key) % ENCRYPTED_DATE_TIMEFRAME);
+
+        Date decrypted = (Date)encrypted.clone();
+        decrypted.setTime(newTime);
+        Log.d(TAG, "Decrypted date: " + decrypted);
+
+        // Update the start date
+        PropertyList prop = event.getProperties();
+        dtStart = new DtStart(decrypted);
+        prop.add(dtStart);
+
+        // Fix end time. No need to update duration
+        if(duration != null) {
+            Date fixedEnd = new Date(duration.getDuration().getTime(dtStart.getDate()).getTime());
+            dtEnd = new DtEnd(fixedEnd);
+            prop.add(dtEnd);
+            Log.d(TAG, "Decrypted end date: " + fixedEnd);
+        }
     }
 
     /**
