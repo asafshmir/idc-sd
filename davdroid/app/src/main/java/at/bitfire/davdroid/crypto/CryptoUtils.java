@@ -45,23 +45,11 @@ public class CryptoUtils {
     /** The symmetric crypto algorithm */
     public static final String SYMMETRIC_ALGORITHM = "AES";
 
-    /** The secure random algorithm */
-    public static final String SECURE_RANDOM_ALGORITHM = "SHA1PRNG";
-
     /** The symmetric crypto algorithm key size */
     public static final int SYMMETRIC_KEY_SIZE = 128;
 
     /** The secure hashing algorithm */
-    private static final String SIGNATURE_ALGORITHM = "HmacSHA1";
-
-    // Use SpongyCastle (BouncyCastle for Android) as a security provider
-    static {
-        Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 1);
-    }
-
-
-    // TODO for user authentication with asymetric signature use bouncy-castle: elyptic curve, DSA
-
+    private static final String SIGNATURE_ALGORITHM = "HmacSHA256";
 
     /**
      * Generate a random pair (public, private) of keys for the algorithm
@@ -76,8 +64,7 @@ public class CryptoUtils {
             return generator.generateKeyPair();
 
         } catch (Exception e) {
-            Log.e(TAG, "generateRandomKeyPair: Fatal error");
-            e.printStackTrace();
+            Log.e(TAG, "generateRandomKeyPair: Fatal error: " + e.getMessage());
             return null;
         }
     }
@@ -96,8 +83,7 @@ public class CryptoUtils {
             return cipher.doFinal(symmetricKeyBytes);
 
         } catch (Exception e) {
-            Log.e(TAG, "encryptSymmetricKey: Fatal error");
-            e.printStackTrace();
+            Log.e(TAG, "encryptSymmetricKey: Fatal error: " + e.getMessage());
             return null;
         }
     }
@@ -116,87 +102,62 @@ public class CryptoUtils {
             return cipher.doFinal(symmetricKeyBytes);
 
         } catch (Exception e) {
-            Log.e(TAG, "encryptSymmetricKey: Fatal error");
-            e.printStackTrace();
+            Log.e(TAG, "encryptSymmetricKey: Fatal error: " + e.getMessage());
             return null;
         }
     }
-
 
     /**
      * Generate a random symmetric encryption key
      * @return The key
      */
     public static byte[] generateRandomSymmetricKey() {
-        byte[] keyStart = new byte[SYMMETRIC_KEY_SIZE];
-        Random rand = new Random();
-        rand.nextBytes(keyStart);
+        try{
+            KeyGenerator keyGen = KeyGenerator.getInstance(SYMMETRIC_ALGORITHM);
+            keyGen.init(SYMMETRIC_KEY_SIZE);
+            SecretKey secretKey = keyGen.generateKey();
+            return secretKey.getEncoded();
 
-        try {
-
-            KeyGenerator generator = KeyGenerator.getInstance(SYMMETRIC_ALGORITHM);
-            SecureRandom sr = SecureRandom.getInstance(SECURE_RANDOM_ALGORITHM);
-            sr.setSeed(keyStart);
-            generator.init(SYMMETRIC_KEY_SIZE, sr);
-            SecretKey secret = generator.generateKey();
-            return secret.getEncoded();
         } catch (NoSuchAlgorithmException e) {
-            Log.i(TAG, "NoSuchAlgorithmException");
+            Log.e(TAG, "generateRandomSymmetricKey: Fatal error: " + e.getMessage());
             return null;
         }
     }
 
     /**
-     *
-     * @param raw
-     * @param clear
-     * @return
+     * Encrypt the given data
+     * @param key The key
+     * @param plain The data to encrypt
+     * @return The encrypted data
      */
-    public static byte[] encrypt(byte[] raw, byte[] clear) {
-        byte[] encrypted = null;
-        try {
-            SecretKeySpec skeySpec = new SecretKeySpec(raw, "AES");
-            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING");
-            cipher.init(Cipher.ENCRYPT_MODE, skeySpec);
-            encrypted = cipher.doFinal(clear);
-        } catch (Exception e) {
-            Log.e(TAG, e.getMessage());
-        }
-        return encrypted;
-    }
+    public static byte[] encrypt(byte[] key, byte[] plain) {
 
-    public static byte[] decrypt(byte[] raw, byte[] encrypted) {
-        byte[] decrypted = null;
         try {
-            SecretKeySpec skeySpec = new SecretKeySpec(raw, "AES");
-            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING");
-            cipher.init(Cipher.DECRYPT_MODE, skeySpec);
-            decrypted = cipher.doFinal(encrypted);
+            SecretKeySpec keySpec = new SecretKeySpec(key, SYMMETRIC_ALGORITHM);
+            Cipher cipher = Cipher.getInstance(SYMMETRIC_ALGORITHM + "/ECB/PKCS5PADDING");
+            cipher.init(Cipher.ENCRYPT_MODE, keySpec);
+            return cipher.doFinal(plain);
         } catch (Exception e) {
-            Log.e(TAG, e.getMessage());
+            Log.e(TAG, "encrypt: Fatal error: " + e.getMessage());
+            return null;
         }
-        return decrypted;
     }
-
 
     /**
-     * Calculate the hashed signature of the given data
-     * @param data The data
-     * @param symmetricKeyBytes The key for the secure hash
-     * @return The signature
+     * Decrypt the given data
+     * @param key The key
+     * @param encrypted The data to decrypt
+     * @return The decrypted data
      */
-    public static byte[] calculateSignature(String data, byte[] symmetricKeyBytes) {
+    public static byte[] decrypt(byte[] key, byte[] encrypted) {
 
         try {
-            SecretKeySpec signingKey = new SecretKeySpec(symmetricKeyBytes, SIGNATURE_ALGORITHM);
-            Mac mac = Mac.getInstance(SIGNATURE_ALGORITHM);
-            mac.init(signingKey);
-            return mac.doFinal(data.getBytes());
-        } catch(NoSuchAlgorithmException ae) {
-            Log.i(TAG, "NoSuchAlgorithmException");
-            return null;
-        } catch (InvalidKeyException ke) {
-            Log.i(TAG, "InvalidKeyException");
+            SecretKeySpec keySpec = new SecretKeySpec(key, SYMMETRIC_ALGORITHM);
+            Cipher cipher = Cipher.getInstance(SYMMETRIC_ALGORITHM + "/ECB/PKCS5PADDING");
+            cipher.init(Cipher.DECRYPT_MODE, keySpec);
+            return cipher.doFinal(encrypted);
+        } catch (Exception e) {
+            Log.e(TAG, "decrypt: Fatal error: " + e.getMessage());
             return null;
         }
     }
@@ -207,7 +168,6 @@ public class CryptoUtils {
      * @param symmetricKeyBytes The key for the secure hash
      * @return The MAC
      */
-    // TODO use signature without a key, and sign pbke+secret together - send email to Tal
     public static byte[] calculateMAC(byte[] data, byte[] symmetricKeyBytes) {
 
         try {
@@ -215,27 +175,10 @@ public class CryptoUtils {
             Mac mac = Mac.getInstance(SIGNATURE_ALGORITHM);
             mac.init(signingKey);
             return mac.doFinal(data);
-        } catch(NoSuchAlgorithmException ae) {
-            Log.i(TAG, "NoSuchAlgorithmException");
-            return null;
-        } catch (InvalidKeyException ke) {
-            Log.i(TAG, "InvalidKeyException");
-            return null;
-        }
-    }
 
-    /**
-     * Return the signature size
-     * @return The signature size
-     */
-    public static int signatureSize() {
-        try {
-            Mac mac = Mac.getInstance(SIGNATURE_ALGORITHM);
-            return mac.getMacLength();
-
-        } catch(NoSuchAlgorithmException ae) {
-            Log.i(TAG, "NoSuchAlgorithmException");
-            return -1;
+        } catch (Exception e) {
+            Log.e(TAG, "calculateMAC: Fatal error: " + e.getMessage());
+            return null;
         }
     }
 
