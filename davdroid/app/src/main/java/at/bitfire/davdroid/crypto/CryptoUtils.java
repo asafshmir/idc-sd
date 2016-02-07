@@ -253,7 +253,7 @@ public class CryptoUtils {
     public static long deriveLong(byte[] key) {
         // TODO: Change to a real crypto algo (spongycastle key derivation?)
         ByteBuffer buffer = ByteBuffer.allocate(Long.SIZE / Byte.SIZE);
-        buffer.put(key);
+        buffer.put(key, 0, Long.SIZE / Byte.SIZE);
         buffer.flip();//need flip
         return buffer.getLong();
     }
