@@ -62,6 +62,7 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.lang.reflect.Constructor;
 import java.nio.ByteBuffer;
+import java.security.KeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Calendar;
@@ -220,7 +221,6 @@ public class Event extends Resource {
         if (event.getProperty(SIGNATURE_PROPERTY) != null)
             signature = event.getProperty(SIGNATURE_PROPERTY).getValue();
 
-        shouldDecrypt = !KeyManager.isKeyManagerEvent(this) && shouldDecrypt;
 
         if (event.getUid() != null)
             uid = event.getUid().getValue();
@@ -249,35 +249,55 @@ public class Event extends Resource {
             dtEnd.setDate(new Date(c.getTimeInMillis()));
         }
 
-        byte[] key = null;
-        if (shouldDecrypt) {
+        rrule = (RRule)event.getProperty(Property.RRULE);
+        rdate = (RDate)event.getProperty(Property.RDATE);
+        exrule = (ExRule)event.getProperty(Property.EXRULE);
+        exdate = (ExDate)event.getProperty(Property.EXDATE);
 
-            // Get the sk-list
-            if(event.getProperty(SKLIST_PROPERTY) == null)  {
-                // No SK-List. Cannot decrypt.
-                Log.i(TAG, "No attached SK-List");
-                shouldDecrypt = false;
-                markUnauthorized("Invalid event format");
+        status = event.getStatus();
+        opaque = event.getTransparency() != Transp.TRANSPARENT;
 
-            } else {
+        organizer = event.getOrganizer();
+        for (Object o : event.getProperties(Property.ATTENDEE))
+            attendees.add((Attendee)o);
 
-                // Read and the specific key
-                key = KeyManager.getInstance().getSKFromEncSKList(sklist);
-
-                if(key == null) {
-                    // No key for the user. Cannot decrypt.
-                    Log.i(TAG, "No attached SK for user");
-                    shouldDecrypt = false;
-                    markUnauthorized("Event unpermitted");
-                }
-            }
+        Clazz classification = event.getClassification();
+        if (classification != null) {
+            if (classification == Clazz.PUBLIC)
+                forPublic = true;
+            else if (classification == Clazz.CONFIDENTIAL || classification == Clazz.PRIVATE)
+                forPublic = false;
         }
 
-        // TODO: why "if (shouldDecrypt)" twice?
-        if (shouldDecrypt) {
+        this.alarms = event.getAlarms();
 
-            // Check the VEvent's signature
-            if (event.getProperty(SIGNATURE_PROPERTY) == null) {
+        if (shouldDecrypt &&
+                !KeyManager.isKeyManagerEvent(this)) {
+            decryptVEvent(event);
+        }
+
+        Log.i(TAG,"MintSummary " + summary);
+    }
+
+    private void decryptVEvent(VEvent event) {
+
+        // Get the sk-list
+        if(event.getProperty(SKLIST_PROPERTY) == null)  {
+            // No SK-List. Cannot decrypt.
+            Log.i(TAG, "No attached SK-List");
+            markUnauthorized("Invalid event format");
+
+        } else {
+            byte[] key = null;
+            // Read and the specific key
+            key = KeyManager.getInstance().getSKFromEncSKList(sklist);
+
+            if(key == null) {
+                // No key for the user. Cannot decrypt.
+                Log.i(TAG, "No attached SK for user");
+                markUnauthorized("Event unpermitted");
+            } else if (event.getProperty(SIGNATURE_PROPERTY) == null) {
+                // Check the VEvent's signature
                 // No Signature. Cannot decrypt.
                 Log.i(TAG, "No attached signature");
                 markUnauthorized("Invalid event format");
@@ -295,7 +315,7 @@ public class Event extends Resource {
                     description = decodeAndDecrypt(key, description);
 
                     decryptDate(event,key);
-                       
+
                 } else {
                     // The signature is invalid - do not decrypt
                     Log.i(TAG, "Event isn't signed correctly");
@@ -304,32 +324,7 @@ public class Event extends Resource {
             }
         }
 
-
-		rrule = (RRule)event.getProperty(Property.RRULE);
-		rdate = (RDate)event.getProperty(Property.RDATE);
-		exrule = (ExRule)event.getProperty(Property.EXRULE);
-		exdate = (ExDate)event.getProperty(Property.EXDATE);
-
-		status = event.getStatus();
-		opaque = event.getTransparency() != Transp.TRANSPARENT;
-
-		organizer = event.getOrganizer();
-		for (Object o : event.getProperties(Property.ATTENDEE))
-			attendees.add((Attendee)o);
-
-		Clazz classification = event.getClassification();
-		if (classification != null) {
-			if (classification == Clazz.PUBLIC)
-				forPublic = true;
-			else if (classification == Clazz.CONFIDENTIAL || classification == Clazz.PRIVATE)
-				forPublic = false;
-		}
-
-		this.alarms = event.getAlarms();
-
-        Log.i(TAG,"MintSummary " + summary);
     }
-
 
 	@Override
 	public String getMimeType() {
@@ -393,35 +388,13 @@ public class Event extends Resource {
     protected VEvent toVEvent(boolean shouldEncrypt) {
 
         Log.i(TAG,"toVEvent: start");
-                //Log.i(TAG, "toVEvent: Encrypting event with key '" + Hex.encodeHexString(key) + "'");
         VEvent event = new VEvent();
         PropertyList props = event.getProperties();
-
-        byte[] key = KeyManager.getInstance().getSK();
-        //Log.i(TAG, "toVEvent: Encrypting event with key '" + Hex.encodeHexString(key) + "'");
-
-        shouldEncrypt = !(summary.equals(KeyManager.KEY_STORAGE_EVENT_NAME)) && shouldEncrypt;
-
-        Log.i(TAG,"Should Encrypt: " + shouldEncrypt);
-
-
-        if (shouldEncrypt && key != null) {
-            props.add(new XProperty(SKLIST_PROPERTY, KeyManager.getInstance().generateEncSKList()));
-        } else if (sklist != null) {
-            props.add(new XProperty(SKLIST_PROPERTY, sklist));
-        }
 
         if (uid != null)
             props.add(new Uid(uid));
         if (recurrenceId != null)
             props.add(recurrenceId);
-
-        props.add(dtStart);
-        if (dtEnd != null)
-            props.add(dtEnd);
-        if (duration != null)
-            props.add(duration);
-
         if (rrule != null)
             props.add(rrule);
         if (rdate != null)
@@ -441,26 +414,13 @@ public class Event extends Resource {
             event.getProperties().add(forPublic ? Clazz.PUBLIC : Clazz.PRIVATE);
 
         event.getAlarms().addAll(alarms);
-
         props.add(new LastModified());
 
-        if (shouldEncrypt) {
-            if (summary != null)
-                props.add(new Summary(encryptAndEncode(key, summary)));
-            if (location != null)
-                props.add(new Location(encryptAndEncode(key, location)));
-            if (description != null)
-                props.add(new Description(encryptAndEncode(key, description)));
+        Log.i(TAG,"Should Encrypt: " + shouldEncrypt);
 
-            encryptDate(event, key);
-
-            // After all the VEvent's data is up to date and encrypted, sign the complete event
-            // in order to prevent unauthorized modification and\or reply attack
-            String digest = eventDigest(event);
-            String signature = Base64.encodeToString(CryptoUtils.calculateSignature(digest, key), Base64.DEFAULT);
-            Log.i(TAG,"Digest encrypt: " + digest);
-            props.add(new XProperty(SIGNATURE_PROPERTY, signature));
-
+        if (shouldEncrypt &&
+                !KeyManager.isKeyManagerEvent(this) &&
+                encryptVEvent(event)) {
         } else {
             if (summary != null)
                 props.add(new Summary(summary));
@@ -468,11 +428,50 @@ public class Event extends Resource {
                 props.add(new Location(location));
             if (description != null)
                 props.add(new Description(description));
+            props.add(dtStart);
+            if (dtEnd != null)
+                props.add(dtEnd);
+            if (duration != null)
+                props.add(duration);
+
             if (signature != null)
                 props.add(new XProperty(SIGNATURE_PROPERTY, signature));
+            if (sklist != null)
+                props.add(new XProperty(SKLIST_PROPERTY, sklist));
         }
 
         return event;
+    }
+
+    private boolean encryptVEvent(VEvent event) {
+        PropertyList props = event.getProperties();
+
+        byte[] key = KeyManager.getInstance().getSK();
+
+        if (key == null) {
+            return false;
+        }
+
+        props.add(new XProperty(SKLIST_PROPERTY, KeyManager.getInstance().generateEncSKList()));
+
+        if (summary != null)
+            props.add(new Summary(encryptAndEncode(key, summary)));
+        if (location != null)
+            props.add(new Location(encryptAndEncode(key, location)));
+        if (description != null)
+            props.add(new Description(encryptAndEncode(key, description)));
+
+        encryptDate(event, key);
+
+
+        // After all the VEvent's data is up to date and encrypted, sign the complete event
+        // in order to prevent unauthorized modification and\or reply attack
+        String digest = eventDigest(event);
+        String signature = Base64.encodeToString(CryptoUtils.calculateSignature(digest, key), Base64.DEFAULT);
+        Log.i(TAG,"Digest encrypt: " + digest);
+        props.add(new XProperty(SIGNATURE_PROPERTY, signature));
+
+        return true;
     }
 
     private String eventDigest(VEvent event) {
