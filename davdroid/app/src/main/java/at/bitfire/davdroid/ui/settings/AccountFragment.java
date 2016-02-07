@@ -14,15 +14,9 @@ import android.os.Bundle;
 import android.preference.CheckBoxPreference;
 import android.preference.EditTextPreference;
 import android.preference.ListPreference;
-import android.preference.MultiSelectListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
 import android.preference.SwitchPreference;
-import android.util.Log;
-
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 
 import at.bitfire.davdroid.R;
 import at.bitfire.davdroid.syncadapter.AccountSettings;
@@ -30,7 +24,6 @@ import ezvcard.VCardVersion;
 import lombok.Setter;
 
 public class AccountFragment extends PreferenceFragment {
-    private final static String TAG = "davdroid.AccFragment";
 	final static String ARG_ACCOUNT = "account";
 
 	Account account;
@@ -82,29 +75,6 @@ public class AccountFragment extends PreferenceFragment {
 				return true;
 			}
 		});
-
-        // category: DAVKA users
-        // TODO add support to user management
-        // TODO read users list with approved status
-        // TODO disable this section if current user is not approved
-        final MultiSelectListPreference currentCalendarUsers = (MultiSelectListPreference)findPreference("davka_users_list");
-        String[] entries = {"user1", "user2"};
-        String[] defaultVal = {"user1"};
-        currentCalendarUsers.setKey("multi_pref");
-        currentCalendarUsers.setEntries(entries);
-        currentCalendarUsers.setEntryValues(entries);
-        currentCalendarUsers.setDefaultValue(entries);
-
-        currentCalendarUsers.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-            @Override
-            public boolean onPreferenceChange(Preference preference, Object newValue) {
-                Set<String> selectionSet = (Set)newValue;
-                for (String user : selectionSet) {
-                    Log.d(TAG, "Selected DAVKA users: " + user);
-                }
-                return true;
-            }
-        });
 
 		// category: synchronization
 		final ListPreference prefSyncContacts = (ListPreference)findPreference("sync_interval_contacts");
