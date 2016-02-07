@@ -18,6 +18,8 @@ public class DummyUsersManager implements UsersManager {
         usersDataSuperSet.put("shmir", "VeryStrongPassword");
 
         usersData = new HashMap<>();
+        usersData.put("xcfdxcfd", "VeryStrongPassword");
+        usersData.put("shmir", "VeryStrongPassword");
     }
 
     @Override

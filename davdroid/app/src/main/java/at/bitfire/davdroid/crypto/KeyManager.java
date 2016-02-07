@@ -10,8 +10,10 @@ import org.json.JSONObject;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.Security;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
@@ -26,7 +28,7 @@ public class KeyManager {
 
     private static final String TAG = "davdroid.KeyManager";
     //TODO move constants to SyncManager
-    public static final String KEY_STORAGE_EVENT_NAME = "KeyManagerNN";
+    public static final String KEY_STORAGE_EVENT_NAME = "KeyManagerBB";
     public  static final String EVENT_TIME_FORMAT = "dd-MM-yyyy hh:mm:ss";
     public  static final String KEY_STORAGE_EVENT_TIME = "04-02-2016 00:00:00";
     public  static final String KEY_STORAGE_EVENT_TIME_END = "04-02-2016 23:00:00";
@@ -107,19 +109,21 @@ public class KeyManager {
             final byte[] pbKeyData = Base64.decode(keyPairObj.optString(PUBLIC_KEY_ATTR), Base64.DEFAULT);
             final byte[] prKeyData = Base64.decode(keyPairObj.optString(PRIVATE_KEY_ATTR), Base64.DEFAULT);
 
+
             PublicKey pbKey;
-            pbKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM).generatePublic(new X509EncodedKeySpec(pbKeyData));
+            pbKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM,"SC").generatePublic(new X509EncodedKeySpec(pbKeyData));
             PrivateKey prKey;
-            prKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM).generatePrivate(new PKCS8EncodedKeySpec(prKeyData));
+            prKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM,"SC").generatePrivate(new PKCS8EncodedKeySpec(prKeyData));
 
             keyPair = new KeyPair(pbKey, prKey);
         } catch (JSONException e) {
             Log.e(TAG, e.getMessage());
             return null;
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+        } catch (NoSuchProviderException | NoSuchAlgorithmException | InvalidKeySpecException e) {
             Log.e(TAG, e.getMessage());
             return null;
         }
+
         return keyPair;
     }
 
@@ -343,8 +347,12 @@ public class KeyManager {
     }
 
     private byte[] getSecret(String userID) {
+        Log.i(TAG,"Getting Secret for " + userID);
         String secret = usersManager.getSecret(userID);
-        return secret.getBytes();
+        if (secret != null)
+            return secret.getBytes();
+        else
+            return null;
     }
 
     private KeyBank stringToKeyBank(String data) {
