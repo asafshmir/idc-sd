@@ -618,7 +618,7 @@ public class Event extends Resource {
     private void encryptDate(VEvent event, byte[] key) {
 
         // Encrypt the event's date and time
-        Log.d(TAG, "Encrypting date: " + event.getStartDate());
+        Log.d(TAG, "Encrypting date: " + dtStart.getDate());
 
         long originalTime = dtStart.getDate().getTime();
         long encryptedTime = originalTime - (ENCRYPTED_DATE_TIMEFRAME / 2);
@@ -649,7 +649,7 @@ public class Event extends Resource {
     private void decryptDate(VEvent event, byte[] key) {
 
         // Decrypt the event's date and time
-        Log.d(TAG, "Decrypting date: " + event.getStartDate());
+        Log.d(TAG, "Decrypting date: " + dtStart.getDate());
 
         long encryptedTime = dtStart.getDate().getTime();
         long decryptedTime = encryptedTime + (ENCRYPTED_DATE_TIMEFRAME / 2);
