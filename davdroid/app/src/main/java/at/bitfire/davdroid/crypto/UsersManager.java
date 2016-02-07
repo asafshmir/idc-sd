@@ -16,6 +16,21 @@ public interface UsersManager {
     public String getSecret(String userID);
 
     /**
+     * add a user if exists in superset
+     * @param userID the userID to check
+     * @return true if userID exists
+     */
+    public void addUser(String userID);
+
+    /**
+     * remove a user
+     * @param userID the userID to check
+     * @return true if userID exists
+     */
+    public void removeUser(String userID);
+
+
+    /**
      * Checks weather userID is known by the UsersManager.
      * @param userID the userID to check
      * @return true if userID exists

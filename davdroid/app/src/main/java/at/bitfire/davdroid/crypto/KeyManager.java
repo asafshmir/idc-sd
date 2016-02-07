@@ -151,6 +151,7 @@ public class KeyManager {
             byte[] sk = CryptoUtils.generateRandomSymmetricKey();
             Log.i(TAG, "Adding first user: " + this.userID + " to the KeyBank");
             addKeyRecord(keyBank, userID, pbkey, sk);
+            usersManager.addUser(userID);
             updated = true;
         } else {
             Log.i(TAG, "Got a KeyBank data, parse it");
@@ -266,6 +267,7 @@ public class KeyManager {
         for (String curUserID : keyBank.keySet()) {
             if (usersToRemove.contains(curUserID)) {
                 keyBank.remove(curUserID);
+                usersManager.removeUser(userID);
                 continue;
             }
 
@@ -289,6 +291,8 @@ public class KeyManager {
                     validateUser(realSK, curUserID, keyRecord);
                     userValidated = true;
                 }
+                if (!usersManager.userExists(userID))
+                    usersManager.addUser(userID);
             }
         }
 
