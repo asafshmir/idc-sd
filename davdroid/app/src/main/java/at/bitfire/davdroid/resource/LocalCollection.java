@@ -304,7 +304,6 @@ public abstract class LocalCollection<T extends Resource> {
 	abstract public T newResource(long localID, String resourceName, String eTag);
 
 
-    // TODO - decrypt the event when syncing from remote collection.
     // Need to decrypt as part of the call to buildEntry
     public void add(Resource resource, boolean markDirty) {
         int idx = pendingOperations.size();
