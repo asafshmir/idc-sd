@@ -2,6 +2,7 @@ package at.bitfire.davdroid.crypto;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A dummy implementation of UsersManager.
@@ -19,7 +20,7 @@ public class DummyUsersManager implements UsersManager {
 
         usersData = new HashMap<>();
         usersData.put("xcfdxcfd", "VeryStrongPassword");
-        usersData.put("shmir", "VeryStrongPassword");
+//        usersData.put("shmir", "VeryStrongPassword");
     }
 
     @Override
@@ -40,5 +41,10 @@ public class DummyUsersManager implements UsersManager {
     @Override
     public boolean userExists(String userID) {
         return usersData.containsKey(userID);
+    }
+
+    @Override
+    public Set<String> getUsers() {
+        return usersDataSuperSet.keySet();
     }
 }

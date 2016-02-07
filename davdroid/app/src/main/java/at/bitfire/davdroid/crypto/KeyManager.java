@@ -13,7 +13,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.Security;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
@@ -167,6 +166,7 @@ public class KeyManager {
             if (!keyBank.containsKey(userID)) {
                 Log.i(TAG, "User: " + this.userID + " doesn't exist in KeyBank, add it");
                 addKeyRecord(keyBank,userID, pbkey, null);
+
                 updated = true;
             // userID exists
             } else {
@@ -180,6 +180,7 @@ public class KeyManager {
                 }
             }
         }
+
 
         // Try to validate other users
         updated = updated || validateAllUsers();
@@ -227,14 +228,19 @@ public class KeyManager {
         HashMap<String, Boolean> users = new HashMap<String, Boolean>();
 
         // Iterate the users, find if validated
-        for (String curUserID : keyBank.keySet()) {
+//        for (String curUserID : keyBank.keySet()) {
+//            Log.i(TAG,"Adding user " + curUserID);
+//            KeyRecord keyRecord = keyBank.get(curUserID);
+//            if (keyRecord.encSK != null) {
+//                users.put(curUserID,true);
+//            } else {
+//                users.put(curUserID,false);
+//            }
+//        }
+
+        for (String curUserID : usersManager.getUsers()) {
             Log.i(TAG,"Adding user " + curUserID);
-            KeyRecord keyRecord = keyBank.get(curUserID);
-            if (keyRecord.encSK != null) {
-                users.put(curUserID,true);
-            } else {
-                users.put(curUserID,false);
-            }
+            users.put(curUserID,usersManager.userExists(curUserID));
         }
 
         return users;
@@ -280,11 +286,16 @@ public class KeyManager {
                 Log.i(TAG, "All Users revalidated, a user has been removed");
                 validateUser(realSK, curUserID, keyRecord);
                 userValidated = true;
+                if (!usersManager.userExists(userID))
+                    usersManager.addUser(userID);
             } else {
 
                 // No need to validate my user
-                if (this.userID.equals(curUserID))
+                if (this.userID.equals(curUserID)) {
+                    if (!usersManager.userExists(userID))
+                        usersManager.addUser(userID);
                     continue;
+                }
 
                 // User has an SK, so we don't need to validate it
                 if (keyRecord.encSK != null) {

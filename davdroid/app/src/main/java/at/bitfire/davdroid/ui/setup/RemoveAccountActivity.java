@@ -16,7 +16,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -143,29 +142,29 @@ public class RemoveAccountActivity extends Activity {
 
     private void checkButtonClick() {
 
-
-        Button myButton = (Button) findViewById(R.id.findSelected);
-        myButton.setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View v) {
-
-                StringBuffer responseText = new StringBuffer();
-                responseText.append("The following were selected...\n");
-
-                ArrayList<Account> countryList = dataAdapter.accountList;
-                for (int i = 0; i < countryList.size(); i++) {
-                    Account country = countryList.get(i);
-                    if (country.isSelected()) {
-                        responseText.append("\n" + country.getName());
-                    }
-                }
-
-                Toast.makeText(getApplicationContext(),
-                        responseText, Toast.LENGTH_LONG).show();
-
-            }
-        });
+//
+//        Button myButton = (Button) findViewById(R.id.findSelected);
+//        myButton.setOnClickListener(new View.OnClickListener() {
+//
+//            @Override
+//            public void onClick(View v) {
+//
+//                StringBuffer responseText = new StringBuffer();
+//                responseText.append("The following were selected...\n");
+//
+//                ArrayList<Account> countryList = dataAdapter.accountList;
+//                for (int i = 0; i < countryList.size(); i++) {
+//                    Account country = countryList.get(i);
+//                    if (country.isSelected()) {
+//                        responseText.append("\n" + country.getName());
+//                    }
+//                }
+//
+//                Toast.makeText(getApplicationContext(),
+//                        responseText, Toast.LENGTH_LONG).show();
+//
+//            }
+//        });
 
     }
 
