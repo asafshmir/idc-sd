@@ -625,15 +625,19 @@ public class Event extends Resource {
 
         // Update the start date
         PropertyList prop = event.getProperties();
-        dtStart = new DtStart(encrypted);
+        //        dtStart = new DtStart(encrypted);
+        dtStart.getDate().setTime(newTime);
         prop.add(dtStart);
+        Log.d(TAG,"Event dtStart is: " + event.getStartDate());
 
         // Fix end time. No need to update duration
-        if(duration != null) {
-            Date fixedEnd = new Date(duration.getDuration().getTime(dtStart.getDate()).getTime());
-            dtEnd = new DtEnd(fixedEnd);
+        if(dtEnd != null) {
+            long duration = dtEnd.getDate().getTime() - plain.getTime();
+            Date fixedEnd = new DateTime(encrypted.getTime() + duration);
+            //dtEnd = new DtEnd(fixedEnd);
+            dtEnd.getDate().setTime(encrypted.getTime() + duration);
             prop.add(dtEnd);
-            Log.d(TAG, "Encrypted end date: " + fixedEnd);
+            Log.d(TAG, "Encrypted end date: " + event.getEndDate());
         }
     }
 
@@ -654,15 +658,19 @@ public class Event extends Resource {
 
         // Update the start date
         PropertyList prop = event.getProperties();
-        dtStart = new DtStart(decrypted);
+//        dtStart = new DtStart(decrypted);
+        dtStart.getDate().setTime(newTime);
         prop.add(dtStart);
 
         // Fix end time. No need to update duration
-        if(duration != null) {
-            Date fixedEnd = new Date(duration.getDuration().getTime(dtStart.getDate()).getTime());
-            dtEnd = new DtEnd(fixedEnd);
+        if(dtEnd != null) {
+            long duration = dtEnd.getDate().getTime() - encrypted.getTime();
+            Date fixedEnd = new DateTime(decrypted.getTime() + duration);
+
+            //dtEnd = new DtEnd(fixedEnd);
+            dtEnd.getDate().setTime(decrypted.getTime() + duration);
             prop.add(dtEnd);
-            Log.d(TAG, "Decrypted end date: " + fixedEnd);
+            Log.d(TAG, "Decrypted end date: " + event.getEndDate());
         }
     }
 
