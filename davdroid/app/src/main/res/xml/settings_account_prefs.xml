@@ -34,13 +34,6 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="DAVKA users (move to strings.xml)">
-        <MultiSelectListPreference
-            android:key="davka_users_list"
-            android:persistent="false"
-            android:title="DAVKA users (move to strings.xml"/>
-    </PreferenceCategory>
-
     <PreferenceCategory android:title="@string/settings_sync">
 
         <ListPreference

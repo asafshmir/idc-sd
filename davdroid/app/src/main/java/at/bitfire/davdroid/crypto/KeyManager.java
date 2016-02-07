@@ -10,6 +10,7 @@ import org.json.JSONObject;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
@@ -26,7 +27,7 @@ public class KeyManager {
 
     private static final String TAG = "davdroid.KeyManager";
     //TODO move constants to SyncManager
-    public static final String KEY_STORAGE_EVENT_NAME = "KeyManagerNN";
+    public static final String KEY_STORAGE_EVENT_NAME = "KeyManagerBB";
     public  static final String EVENT_TIME_FORMAT = "dd-MM-yyyy hh:mm:ss";
     public  static final String KEY_STORAGE_EVENT_TIME = "04-02-2016 00:00:00";
     public  static final String KEY_STORAGE_EVENT_TIME_END = "04-02-2016 23:00:00";
@@ -107,19 +108,21 @@ public class KeyManager {
             final byte[] pbKeyData = Base64.decode(keyPairObj.optString(PUBLIC_KEY_ATTR), Base64.DEFAULT);
             final byte[] prKeyData = Base64.decode(keyPairObj.optString(PRIVATE_KEY_ATTR), Base64.DEFAULT);
 
+
             PublicKey pbKey;
-            pbKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM).generatePublic(new X509EncodedKeySpec(pbKeyData));
+            pbKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM,"SC").generatePublic(new X509EncodedKeySpec(pbKeyData));
             PrivateKey prKey;
-            prKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM).generatePrivate(new PKCS8EncodedKeySpec(prKeyData));
+            prKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM,"SC").generatePrivate(new PKCS8EncodedKeySpec(prKeyData));
 
             keyPair = new KeyPair(pbKey, prKey);
         } catch (JSONException e) {
             Log.e(TAG, e.getMessage());
             return null;
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+        } catch (NoSuchProviderException | NoSuchAlgorithmException | InvalidKeySpecException e) {
             Log.e(TAG, e.getMessage());
             return null;
         }
+
         return keyPair;
     }
 
@@ -151,6 +154,7 @@ public class KeyManager {
             byte[] sk = CryptoUtils.generateRandomSymmetricKey();
             Log.i(TAG, "Adding first user: " + this.userID + " to the KeyBank");
             addKeyRecord(keyBank, userID, pbkey, sk);
+            usersManager.addUser(userID);
             updated = true;
         } else {
             Log.i(TAG, "Got a KeyBank data, parse it");
@@ -162,6 +166,7 @@ public class KeyManager {
             if (!keyBank.containsKey(userID)) {
                 Log.i(TAG, "User: " + this.userID + " doesn't exist in KeyBank, add it");
                 addKeyRecord(keyBank,userID, pbkey, null);
+
                 updated = true;
             // userID exists
             } else {
@@ -175,6 +180,7 @@ public class KeyManager {
                 }
             }
         }
+
 
         // Try to validate other users
         updated = updated || validateAllUsers();
@@ -222,14 +228,19 @@ public class KeyManager {
         HashMap<String, Boolean> users = new HashMap<String, Boolean>();
 
         // Iterate the users, find if validated
-        for (String curUserID : keyBank.keySet()) {
+//        for (String curUserID : keyBank.keySet()) {
+//            Log.i(TAG,"Adding user " + curUserID);
+//            KeyRecord keyRecord = keyBank.get(curUserID);
+//            if (keyRecord.encSK != null) {
+//                users.put(curUserID,true);
+//            } else {
+//                users.put(curUserID,false);
+//            }
+//        }
+
+        for (String curUserID : usersManager.getUsers()) {
             Log.i(TAG,"Adding user " + curUserID);
-            KeyRecord keyRecord = keyBank.get(curUserID);
-            if (keyRecord.encSK != null) {
-                users.put(curUserID,true);
-            } else {
-                users.put(curUserID,false);
-            }
+            users.put(curUserID,usersManager.userExists(curUserID));
         }
 
         return users;
@@ -266,6 +277,7 @@ public class KeyManager {
         for (String curUserID : keyBank.keySet()) {
             if (usersToRemove.contains(curUserID)) {
                 keyBank.remove(curUserID);
+                usersManager.removeUser(userID);
                 continue;
             }
 
@@ -274,11 +286,16 @@ public class KeyManager {
                 Log.i(TAG, "All Users revalidated, a user has been removed");
                 validateUser(realSK, curUserID, keyRecord);
                 userValidated = true;
+                if (!usersManager.userExists(userID))
+                    usersManager.addUser(userID);
             } else {
 
                 // No need to validate my user
-                if (this.userID.equals(curUserID))
+                if (this.userID.equals(curUserID)) {
+                    if (!usersManager.userExists(userID))
+                        usersManager.addUser(userID);
                     continue;
+                }
 
                 // User has an SK, so we don't need to validate it
                 if (keyRecord.encSK != null) {
@@ -289,6 +306,8 @@ public class KeyManager {
                     validateUser(realSK, curUserID, keyRecord);
                     userValidated = true;
                 }
+                if (!usersManager.userExists(userID))
+                    usersManager.addUser(userID);
             }
         }
 
@@ -339,8 +358,12 @@ public class KeyManager {
     }
 
     private byte[] getSecret(String userID) {
+        Log.i(TAG,"Getting Secret for " + userID);
         String secret = usersManager.getSecret(userID);
-        return secret.getBytes();
+        if (secret != null)
+            return secret.getBytes();
+        else
+            return null;
     }
 
     private KeyBank stringToKeyBank(String data) {

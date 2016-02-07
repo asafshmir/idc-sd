@@ -14,14 +14,7 @@
 
     <TextView android:layout_width="fill_parent"
         android:layout_height="wrap_content" android:padding="10dp"
-        android:text="@string/login_type_url_description" android:textSize="20sp" />
-
-
-    <Button
-        android:id="@+id/findSelected"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Find countries that are Selected" />
+        android:text="@string/remove_account_choose" android:textSize="20sp" />
 
     <ListView
         android:layout_width="match_parent"
