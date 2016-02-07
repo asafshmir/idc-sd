@@ -607,67 +607,63 @@ public class Event extends Resource {
         return new String(CryptoUtils.decrypt(key, Base64.decode(data.getBytes(), Base64.DEFAULT)));
     }
 
-    // TODO: comment
+    /**
+     * Encrypt the given event's date.
+     * The event's duration should stay as it was for consistency reasons, so only the start
+     * date&time are encrypted and the end date&time is calculated accordingly.
+     * @param event The event
+     * @param key The encryption key
+     */
     private void encryptDate(VEvent event, byte[] key) {
 
         // Encrypt the event's date and time
-        Date plain = dtStart.getDate();
-        Log.d(TAG, "Encrypting date: " + plain);
+        Log.d(TAG, "Encrypting date: " + event.getStartDate());
 
-        long originalTime = plain.getTime();
-        long newTime = originalTime - (ENCRYPTED_DATE_TIMEFRAME / 2);
-        newTime += (CryptoUtils.deriveLong(key) % ENCRYPTED_DATE_TIMEFRAME);
-
-        Date encrypted = (Date)plain.clone();
-        encrypted.setTime(newTime);
-        Log.d(TAG, "Encrypted date: " + encrypted);
+        long originalTime = dtStart.getDate().getTime();
+        long encryptedTime = originalTime - (ENCRYPTED_DATE_TIMEFRAME / 2);
+        encryptedTime += (CryptoUtils.deriveLong(key) % ENCRYPTED_DATE_TIMEFRAME);
 
         // Update the start date
+        dtStart.getDate().setTime(encryptedTime);
         PropertyList prop = event.getProperties();
-        //        dtStart = new DtStart(encrypted);
-        dtStart.getDate().setTime(newTime);
         prop.add(dtStart);
-        Log.d(TAG,"Event dtStart is: " + event.getStartDate());
+        Log.d(TAG, "Encrypted date: " + event.getStartDate());
 
         // Fix end time. No need to update duration
         if(dtEnd != null) {
-            long duration = dtEnd.getDate().getTime() - plain.getTime();
-            Date fixedEnd = new DateTime(encrypted.getTime() + duration);
-            //dtEnd = new DtEnd(fixedEnd);
-            dtEnd.getDate().setTime(encrypted.getTime() + duration);
+            long duration = dtEnd.getDate().getTime() - originalTime;
+            dtEnd.getDate().setTime(encryptedTime + duration);
             prop.add(dtEnd);
             Log.d(TAG, "Encrypted end date: " + event.getEndDate());
         }
     }
 
-    // TODO: comment
+    /**
+     * Decrypt the given event's date.
+     * The event's duration wasn't encrypted for consistency reasons, so only the start
+     * date&time are decrypted and the end date&time is calculated accordingly.
+     * @param event The event
+     * @param key The encryption key
+     */
     private void decryptDate(VEvent event, byte[] key) {
 
         // Decrypt the event's date and time
-        Date encrypted = dtStart.getDate();
-        Log.d(TAG, "Decrypting date: " + encrypted);
+        Log.d(TAG, "Decrypting date: " + event.getStartDate());
 
-        long encryptedTime = encrypted.getTime();
-        long newTime = encryptedTime + (ENCRYPTED_DATE_TIMEFRAME / 2);
-        newTime -= (CryptoUtils.deriveLong(key) % ENCRYPTED_DATE_TIMEFRAME);
-
-        Date decrypted = (Date)encrypted.clone();
-        decrypted.setTime(newTime);
-        Log.d(TAG, "Decrypted date: " + decrypted);
+        long encryptedTime = dtStart.getDate().getTime();
+        long decryptedTime = encryptedTime + (ENCRYPTED_DATE_TIMEFRAME / 2);
+        decryptedTime -= (CryptoUtils.deriveLong(key) % ENCRYPTED_DATE_TIMEFRAME);
 
         // Update the start date
+        dtStart.getDate().setTime(decryptedTime);
         PropertyList prop = event.getProperties();
-//        dtStart = new DtStart(decrypted);
-        dtStart.getDate().setTime(newTime);
         prop.add(dtStart);
+        Log.d(TAG, "Decrypted date: " + event.getStartDate());
 
         // Fix end time. No need to update duration
         if(dtEnd != null) {
-            long duration = dtEnd.getDate().getTime() - encrypted.getTime();
-            Date fixedEnd = new DateTime(decrypted.getTime() + duration);
-
-            //dtEnd = new DtEnd(fixedEnd);
-            dtEnd.getDate().setTime(decrypted.getTime() + duration);
+            long duration = dtEnd.getDate().getTime() - encryptedTime;
+            dtEnd.getDate().setTime(decryptedTime + duration);
             prop.add(dtEnd);
             Log.d(TAG, "Decrypted end date: " + event.getEndDate());
         }
