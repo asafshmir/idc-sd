@@ -306,7 +306,7 @@ public class Event extends Resource {
                 // Calculate the signature
                 String digest = eventDigest(event);
                 Log.i(TAG,"Digest: " + digest);
-                String calculated = Base64.encodeToString(CryptoUtils.calculateSignature(digest, key), Base64.DEFAULT);
+                String calculated = Base64.encodeToString(CryptoUtils.calculateMAC(digest.getBytes(), key), Base64.DEFAULT);
 
                 if (calculated.equals(signature)) {
                     // The signature is valid - decrypt
@@ -467,7 +467,7 @@ public class Event extends Resource {
         // After all the VEvent's data is up to date and encrypted, sign the complete event
         // in order to prevent unauthorized modification and\or reply attack
         String digest = eventDigest(event);
-        String signature = Base64.encodeToString(CryptoUtils.calculateSignature(digest, key), Base64.DEFAULT);
+        String signature = Base64.encodeToString(CryptoUtils.calculateMAC(digest.getBytes(), key), Base64.DEFAULT);
         Log.i(TAG,"Digest encrypt: " + digest);
         props.add(new XProperty(SIGNATURE_PROPERTY, signature));
 
