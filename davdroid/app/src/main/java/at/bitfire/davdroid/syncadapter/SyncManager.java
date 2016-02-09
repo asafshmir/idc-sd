@@ -62,10 +62,10 @@ public class SyncManager {
 
         if (event != null) {
             Log.i(TAG, "Found KeyManager event");
-            keyManager.initKeyBank(user,event.description);
+            event.description = keyManager.initKeyBank(user,event.description);
             if (KeyManager.getInstance().isUpdated()) {
                 Log.i(TAG, "Updating KeyManager event");
-                local.updateKeyManager();
+                local.updateKeyManager(event);
                 local.commit();
 //                KeyManager.getInstance().setUpdated(false);
                 return true;
