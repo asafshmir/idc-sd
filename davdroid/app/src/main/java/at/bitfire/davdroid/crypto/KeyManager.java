@@ -73,7 +73,7 @@ public class KeyManager {
 
     private KeyManager() {
         keyBank = new KeyBank();
-        usersManager = new DummyUsersManager();
+        usersManager = new SimpleUsersManager();
         usersToRemove = new ArrayList<String>();
         usersRemoved = true;
         updated = false;
@@ -239,19 +239,29 @@ public class KeyManager {
 //        }
 
         for (String curUserID : usersManager.getUsers()) {
-            Log.i(TAG,"Adding user " + curUserID);
             users.put(curUserID,usersManager.userExists(curUserID));
         }
 
         return users;
     }
 
+
+    public void approveUser(String user) {
+
+        Log.i(TAG, "Add User " + user);
+        usersManager.addUser(user);
+        updated = true;
+    }
+
     // update new SK for users after deletion
     public void removeUser(String user) {
 
         Log.i(TAG, "remove User " + user);
-        usersToRemove.add(user);
-        usersRemoved = false;
+        //usersManager.removeUser(user);
+        usersManager.markToRemoveUser(user);
+        //usersToRemove.add(user);
+        //usersRemoved = false;
+
         updated = true;
 
     }
@@ -275,7 +285,9 @@ public class KeyManager {
 
         // Iterate the users validate them
         for (String curUserID : keyBank.keySet()) {
-            if (usersToRemove.contains(curUserID)) {
+            if (usersManager.userExists(curUserID) &&
+                    usersManager.userShouldBeRemoved(curUserID)) {
+                usersManager.removeUser(curUserID);
                 keyBank.remove(curUserID);
                 usersManager.removeUser(userID);
                 continue;
@@ -306,8 +318,7 @@ public class KeyManager {
                     validateUser(realSK, curUserID, keyRecord);
                     userValidated = true;
                 }
-                if (!usersManager.userExists(userID))
-                    usersManager.addUser(userID);
+
             }
         }
 
