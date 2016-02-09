@@ -15,24 +15,34 @@ public class DummyUsersManager implements UsersManager {
 
     public DummyUsersManager() {
         usersDataSuperSet = new HashMap<>();
+        usersData = new HashMap<>();
+
+        dummyAddUsers();
+    }
+
+    /**
+     * Add users for the dummy implementation of DummyUsersManager
+     */
+    private void dummyAddUsers() {
         usersDataSuperSet.put("xcfdxcfd", "VeryStrongPassword");
         usersDataSuperSet.put("shmir", "VeryStrongPassword");
 
-        usersData = new HashMap<>();
         usersData.put("xcfdxcfd", "VeryStrongPassword");
-//        usersData.put("shmir", "VeryStrongPassword");
+        //usersData.put("shmir", "VeryStrongPassword");
     }
 
     @Override
     public String getSecret(String userID) {
-        return usersData.get(userID);
+        return usersDataSuperSet.get(userID);
     }
 
+    @Override
     public void addUser(String user) {
         if (usersDataSuperSet.containsKey(user))
             usersData.put(user,usersDataSuperSet.get(user));
     }
 
+    @Override
     public void removeUser(String user) {
         if (usersData.containsKey(user))
             usersData.remove(user);
