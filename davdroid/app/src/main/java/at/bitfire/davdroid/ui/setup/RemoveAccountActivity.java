@@ -120,9 +120,9 @@ public class RemoveAccountActivity extends Activity {
                                         " is " + cb.isChecked(),
                                 Toast.LENGTH_LONG).show();
                         if (cb.isChecked()) {
-                            KeyManager.getInstance().authUser(account.getName());
+                            KeyManager.getInstance().authUser(cb.getText().toString());
                         } else {
-                            KeyManager.getInstance().removeUser(account.getName());
+                            KeyManager.getInstance().removeUser(cb.getText().toString());
                         }
                         account.setSelected(cb.isChecked());
                     }

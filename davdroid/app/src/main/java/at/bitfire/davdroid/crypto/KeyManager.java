@@ -252,21 +252,25 @@ public class KeyManager {
 
         // Generate new random SK since user has been removed
         if (usersManager.needsRemoval()) {
+            Log.i(TAG, "All Users revalidated, a user has been removed");
             realSK = CryptoUtils.generateRandomSymmetricKey();;
         }
 
         // Iterate the users validate them
         for (String curUserID : usersManager.getUsers()) {
-//            if (usersManager.userShouldBeRemoved(curUserID)) {
-//                usersManager.removeUser(curUserID);
-//                continue;
-//            }
+
 
 
             if (usersManager.needsRemoval()) {
-                Log.i(TAG, "All Users revalidated, a user has been removed");
-                validateUser(realSK, curUserID);
-                userValidated = true;
+
+                if (usersManager.userShouldBeRemoved(curUserID)) {
+//                usersManager.removeUser(curUserID);
+                    continue;
+                } else {
+
+                    validateUser(realSK, curUserID);
+                    userValidated = true;
+                }
 //                if (!usersManager.userExists(userID))
 //                    usersManager.updateSK(realSK);
             } else {
