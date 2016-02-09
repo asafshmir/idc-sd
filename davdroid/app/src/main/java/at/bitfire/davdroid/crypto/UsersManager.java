@@ -7,18 +7,7 @@ import java.util.Set;
  */
 public interface UsersManager {
 
-    protected class KeyRecord {
 
-        public KeyRecord(byte[] pbKey, byte[] encSK, byte[] signature) {
-            this.pbKey = pbKey;
-            this.encSK = encSK;
-            this.signature = signature;
-        }
-
-        protected byte[] pbKey;
-        protected byte[] encSK;
-        protected byte[] signature;
-    }
 
     /**
      * A secret is a security parameter that is known for all the users of the application.
@@ -30,12 +19,19 @@ public interface UsersManager {
      */
     public String getSecret(String userID);
 
+//    /**
+//     * add a user if exists in superset
+//     * @param userID the userID to check
+//     * @return true if userID exists
+//     */
+//    public void addUser(String userID);
+
     /**
      * add a user if exists in superset
      * @param userID the userID to check
      * @return true if userID exists
      */
-    public void addUser(String userID);
+    public void addUser(String userID,byte[] pbKey, byte[] encSK, byte[] signature);
 
     /**
      * remove a user
@@ -81,9 +77,16 @@ public interface UsersManager {
      * @return true if userID exists
      */
     public Set<String> getUsers();
+    public Set<String> getValidUsers();
 
 
     public boolean userShouldBeRemoved(String userID);
 
+//    public KeyRecord getKeyRecord(String userID);
+
+    public byte[] getSK(String userID);
+    public byte[] getPbKey(String userID);
+    public byte[] getSignature(String userID);
+    public boolean updateSK(String userID, byte[] sk);
 
 }

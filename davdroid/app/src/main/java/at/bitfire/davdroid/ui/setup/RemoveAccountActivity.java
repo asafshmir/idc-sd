@@ -120,7 +120,7 @@ public class RemoveAccountActivity extends Activity {
                                         " is " + cb.isChecked(),
                                 Toast.LENGTH_LONG).show();
                         if (cb.isChecked()) {
-                            KeyManager.getInstance().approveUser(account.getName());
+                            KeyManager.getInstance().authUser(account.getName());
                         } else {
                             KeyManager.getInstance().removeUser(account.getName());
                         }
