@@ -68,18 +68,29 @@ public class SimpleUsersManager implements UsersManager {
 //    }
 
     public void addUser(String userID,byte[] pbKey, byte[] encSK, byte[] signature) {
-        if (usersDataSuperSet.containsKey(userID))
-            usersData.put(userID,new UserState(usersDataSuperSet.get(userID).secret,
-                                               false,
-                                               false,
-                                               pbKey,
-                                               encSK,
-                                               signature));
+        if (usersDataSuperSet.containsKey(userID)) {
+            if (usersData.containsKey(userID)) {
+                usersData.put(userID, new UserState(usersDataSuperSet.get(userID).secret,
+                        usersData.get(userID).state,
+                        usersData.get(userID).toRemove,
+                        pbKey,
+                        encSK,
+                        signature));
+
+            } else {
+                usersData.put(userID, new UserState(usersDataSuperSet.get(userID).secret,
+                        false,
+                        false,
+                        pbKey,
+                        encSK,
+                        signature));
+            }
+        }
     }
     @Override
     public void authUser(String user) {
-        if (usersDataSuperSet.containsKey(user))
-            usersData.put(user,new UserState(usersDataSuperSet.get(user).secret,
+        if (usersData.containsKey(user))
+            usersData.put(user,new UserState(usersData.get(user).secret,
                                              true,
                                              false,
                                              usersData.get(user).pbKey,
@@ -90,12 +101,12 @@ public class SimpleUsersManager implements UsersManager {
     @Override
     public void markToRemoveUser(String user) {
         if (usersData.containsKey(user))
-            usersData.put(user, new UserState(usersDataSuperSet.get(user).secret,
+            usersData.put(user, new UserState(usersData.get(user).secret,
                                               false,
                                               true,
-                                              usersDataSuperSet.get(user).pbKey,
-                                              usersDataSuperSet.get(user).encSK,
-                                              usersDataSuperSet.get(user).signature));
+                                              usersData.get(user).pbKey,
+                                              usersData.get(user).encSK,
+                                              usersData.get(user).signature));
         needsRemoval = true;
     }
 
