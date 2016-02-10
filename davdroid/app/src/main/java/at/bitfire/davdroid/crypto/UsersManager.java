@@ -6,6 +6,7 @@ import java.util.Set;
 
 
 /**
+ * Davka
  * Used for managing information regarding the users of the application.
  */
 public class UsersManager  {

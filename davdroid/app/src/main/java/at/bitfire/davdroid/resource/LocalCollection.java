@@ -223,7 +223,7 @@ public abstract class LocalCollection<T extends Resource> {
 	
 	/**
 	 * Finds a specific resource by remote file name. Only records matching sqlFilter are taken into account.
-	 * @param localID	remote file name of the resource
+	 * @param remoteName	remote file name of the resource
 	 * @param populate	true: populates all data fields (for instance, contact or event details);
 	 * 					false: only remote file name and ETag are populated
 	 * @return resource with either ID/remote file/name/ETag or all fields populated
@@ -252,8 +252,9 @@ public abstract class LocalCollection<T extends Resource> {
 
 
     /**
-     * Finds a specific resource by remote file name. Only records matching sqlFilter are taken into account.
-     * @param localID	remote file name of the resource
+     * Davka
+     * Finds a specific resource by the event's name. Only records matching sqlFilter are taken into account.
+     * @param name  	remote file name of the resource
      * @param populate	true: populates all data fields (for instance, contact or event details);
      * 					false: only remote file name and ETag are populated
      * @return resource with either ID/remote file/name/ETag or all fields populated
@@ -271,12 +272,10 @@ public abstract class LocalCollection<T extends Resource> {
                 T resource = newResource(cursor.getLong(0), cursor.getString(1), cursor.getString(2));
                 if (populate)
                     populate(resource);
-                if (((Event)resource).summary.equals(name)) {
 
+                // Check if Event name (Summary) equals given name
+                if (((Event)resource).summary.equals(name)) {
                     return resource;
-                } else {
-                    Log.i(TAG,"SUMMARY!!! " + ((Event)resource).summary);
-                    Log.i(TAG,"DATE!!! " + ((Event)resource).dtStart);
                 }
             }
 
@@ -299,12 +298,19 @@ public abstract class LocalCollection<T extends Resource> {
 	 * Creates a new resource object in memory. No content provider operations involved.
 	 * @param localID the ID of the resource
 	 * @param resourceName the (remote) file name of the resource
-	 * @param ETag of the resource
+	 * @param eTag of the resource
 	 * @return the new resource object */
 	abstract public T newResource(long localID, String resourceName, String eTag);
 
 
-    // Need to decrypt as part of the call to buildEntry
+    /**
+     * Davka -
+     * Add a resource to the local collection. Flag a resource added
+     * as dirty if was added manually to local collection, and not from remote collection (i.e.
+     * a Key Manager Event)
+     * @param resource The resource to add
+     * @param markDirty Mark as dirty flag
+     */
     public void add(Resource resource, boolean markDirty) {
         int idx = pendingOperations.size();
         if (markDirty) {
@@ -322,7 +328,8 @@ public abstract class LocalCollection<T extends Resource> {
         addDataRows(resource, -1, idx);
     }
 
-    /** Enqueues adding the resource (including all data) to the local collection. Requires commit(). */
+    /** Enqueues adding the resource (including all data) to the local collection. Requires commit().
+     *  Davka - Doesn't mark resource as dirty by default*/
 	public void add(Resource resource) {
         add(resource,false);
 	}
@@ -341,8 +348,7 @@ public abstract class LocalCollection<T extends Resource> {
 		addDataRows(remoteResource, localResource.getLocalID(), -1);
 	}
 
-    /** Enqueues updating an existing resource in the local collection. The resource will be found by
-     * the remote file name and all data will be updated. Requires commit(). */
+    /** Davka - Enqueues updating The KeyManager in the local collection. */
     public void updateKeyManager(Resource localResource) throws LocalStorageException {
         //T localResource = findByRealName(KeyManager.KEY_STORAGE_EVENT_NAME,true);
         Log.i(TAG,"Local ID is: " + localResource.getLocalID());

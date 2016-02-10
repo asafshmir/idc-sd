@@ -46,19 +46,36 @@ public class SyncManager {
 	public SyncManager(LocalCollection<? extends Resource> local, RemoteCollection<? extends Resource> remote, String accountName) {
 		this.local = local;
 		this.remote = remote;
+
+        // Davka - Added a Calendar owner
         this.user = accountName;
 	}
 
 
+    /**
+     * Davka
+     * Attempt to read the KeyManager information from the designated event
+     * If we synced the local and remote calendars, and don't have such an event
+     * Create a new one and add this user as the first user in the keymanager
+     * @param afterFetch Whether we already tried to fetch the remote events
+     * @return Whether the keymanager has been read and updated
+     * @throws LocalStorageException
+     */
     public boolean synchronizeKeys(boolean afterFetch) throws LocalStorageException {
 
         Event event = (Event) local.findByRealName(KeyManager.KEY_STORAGE_EVENT_NAME,true);
 
         KeyManager keyManager = KeyManager.getInstance();
 
+
         if (event != null) {
             Log.i(TAG, "Found KeyManager event");
+
+            // Read KeyManager from Local Calendar
             event.description = keyManager.initKeyBank(user,event.description);
+
+            // If changes were made while reading (i.e. users were validated)
+            // Save a new local version of the calendar
             if (KeyManager.getInstance().isUpdated()) {
                 Log.i(TAG, "Updating KeyManager event");
                 local.updateKeyManager(event);
@@ -68,13 +85,14 @@ public class SyncManager {
             }
 
         } else if (afterFetch) {
+            // No KeyManager event was found, create one
             Log.i(TAG, "Adding KeyManager event");
             event = new Event(null,null);
             event.initialize();
             event.summary = KeyManager.KEY_STORAGE_EVENT_NAME;
-            // Generates a new key bank
             event.description = keyManager.initKeyBank(user,null);
 
+            // Set the date range for the KeyManager Event
             try {
                 SimpleDateFormat sdf = new SimpleDateFormat(KeyManager.EVENT_TIME_FORMAT);
                 event.setDtStart(sdf.parse(KeyManager.KEY_STORAGE_EVENT_TIME).getTime(), null);
@@ -83,8 +101,8 @@ public class SyncManager {
                Log.e(TAG, e.toString());
             }
 
+            // Add the event generated to the local calendar
             local.add(event,true);
-
             local.commit();
             Log.i(TAG, "KeyManager event added");
             return true;
@@ -94,7 +112,6 @@ public class SyncManager {
     }
 
     public void synchronize(boolean manualSync, SyncResult syncResult) throws URISyntaxException, LocalStorageException, IOException, HttpException, DavException {
-
 
 		// PHASE 1: push local changes to server
 		int	deletedRemotely = pushDeleted(),
@@ -139,6 +156,9 @@ public class SyncManager {
 			}
 		}
 
+        // Davka - Try to update the KeyManager before reading other events
+        // This is done so we know we have an updated KeyManager and can decrypt the events
+        // when they are read from the remote.
         if (remotelyAdded.toArray(new Resource[0]).length > 0 ||
                 remotelyUpdated.toArray(new Resource[0]).length > 0) {
             Set<Resource> list = new HashSet<Resource>(remotelyAdded);
@@ -164,9 +184,6 @@ public class SyncManager {
 
 	}
 
-
-
-	
 	private int pushDeleted() throws URISyntaxException, LocalStorageException, IOException, HttpException {
 		int count = 0;
 		long[] deletedIDs = local.findDeleted();
@@ -176,6 +193,13 @@ public class SyncManager {
 			for (long id : deletedIDs)
 				try {
 					Resource res = local.findById(id, false);
+
+                    // Davka - set KeyManager as updated
+                    if (KeyManager.isKeyManagerEvent((Event) res) &&
+                            KeyManager.getInstance().isUpdated()) {
+                        KeyManager.getInstance().setUpdated();
+                    }
+
 					if (res.getName() != null)	// is this resource even present remotely?
 						try {
 							remote.delete(res);
@@ -207,12 +231,18 @@ public class SyncManager {
 				try {
 					Resource res = local.findById(id, true);
 
-					String eTag = remote.add(res);
+                    String eTag = remote.add(res);
                     Log.i(TAG,"Updating with eTag " + eTag);
 					if (eTag != null)
 						local.updateETag(res, eTag);
 					local.clearDirty(res);
 					count++;
+
+                    // Davka - set KeyManager as updated
+                    if (KeyManager.isKeyManagerEvent((Event) res) &&
+                            KeyManager.getInstance().isUpdated()) {
+                        KeyManager.getInstance().setUpdated();
+                    }
 				} catch(PreconditionFailedException e) {
 					Log.i(TAG, "Didn't overwrite existing resource with other content");
 				} catch (ValidationException e) {
@@ -241,12 +271,14 @@ public class SyncManager {
 						local.updateETag(res, eTag);
 					local.clearDirty(res);
 					count++;
+
+                    // Davka - set KeyManager as updated
+                    if (KeyManager.isKeyManagerEvent((Event) res) &&
+                            KeyManager.getInstance().isUpdated()) {
+                        KeyManager.getInstance().setUpdated();
+                    }
 				} catch(PreconditionFailedException e) {
 					Log.i(TAG, "Locally changed resource has been changed on the server in the meanwhile");
-//                    Resource res = local.findById(id, true);
-//                    if (res != null) {
-//                        local.clearDirty(res);
-//                    }
 				} catch (ValidationException e) {
 					Log.e(TAG, "Couldn't create entity for updating: " + e.toString());
 				} catch (RecordNotFoundException e) {
@@ -259,6 +291,12 @@ public class SyncManager {
 		return count;
 	}
 
+    /**
+     * Davka
+     * Update the local version of the Key Manager with the one changed remotely
+      * @param resourcesToAdd List of resources changed remotely
+     */
+
     private void syncKeyManager(Resource[] resourcesToAdd) throws URISyntaxException, LocalStorageException, IOException, HttpException, DavException {
         //int count = 0;
         Log.i(TAG, "Fetching " + resourcesToAdd.length + " when trying to find KeyBank");
@@ -269,19 +307,16 @@ public class SyncManager {
                 try {
 
                     if (KeyManager.isKeyManagerEvent((Event) res)) {
-                        Log.d(TAG, "Reading KeyManager " + res.getName());
-                        Log.d(TAG, "Reading KeyManager Summary" + ((Event)res).summary);
-                        Log.d(TAG, "Reading KeyManager Description" + ((Event)res).description);
-                        Log.d(TAG, "Initing KeyBank " + res.getName());
                         Event keyBank = ((Event)res);
                         keyBank.description = KeyManager.getInstance().initKeyBank(user,keyBank.description);
 
+                        Log.d(TAG, "Updating KeyBank");
+                        String eTag = remote.update(keyBank);
+                        if (eTag != null)
+                            local.updateETag(res, eTag);
+                        local.clearDirty(res);
+
                         if (KeyManager.getInstance().isUpdated()) {
-                            Log.d(TAG, "Updating KeyBank");
-                            String eTag = remote.update(keyBank);
-                            if (eTag != null)
-                                local.updateETag(res, eTag);
-                            local.clearDirty(res);
                             KeyManager.getInstance().setUpdated();
                         }
                     }

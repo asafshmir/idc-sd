@@ -92,55 +92,19 @@ public abstract class RemoteCollection<T extends Resource> {
 	}
 
 
-
-    /**
-     * Finds a specific resource by resource name.
-     * @param remoteName	remote name of the resource
-
-     * @return resource with either ID/remote file/name/ETag or all fields populated
-     * @throws URISyntaxException
-     * @throws IOException
-     * @throws DavException
-     * @throws HttpException
-     */
-    public Event findByRealName(String remoteName) throws URISyntaxException, IOException, DavException, HttpException, RecordNotFoundException {
-        collection.propfind(HttpPropfind.Mode.MEMBERS_ETAG);
-
-        if (collection.getMembers() != null) {
-
-            for (WebDavResource member : collection.getMembers()) {
-                //Event resource = newResourceSkeleton(member.getName(), member.getETag());
-                Event e = new Event("","");
-                try {
-                    if (member.getContent() != null) {
-                        @Cleanup InputStream is = new ByteArrayInputStream(member.getContent());
-                        e.parseEntity(is, getDownloader());
-                        Log.i(TAG,e.summary);
-                        if (e.summary.equals(remoteName)) {
-                            return e;
-                        }
-                    } else
-                        Log.e(TAG, "Ignoring entity without content");
-                } catch (InvalidResourceException ex) {
-                    Log.e(TAG, "Ignoring unparseable entity in multi-response", ex);
-                }
-            }
-
-
-
-        }
-        throw new RecordNotFoundException();
-    }
-
-
+    // Davka - don't decrypt events when getting from remote by default
     public Resource[] multiGet(Resource[] resources) throws URISyntaxException, IOException, DavException, HttpException {
         return multiGet(resources,false);
     }
+
     @SuppressWarnings("unchecked")
 	public Resource[] multiGet(Resource[] resources, boolean shouldDecrypt) throws URISyntaxException, IOException, DavException, HttpException {
 		try {
-			if (resources.length == 1)
-				return (T[]) new Resource[]{get(resources[0],shouldDecrypt)};
+			if (resources.length == 1) {
+
+                // Davka - Get one resource, decrypt if flagged
+                return (T[]) new Resource[]{get(resources[0], shouldDecrypt)};
+            }
 
 			Log.i(TAG, "Multi-getting " + resources.length + " remote resource(s)");
 
@@ -158,6 +122,7 @@ public abstract class RemoteCollection<T extends Resource> {
 				try {
 					if (member.getContent() != null) {
 						@Cleanup InputStream is = new ByteArrayInputStream(member.getContent());
+                        // Davka - Get multiple resources, decrypt if flagged
 						resource.parseEntity(is, getDownloader(), shouldDecrypt);
 						foundResources.add(resource);
 					} else
@@ -177,6 +142,7 @@ public abstract class RemoteCollection<T extends Resource> {
 	
 	
 	/* internal member operations */
+    // Davka - get a resource, decrypt if flagged
     public Resource get(Resource resource) throws URISyntaxException, IOException, HttpException, DavException, InvalidResourceException {
         return get(resource, true);
     }
@@ -191,6 +157,7 @@ public abstract class RemoteCollection<T extends Resource> {
 
 		@Cleanup InputStream is = new ByteArrayInputStream(data);
 		try {
+            // Davka - parse an entity, decrypt if flagged
 			resource.parseEntity(is, getDownloader(),shouldDecrypt);
 		} catch (VCardParseException e) {
 			throw new InvalidResourceException(e);

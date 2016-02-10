@@ -22,6 +22,7 @@ import java.util.HashMap;
 import at.bitfire.davdroid.resource.Event;
 import lombok.Getter;
 
+// Davka
 public class KeyManager {
 
     private static final String TAG = "davdroid.KeyManager";
@@ -471,6 +472,10 @@ public class KeyManager {
         updated = false;
     }
 
+    /**
+     * Serialize the KeyManager information into a string representation
+     * @return The String representation of the Key Bank.
+     */
     private String keyBankToString()  {
         Log.i(TAG, "Converting a KeyBank to string");
         JSONObject rootObj = new JSONObject();
@@ -488,6 +493,8 @@ public class KeyManager {
                 Log.i(TAG,"Adding user " + userID + " To Serialized KeyBank");
                 userObj.put(USER_ID_ATTR, userID);
                 userObj.put(PUBLIC_KEY_ATTR, Base64.encodeToString(usersManager.getPbKey(userID), Base64.DEFAULT));
+
+                // If user doesn't have a valid SK, save an empty SK, until someone validates the user
                 if (usersManager.getEncSK(userID) == null) {
                     userObj.put(ENC_SK_ATTR, "");
                 } else {
@@ -508,6 +515,10 @@ public class KeyManager {
         return rootObj.toString();
     }
 
+    /**
+     * Generate a list of Encrypted Symmetric Keys to be saved in the Encrypted Event
+     * @return String containing a list of Encrypted SK
+     */
     public String generateEncSKList() {
         Log.i(TAG, "Generating a list of encrypted SKs with all valid public keys");
         JSONObject rootObj = new JSONObject();
@@ -520,7 +531,6 @@ public class KeyManager {
             for (String userID : usersManager.getValidUsers()) {
 
                 JSONObject skObj = new JSONObject();
-                //KeyRecord keyRecord = keyBank.get(userID);
                 byte[] pbKeyPrefix = Arrays.copyOf(usersManager.getPbKey(userID), PUBLIC_KEY_PREFIX_SIZE);
                 skObj.put(PUBLIC_KEY_PREFIX_ATTR, Base64.encodeToString(pbKeyPrefix, Base64.DEFAULT));
                 skObj.put(ENC_SK_ATTR, Base64.encodeToString(usersManager.getEncSK(userID), Base64.DEFAULT));
@@ -538,6 +548,11 @@ public class KeyManager {
         return rootObj.toString();
     }
 
+    /**
+     * Read the Symmetric key from the encrypted list of Symmetric Keys saved in an event
+     * @param data A String containing a list of encrypted Symmetric Keys in JSON format
+     * @return a byte array of the Symmetric Key
+     */
     public byte[] getSKFromEncSKList(String data) {
         Log.i(TAG, "Searching my SK within the encrypted SKs list");
         if (data == null) {
@@ -587,21 +602,4 @@ public class KeyManager {
             return null;
         }
     }
-//
-//    protected class KeyBank extends HashMap<String, KeyRecord> {
-//
-//    }
-//
-//    protected class KeyRecord {
-//
-//        public KeyRecord(byte[] pbKey, byte[] encSK, byte[] signature) {
-//            this.pbKey = pbKey;
-//            this.encSK = encSK;
-//            this.signature = signature;
-//        }
-//
-//        protected byte[] pbKey;
-//        protected byte[] encSK;
-//        protected byte[] signature;
-//    }
 }
