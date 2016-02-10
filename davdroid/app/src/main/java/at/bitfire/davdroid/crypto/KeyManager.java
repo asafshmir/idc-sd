@@ -25,12 +25,12 @@ import lombok.Getter;
 public class KeyManager {
 
     private static final String TAG = "davdroid.KeyManager";
-    //TODO move constants to SyncManager
-    public static final String KEY_STORAGE_EVENT_NAME = "KeyManagerPleaseWork";
+    // Constants indicating the location where KeyManager should be saved in the calendar
+    public  static final String KEY_STORAGE_EVENT_NAME = "KeyManager";
     public  static final String EVENT_TIME_FORMAT = "dd-MM-yyyy hh:mm:ss";
     public  static final String KEY_STORAGE_EVENT_TIME = "11-02-2016 02:00:00";
     public  static final String KEY_STORAGE_EVENT_TIME_END = "11-02-2016 23:00:00";
-    //TODO move to SyncManager
+
     public static boolean isKeyManagerEvent(Event e) {
         return e.summary.equals(KEY_STORAGE_EVENT_NAME);
     }
@@ -41,13 +41,10 @@ public class KeyManager {
     // A map from userID to KeyRecord
     protected String userID;
 
-//    protected ArrayList<String> usersToRemove;
-//    protected boolean usersRemoved;
-
-    // TODO support keyBank per account-name
-    // TODO add setActiveAccount to support multiple accounts
+    // A class managing the addition and removal of users
     protected UsersManager usersManager;
 
+    // Indicated whether KeyManager has been updated
     @Getter private boolean updated;
 
     // Asymmetric key-pair
@@ -55,21 +52,22 @@ public class KeyManager {
 
     // JSON tag names and attributes
     private final static String KEYBANK_TAG = "key-bank";
+
+    // Constants for the serialization of encryption details into
+    // The KeyManager's event and the SK lists in events in general
     private final static String USER_ID_ATTR = "user-id";
     private final static String PUBLIC_KEY_ATTR = "public-key";
     private final static String ENC_SK_ATTR = "enc-sk";
     private final static String SIGNATURE_ATTR = "signature";
-
     private final static String SKLIST_TAG = "sk-list";
     private final static String PUBLIC_KEY_PREFIX_ATTR = "public-key-prefix";
-
     private final static String KEYPAIR_TAG = "key-pair";
     private final static String PRIVATE_KEY_ATTR = "private-key";
 
     private final static int PUBLIC_KEY_PREFIX_SIZE = 64;
 
     private KeyManager() {
-        usersManager = new SimpleUsersManager();
+        usersManager = new UsersManager();
         updated = false;
     }
 

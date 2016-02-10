@@ -97,7 +97,7 @@ public class UsersManager  {
 
     /**
      * Authorize user
-     * @param userID the userID to authorize
+     * @param user the userID to authorize
      */
     public void authUser(String user) {
         if (usersData.containsKey(user))
@@ -111,7 +111,7 @@ public class UsersManager  {
 
     /**
      * Mark user for removal
-     * @param userID the userID to mark for removal
+     * @param user the userID to mark for removal
      */
     public void markToRemoveUser(String user) {
         if (usersData.containsKey(user))
@@ -127,7 +127,7 @@ public class UsersManager  {
 
     /**
      * Mark user to keep
-     * @param userID the userID to mark for keeping
+     * @param user the userID to mark for keeping
      */
     public void markToKeepUser(String user) {
         if (usersData.containsKey(user))
@@ -148,7 +148,7 @@ public class UsersManager  {
 
     /**
      * remove a user
-     * @param userID the userID to remove
+     * @param user the userID to remove
      */
     public void removeUser(String user) {
         if (usersData.containsKey(user))
