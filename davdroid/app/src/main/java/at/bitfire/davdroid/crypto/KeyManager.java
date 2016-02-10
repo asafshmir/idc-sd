@@ -156,19 +156,15 @@ public class KeyManager {
         } else {
             Log.i(TAG, "Got a KeyBank data, parse it");
             readUsersFromKeyBank(keyBankData);
-            // TODO handle corrupted keyBankData?
 
             // userID is not in yet in the KeyBank - add a KeyRecord for him
-            // The sk is null because this user is not validated yet
-            if (!usersManager.userExists(userID)) {
+            // or the sk is null because this user is not validated yet
+            if (!usersManager.userExists(userID) ||
+                (usersManager.userExists(userID) && (getSK() == null))) {
                 Log.i(TAG, "User: " + this.userID + " doesn't exist in KeyBank, add it");
                 addKeyRecord(usersManager,userID, pbkey, null);
 
                 updated = true;
-            // userID exists
-            } else {
-                // Make sure that the SK is valid - maybe userID lost his private key
-
             }
         }
 
@@ -360,7 +356,10 @@ public class KeyManager {
 
     private void readUsersFromKeyBank(String data) {
         Log.i(TAG, "Converting a string to KeyBank");
-        //KeyBank keyRecords = new KeyBank();
+
+        for (String curUserID : usersManager.getUsers()) {
+            usersManager.markToRemoveUser(curUserID);
+        }
 
         try {
             JSONObject rootObj = new JSONObject(data);
@@ -378,24 +377,19 @@ public class KeyManager {
                 byte[] encsk = encskStr.isEmpty() ? null : Base64.decode(encskStr, Base64.DEFAULT);
                 byte[] signature = Base64.decode(userObj.optString(SIGNATURE_ATTR), Base64.DEFAULT);
 
+                if (usersManager.userExists(userID)) {
+                    usersManager.markToKeepUser(userID);
+                } else {
+                    usersManager.addUser(userID, pbkey, encsk, signature);
+                    updated = true;
+                }
 
-//                if (getSK() != null) {
-//                    Log.w(TAG, "User: " + this.userID + " already exists, and has a valid SK");
-//                } else {
-//                    Log.w(TAG, "User: " + this.userID + " has an SK, but can't decrypt it. Add a new KeyRecord for him");
-//                if (!usersManager.userExists(userID)) {
-//                    updated = true;
-//                }
-                usersManager.addUser(userID, pbkey, encsk, signature);
-                    //addKeyRecord(keyBank,userID, pbkey, null);
-
-//                }
             }
         } catch (JSONException e) {
             Log.e(TAG, e.getMessage());
-            //return null;
+
         }
-        //return keyRecords;
+
     }
 
     public void setUpdated(boolean state) {
