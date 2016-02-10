@@ -279,6 +279,13 @@ public class Event extends Resource {
         Log.i(TAG,"MintSummary " + summary);
     }
 
+    /**
+     * Decrypt the event
+     * The encryption key used is the Symmetric Key (SK) after it was decrypted using the user's
+     * private asymmetric key.
+     * If the user do not have sufficient permissions the event isn't decrypted.
+     * @param event The event to decrypt
+     */
     private void decryptVEvent(VEvent event) {
 
         // Get the sk-list
@@ -384,7 +391,6 @@ public class Event extends Resource {
         return toVEvent(true);
     }
 
-    // TODO - add a mode where we don't encrypt / decrypt if key isn't defined
     protected VEvent toVEvent(boolean shouldEncrypt) {
 
         Log.i(TAG,"toVEvent: start");
@@ -443,6 +449,13 @@ public class Event extends Resource {
         return event;
     }
 
+    /**
+     * Encrypt the event
+     * The encryption key used is the Symmetric Key (SK) after it was decrypted using the user's
+     * private asymmetric key.
+     * @param event The event to encrypt
+     * @return True if the event was successfully encrypted
+     */
     private boolean encryptVEvent(VEvent event) {
         PropertyList props = event.getProperties();
 
@@ -474,10 +487,16 @@ public class Event extends Resource {
         return true;
     }
 
+    /**
+     * Return a digest of the event to be signed.
+     * Uses the properties that are significant, but only them in order not to be interrupted
+     * by proprietary additions to the protocol.
+     * @param event The event
+     * @return The digest to sign
+     */
     private String eventDigest(VEvent event) {
 
-        // Create a copy of the event with the relevant properties
-        //VEvent cloned = (VEvent) event.copy();
+        // Create a copy of the relevant properties
         PropertyList pl = new PropertyList();
         if(event.getSummary() != null)
             pl.add(new Summary(event.getSummary().getValue().trim()));
@@ -489,7 +508,6 @@ public class Event extends Resource {
             pl.add(event.getStartDate());
         if(event.getEndDate() != null)
             pl.add(event.getEndDate());
-        // TODO: add more properties?
 
         return pl.toString();
     }
@@ -622,7 +640,8 @@ public class Event extends Resource {
 
         long originalTime = dtStart.getDate().getTime();
         long encryptedTime = originalTime - (ENCRYPTED_DATE_TIMEFRAME / 2);
-        encryptedTime += (CryptoUtils.deriveLong(key) % ENCRYPTED_DATE_TIMEFRAME);
+        encryptedTime += (CryptoUtils.deriveLongFromHash(event.getUid().getValue().getBytes(), key)
+                % ENCRYPTED_DATE_TIMEFRAME);
 
         // Update the start date
         dtStart.getDate().setTime(encryptedTime);
@@ -653,7 +672,8 @@ public class Event extends Resource {
 
         long encryptedTime = dtStart.getDate().getTime();
         long decryptedTime = encryptedTime + (ENCRYPTED_DATE_TIMEFRAME / 2);
-        decryptedTime -= (CryptoUtils.deriveLong(key) % ENCRYPTED_DATE_TIMEFRAME);
+        decryptedTime -= (CryptoUtils.deriveLongFromHash(event.getUid().getValue().getBytes(), key)
+                % ENCRYPTED_DATE_TIMEFRAME);
 
         // Update the start date
         dtStart.getDate().setTime(decryptedTime);

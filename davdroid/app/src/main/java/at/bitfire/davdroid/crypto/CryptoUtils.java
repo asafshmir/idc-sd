@@ -40,7 +40,7 @@ public class CryptoUtils {
     public static final String ASYMMETRIC_ALGORITHM = "ElGamal";
 
     /** The asymmetric crypto algorithm key size */
-    public static final int ASYMMETRIC_KEY_SIZE = 400;
+    public static final int ASYMMETRIC_KEY_SIZE = 1024; 
 
     /** The symmetric crypto algorithm */
     public static final String SYMMETRIC_ALGORITHM = "AES";
@@ -163,7 +163,7 @@ public class CryptoUtils {
     }
 
     /**
-     * Calculate the MAC of the given data using the given key
+     * Calculate the Message authentication code (MAC) of the given data using the given key
      * @param data The data
      * @param symmetricKeyBytes The key for the secure hash
      * @return The MAC
@@ -182,12 +182,24 @@ public class CryptoUtils {
         }
     }
 
-    // TODO: comment
-    public static long deriveLong(byte[] key) {
-        // TODO: Change to a real crypto algo (spongycastle key derivation?)
-        ByteBuffer buffer = ByteBuffer.allocate(Long.SIZE / Byte.SIZE);
-        buffer.put(key, 0, Long.SIZE / Byte.SIZE);
-        buffer.flip();//need flip
+    /**
+     * Generate an authenticated long from a MAC
+     * @param data The data for the MAC
+     * @param key The key for the MAC
+     * @return The authenticated long
+     */
+    public static long deriveLongFromHash(byte[] data, byte[] key) {
+
+        byte[] mac = calculateMAC(data, key);
+        if(mac == null) {
+            Log.e(TAG, "deriveLongFromHash: Fatal error");
+            return 0L;
+        }
+
+        int size = Long.SIZE / Byte.SIZE;
+        ByteBuffer buffer = ByteBuffer.allocate(size);
+        buffer.put(mac, 0, size);
+
         return buffer.getLong();
     }
 }

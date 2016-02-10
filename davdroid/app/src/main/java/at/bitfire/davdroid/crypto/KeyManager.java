@@ -26,10 +26,10 @@ public class KeyManager {
 
     private static final String TAG = "davdroid.KeyManager";
     //TODO move constants to SyncManager
-    public static final String KEY_STORAGE_EVENT_NAME = "KeyManagerDD";
+    public static final String KEY_STORAGE_EVENT_NAME = "KeyManagerPleaseWork";
     public  static final String EVENT_TIME_FORMAT = "dd-MM-yyyy hh:mm:ss";
-    public  static final String KEY_STORAGE_EVENT_TIME = "04-02-2016 00:00:00";
-    public  static final String KEY_STORAGE_EVENT_TIME_END = "04-02-2016 23:00:00";
+    public  static final String KEY_STORAGE_EVENT_TIME = "11-02-2016 02:00:00";
+    public  static final String KEY_STORAGE_EVENT_TIME_END = "11-02-2016 23:00:00";
     //TODO move to SyncManager
     public static boolean isKeyManagerEvent(Event e) {
         return e.summary.equals(KEY_STORAGE_EVENT_NAME);
@@ -160,7 +160,7 @@ public class KeyManager {
                 Log.i(TAG, "User: " + this.userID + " doesn't exist in KeyBank, add it");
                 addKeyRecord(usersManager,userID, pbkey, null);
 
-//                updated = true;
+                updated = true;
             // userID exists
             } else {
                 // Make sure that the SK is valid - maybe userID lost his private key
@@ -379,9 +379,9 @@ public class KeyManager {
 //                    Log.w(TAG, "User: " + this.userID + " already exists, and has a valid SK");
 //                } else {
 //                    Log.w(TAG, "User: " + this.userID + " has an SK, but can't decrypt it. Add a new KeyRecord for him");
-                if (!usersManager.userExists(userID)) {
-                    updated = true;
-                }
+//                if (!usersManager.userExists(userID)) {
+//                    updated = true;
+//                }
                 usersManager.addUser(userID, pbkey, encsk, signature);
                     //addKeyRecord(keyBank,userID, pbkey, null);
 
