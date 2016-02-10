@@ -16,7 +16,6 @@ import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -27,7 +26,7 @@ public class KeyManager {
 
     private static final String TAG = "davdroid.KeyManager";
     //TODO move constants to SyncManager
-    public static final String KEY_STORAGE_EVENT_NAME = "KeyManagerBB";
+    public static final String KEY_STORAGE_EVENT_NAME = "KeyManagerDD";
     public  static final String EVENT_TIME_FORMAT = "dd-MM-yyyy hh:mm:ss";
     public  static final String KEY_STORAGE_EVENT_TIME = "04-02-2016 00:00:00";
     public  static final String KEY_STORAGE_EVENT_TIME_END = "04-02-2016 23:00:00";
@@ -42,13 +41,11 @@ public class KeyManager {
     // A map from userID to KeyRecord
     protected String userID;
 
-    protected ArrayList<String> usersToRemove;
-    protected boolean usersRemoved;
+//    protected ArrayList<String> usersToRemove;
+//    protected boolean usersRemoved;
 
     // TODO support keyBank per account-name
     // TODO add setActiveAccount to support multiple accounts
-    //protected Map<String, KeyRecord> keyBank;
-    protected KeyBank keyBank;
     protected UsersManager usersManager;
 
     @Getter private boolean updated;
@@ -72,10 +69,7 @@ public class KeyManager {
     private final static int PUBLIC_KEY_PREFIX_SIZE = 64;
 
     private KeyManager() {
-        keyBank = new KeyBank();
-        usersManager = new DummyUsersManager();
-        usersToRemove = new ArrayList<String>();
-        usersRemoved = true;
+        usersManager = new SimpleUsersManager();
         updated = false;
     }
 
@@ -107,7 +101,6 @@ public class KeyManager {
             JSONObject keyPairObj = rootObj.optJSONObject(KEYPAIR_TAG);
             final byte[] pbKeyData = Base64.decode(keyPairObj.optString(PUBLIC_KEY_ATTR), Base64.DEFAULT);
             final byte[] prKeyData = Base64.decode(keyPairObj.optString(PRIVATE_KEY_ATTR), Base64.DEFAULT);
-
 
             PublicKey pbKey;
             pbKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM,"SC").generatePublic(new X509EncodedKeySpec(pbKeyData));
@@ -152,66 +145,64 @@ public class KeyManager {
         if (keyBankData == null) {
             Log.i(TAG, "Got an empty KeyBank data, generating random symmetric key");
             byte[] sk = CryptoUtils.generateRandomSymmetricKey();
+            Log.i(TAG, "SK Generated: " + sk.toString());
             Log.i(TAG, "Adding first user: " + this.userID + " to the KeyBank");
-            addKeyRecord(keyBank, userID, pbkey, sk);
-            usersManager.addUser(userID);
+            addKeyRecord(usersManager, userID, pbkey, sk);
             updated = true;
         } else {
             Log.i(TAG, "Got a KeyBank data, parse it");
-            keyBank = stringToKeyBank(keyBankData);
+            readUsersFromKeyBank(keyBankData);
             // TODO handle corrupted keyBankData?
 
             // userID is not in yet in the KeyBank - add a KeyRecord for him
             // The sk is null because this user is not validated yet
-            if (!keyBank.containsKey(userID)) {
+            if (!usersManager.userExists(userID)) {
                 Log.i(TAG, "User: " + this.userID + " doesn't exist in KeyBank, add it");
-                addKeyRecord(keyBank,userID, pbkey, null);
+                addKeyRecord(usersManager,userID, pbkey, null);
 
                 updated = true;
             // userID exists
             } else {
                 // Make sure that the SK is valid - maybe userID lost his private key
-                if (getSK() != null) {
-                    Log.w(TAG, "User: " + this.userID + " already exists, and has a valid SK");
-                } else {
-                    Log.w(TAG, "User: " + this.userID + " has an SK, but can't decrypt it. Add a new KeyRecord for him");
-                    addKeyRecord(keyBank,userID, pbkey, null);
-                    updated = true;
-                }
+
             }
         }
 
-
         // Try to validate other users
-        updated = updated || validateAllUsers();
+        boolean validate = validateA    llUsers();
+        updated = updated || validate;
 
         // Return the new key-bank
         return keyBankToString();
     }
 
-    private void addKeyRecord(KeyBank kb, String userID, byte[] pbkey, byte[] sk) {
+    private void addKeyRecord(UsersManager kb, String userID, byte[] pbKey, byte[] sk) {
         Log.i(TAG, "Adding KeyRecord to user: " + this.userID);
-        byte[] signature = CryptoUtils.calculateMAC(pbkey, getSecret(this.userID));
+        byte[] signature = CryptoUtils.calculateMAC(pbKey, getSecret(this.userID));
         byte[] encSK = null;
         if (sk != null) {
             Log.i(TAG, "KeyRecord for user: " + this.userID + " have a valid SK");
             encSK = CryptoUtils.encryptSymmetricKey(sk, asymKeyPair.getPublic());
+            usersManager.addUser(userID,pbKey, encSK, signature);
+            usersManager.authUser(userID);
         } else {
             Log.i(TAG, "KeyRecord for user: " + this.userID + " doesn't have a valid SK yet");
+            usersManager.addUser(userID,pbKey, encSK, signature);
         }
-        kb.put(userID, new KeyRecord(pbkey, encSK, signature));
+
     }
 
     public byte[] getSK() {
         Log.i(TAG, "Searching the KeyRecord for user: " + this.userID);
-        KeyRecord keyRecord = keyBank.get(this.userID);
+
         // No such user
-        if (keyRecord == null) {
+        if (!usersManager.userExists(this.userID)) {
             Log.w(TAG, "No KeyRecord for user: " + this.userID);
             return null;
         }
 
-        byte[] encSK = keyRecord.encSK;
+
+        byte[] encSK = usersManager.getSK(this.userID) ;
         // User is not validated yet
         if (encSK == null) {
             Log.i(TAG, "Found an empty encSK for user: " + this.userID);
@@ -227,31 +218,23 @@ public class KeyManager {
         Log.i(TAG, "Generate list of users");
         HashMap<String, Boolean> users = new HashMap<String, Boolean>();
 
-        // Iterate the users, find if validated
-//        for (String curUserID : keyBank.keySet()) {
-//            Log.i(TAG,"Adding user " + curUserID);
-//            KeyRecord keyRecord = keyBank.get(curUserID);
-//            if (keyRecord.encSK != null) {
-//                users.put(curUserID,true);
-//            } else {
-//                users.put(curUserID,false);
-//            }
-//        }
-
         for (String curUserID : usersManager.getUsers()) {
-            Log.i(TAG,"Adding user " + curUserID);
             users.put(curUserID,usersManager.userExists(curUserID));
         }
 
         return users;
     }
 
-    // update new SK for users after deletion
-    public void removeUser(String user) {
+    public void authUser(String user) {
+        Log.i(TAG, "A User " + user);
+        usersManager.authUser(user);
+        updated = true;
+    }
 
-        Log.i(TAG, "remove User " + user);
-        usersToRemove.add(user);
-        usersRemoved = false;
+    // Mark user for removal
+    public void removeUser(String user) {
+        Log.i(TAG, "Mark User to remove " + user);
+        usersManager.markToRemoveUser(user);
         updated = true;
 
     }
@@ -269,45 +252,48 @@ public class KeyManager {
         }
 
         // Generate new random SK since user has been removed
-        if (usersToRemove.size() > 0 && !usersRemoved) {
-            realSK = CryptoUtils.generateRandomSymmetricKey();;
+        if (usersManager.needsRemoval()) {
+            Log.i(TAG, "All Users revalidated, a user has been removed");
+            realSK = CryptoUtils.generateRandomSymmetricKey();
+            Log.i(TAG, "Real SK Generated: " + realSK.toString());
         }
 
         // Iterate the users validate them
-        for (String curUserID : keyBank.keySet()) {
-            if (usersToRemove.contains(curUserID)) {
-                keyBank.remove(curUserID);
-                usersManager.removeUser(userID);
-                continue;
-            }
+        for (String curUserID : usersManager.getUsers()) {
 
-            KeyRecord keyRecord = keyBank.get(curUserID);
-            if (usersToRemove.size() > 0 && !usersRemoved) {
-                Log.i(TAG, "All Users revalidated, a user has been removed");
-                validateUser(realSK, curUserID, keyRecord);
-                userValidated = true;
-                if (!usersManager.userExists(userID))
-                    usersManager.addUser(userID);
+
+
+            if (usersManager.needsRemoval()) {
+
+                if (usersManager.userShouldBeRemoved(curUserID)) {
+//                usersManager.removeUser(curUserID);
+                    continue;
+                } else {
+
+                    validateUser(realSK, curUserID);
+                    userValidated = true;
+                }
+//                if (!usersManager.userExists(userID))
+//                    usersManager.updateSK(realSK);
             } else {
 
                 // No need to validate my user
                 if (this.userID.equals(curUserID)) {
-                    if (!usersManager.userExists(userID))
-                        usersManager.addUser(userID);
+//                    if (!usersManager.userExists(userID))
+//                        usersManager.addUser(userID);
                     continue;
                 }
 
                 // User has an SK, so we don't need to validate it
-                if (keyRecord.encSK != null) {
+                if (usersManager.getSK(curUserID) != null) {
                     Log.i(TAG, "User: " + curUserID + " has encSK - no need to validated him");
                     continue;
                 } else {
                     Log.i(TAG, "User: " + curUserID + " has no encSK and need to be validated");
-                    validateUser(realSK, curUserID, keyRecord);
+                    validateUser(realSK, curUserID);
                     userValidated = true;
                 }
-                if (!usersManager.userExists(userID))
-                    usersManager.addUser(userID);
+
             }
         }
 
@@ -315,16 +301,16 @@ public class KeyManager {
     }
 
 
-    private boolean validateUser(byte[] realSK, String userID, KeyRecord keyRecord) {
+    private boolean validateUser(byte[] realSK, String userID) {
 
         // Validate the user's KeyRecord
-        boolean valid = validateSignature(userID, keyRecord);
+        boolean valid = validateSignature(userID);
 
         // If valid, add an encrypted version of SK to the user KeyRecord
         if (valid) {
             Log.i(TAG, "User: " + userID + " has a valid signature, create encSK with his PublicKey");
             PublicKey userPbKey = null;
-            final byte[] pbKeyBytes = keyRecord.pbKey;
+            final byte[] pbKeyBytes = usersManager.getPbKey(userID);
 
             try {
                 userPbKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM).
@@ -333,7 +319,7 @@ public class KeyManager {
                 Log.e(TAG, e.getMessage());
             }
 
-            keyRecord.encSK = CryptoUtils.encryptSymmetricKey(realSK, userPbKey);
+            usersManager.updateSK(userID,CryptoUtils.encryptSymmetricKey(realSK, userPbKey));
             return true;
         } else {
             Log.w(TAG, "User: " + userID + " doesn't have a valid signature, ignore him");
@@ -341,8 +327,10 @@ public class KeyManager {
         return false;
     }
 
-    private boolean validateSignature(String userID, KeyRecord keyRecord) {
-        return (keyRecord != null) && validateSignature(keyRecord.signature, keyRecord.pbKey, userID);
+    private boolean validateSignature(String userID) {
+        return usersManager.userExists(userID) && validateSignature(usersManager.getSignature(userID),
+                                                        usersManager.getPbKey(userID),
+                                                        userID);
     }
 
     private boolean validateSignature(byte[] signature, byte[] pbkey, String userID) {
@@ -366,9 +354,9 @@ public class KeyManager {
             return null;
     }
 
-    private KeyBank stringToKeyBank(String data) {
+    private void readUsersFromKeyBank(String data) {
         Log.i(TAG, "Converting a string to KeyBank");
-        KeyBank keyRecords = new KeyBank();
+        //KeyBank keyRecords = new KeyBank();
 
         try {
             JSONObject rootObj = new JSONObject(data);
@@ -386,18 +374,28 @@ public class KeyManager {
                 byte[] encsk = encskStr.isEmpty() ? null : Base64.decode(encskStr, Base64.DEFAULT);
                 byte[] signature = Base64.decode(userObj.optString(SIGNATURE_ATTR), Base64.DEFAULT);
 
-                keyRecords.put(userID, new KeyRecord(pbkey, encsk, signature));
+
+//                if (getSK() != null) {
+//                    Log.w(TAG, "User: " + this.userID + " already exists, and has a valid SK");
+//                } else {
+//                    Log.w(TAG, "User: " + this.userID + " has an SK, but can't decrypt it. Add a new KeyRecord for him");
+//                if (!usersManager.userExists(userID)) {
+//                    updated = true;
+//                }
+                usersManager.addUser(userID, pbkey, encsk, signature);
+                    //addKeyRecord(keyBank,userID, pbkey, null);
+
+//                }
             }
         } catch (JSONException e) {
             Log.e(TAG, e.getMessage());
-            return null;
+            //return null;
         }
-        return keyRecords;
+        //return keyRecords;
     }
 
     public void setUpdated(boolean state) {
-        usersToRemove.clear();
-        usersRemoved = !state;
+        usersManager.usersRemoved();
         updated = state;
     }
 
@@ -411,18 +409,19 @@ public class KeyManager {
             JSONArray keybank = new JSONArray();
 
             // Iterate the users set and create JSONArray
-            for (String userID : keyBank.keySet()) {
+            for (String userID : usersManager.getValidUsers()) {
 
                 JSONObject userObj = new JSONObject();
-                KeyRecord keyRecord = keyBank.get(userID);
+                //KeyRecord keyRecord = keyBank.get(userID);
+                Log.i(TAG,"Adding user " + userID + " To Serialized KeyBank");
                 userObj.put(USER_ID_ATTR, userID);
-                userObj.put(PUBLIC_KEY_ATTR, Base64.encodeToString(keyRecord.pbKey, Base64.DEFAULT));
-                if (keyRecord.encSK == null) {
+                userObj.put(PUBLIC_KEY_ATTR, Base64.encodeToString(usersManager.getPbKey(userID), Base64.DEFAULT));
+                if (usersManager.getSK(userID) == null) {
                     userObj.put(ENC_SK_ATTR, "");
                 } else {
-                    userObj.put(ENC_SK_ATTR, Base64.encodeToString(keyRecord.encSK, Base64.DEFAULT));
+                    userObj.put(ENC_SK_ATTR, Base64.encodeToString(usersManager.getSK(userID), Base64.DEFAULT));
                 }
-                userObj.put(SIGNATURE_ATTR, Base64.encodeToString(keyRecord.signature, Base64.DEFAULT));
+                userObj.put(SIGNATURE_ATTR, Base64.encodeToString(usersManager.getSignature(userID), Base64.DEFAULT));
 
                 keybank.put(userObj);
             }
@@ -446,13 +445,13 @@ public class KeyManager {
             JSONArray skList = new JSONArray();
 
             // Iterate the users set and create JSONArray
-            for (String userID : keyBank.keySet()) {
+            for (String userID : usersManager.getValidUsers()) {
 
                 JSONObject skObj = new JSONObject();
-                KeyRecord keyRecord = keyBank.get(userID);
-                byte[] pbKeyPrefix = Arrays.copyOf(keyRecord.pbKey, PUBLIC_KEY_PREFIX_SIZE);
+                //KeyRecord keyRecord = keyBank.get(userID);
+                byte[] pbKeyPrefix = Arrays.copyOf(usersManager.getPbKey(userID), PUBLIC_KEY_PREFIX_SIZE);
                 skObj.put(PUBLIC_KEY_PREFIX_ATTR, Base64.encodeToString(pbKeyPrefix, Base64.DEFAULT));
-                skObj.put(ENC_SK_ATTR, Base64.encodeToString(keyRecord.encSK, Base64.DEFAULT));
+                skObj.put(ENC_SK_ATTR, Base64.encodeToString(usersManager.getSK(userID), Base64.DEFAULT));
 
                 skList.put(skObj);
             }
@@ -474,8 +473,7 @@ public class KeyManager {
             return null;
         }
         // My PublicKey prefix
-        KeyRecord myKeyRecord = keyBank.get(this.userID);
-        byte[] myPbKeyPrefix = Arrays.copyOfRange(myKeyRecord.pbKey, 0, PUBLIC_KEY_PREFIX_SIZE);
+        byte[] myPbKeyPrefix = Arrays.copyOfRange(usersManager.getPbKey(this.userID), 0, PUBLIC_KEY_PREFIX_SIZE);
 
         try {
             JSONObject rootObj = new JSONObject(data);
@@ -517,21 +515,21 @@ public class KeyManager {
             return null;
         }
     }
-
-    protected class KeyBank extends HashMap<String, KeyRecord> {
-
-    }
-
-    protected class KeyRecord {
-
-        public KeyRecord(byte[] pbKey, byte[] encSK, byte[] signature) {
-            this.pbKey = pbKey;
-            this.encSK = encSK;
-            this.signature = signature;
-        }
-
-        protected byte[] pbKey;
-        protected byte[] encSK;
-        protected byte[] signature;
-    }
+//
+//    protected class KeyBank extends HashMap<String, KeyRecord> {
+//
+//    }
+//
+//    protected class KeyRecord {
+//
+//        public KeyRecord(byte[] pbKey, byte[] encSK, byte[] signature) {
+//            this.pbKey = pbKey;
+//            this.encSK = encSK;
+//            this.signature = signature;
+//        }
+//
+//        protected byte[] pbKey;
+//        protected byte[] encSK;
+//        protected byte[] signature;
+//    }
 }

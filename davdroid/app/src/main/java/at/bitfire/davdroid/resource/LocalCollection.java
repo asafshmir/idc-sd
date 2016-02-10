@@ -343,9 +343,9 @@ public abstract class LocalCollection<T extends Resource> {
 
     /** Enqueues updating an existing resource in the local collection. The resource will be found by
      * the remote file name and all data will be updated. Requires commit(). */
-    public void updateKeyManager() throws LocalStorageException {
-        T localResource = findByRealName(KeyManager.KEY_STORAGE_EVENT_NAME,true);
-
+    public void updateKeyManager(Resource localResource) throws LocalStorageException {
+        //T localResource = findByRealName(KeyManager.KEY_STORAGE_EVENT_NAME,true);
+        Log.i(TAG,"Local ID is: " + localResource.getLocalID());
         pendingOperations.add(
                 buildEntry(ContentProviderOperation.newUpdate(ContentUris.withAppendedId(entriesURI(), localResource.getLocalID())), localResource)
                         .withValue(entryColumnDirty(), 1)
@@ -394,6 +394,9 @@ public abstract class LocalCollection<T extends Resource> {
 		if (!pendingOperations.isEmpty())
 			try {
 				Log.d(TAG, "Committing " + pendingOperations.size() + " operations");
+                for (int i = 0; i < pendingOperations.size(); i++) {
+                    Log.i(TAG, "Pending Operation " + i + " is: " + pendingOperations.get(i).toString());
+                }
 				providerClient.applyBatch(pendingOperations);
 				pendingOperations.clear();
 			} catch (RemoteException ex) {

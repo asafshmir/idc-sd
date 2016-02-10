@@ -119,7 +119,11 @@ public class RemoveAccountActivity extends Activity {
                                 "Clicked on Checkbox: " + cb.getText() +
                                         " is " + cb.isChecked(),
                                 Toast.LENGTH_LONG).show();
-                        KeyManager.getInstance().removeUser(account.getName());
+                        if (cb.isChecked()) {
+                            KeyManager.getInstance().authUser(cb.getText().toString());
+                        } else {
+                            KeyManager.getInstance().removeUser(cb.getText().toString());
+                        }
                         account.setSelected(cb.isChecked());
                     }
                 });
