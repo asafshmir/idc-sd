@@ -110,6 +110,15 @@ public class UsersManager  {
     }
 
     /**
+     * Authorize user
+     * @param user the userID to authorize
+     */
+    public boolean isAuthorized(String user) {
+        return usersData.containsKey(user) && usersData.get(user).state;
+
+    }
+
+    /**
      * Mark user for removal
      * @param user the userID to mark for removal
      */

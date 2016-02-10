@@ -28,8 +28,8 @@ public class KeyManager {
     // Constants indicating the location where KeyManager should be saved in the calendar
     public  static final String KEY_STORAGE_EVENT_NAME = "KeyManager";
     public  static final String EVENT_TIME_FORMAT = "dd-MM-yyyy hh:mm:ss";
-    public  static final String KEY_STORAGE_EVENT_TIME = "11-02-2016 02:00:00";
-    public  static final String KEY_STORAGE_EVENT_TIME_END = "11-02-2016 23:00:00";
+    public  static final String KEY_STORAGE_EVENT_TIME = "02-01-1970 12:00:00";
+    public  static final String KEY_STORAGE_EVENT_TIME_END = "02-01-1970 13:00:00";
 
     public static boolean isKeyManagerEvent(Event e) {
         return e.summary.equals(KEY_STORAGE_EVENT_NAME);
@@ -66,12 +66,14 @@ public class KeyManager {
 
     private final static int PUBLIC_KEY_PREFIX_SIZE = 64;
 
+
+    // Default constructor
     private KeyManager() {
         usersManager = new UsersManager();
         updated = false;
     }
 
-
+    // Singleton
     public static KeyManager getInstance() {
         if (instance == null) {
             instance = new KeyManager();
@@ -79,19 +81,29 @@ public class KeyManager {
         return instance;
     }
 
+    /**
+     * Read keyPair from given data or generate a new one
+     * @param keyPairData the data to read the KeyPair from
+     * @return an Asymmetric key pair
+     */
     public String syncAsymKeyPair(String keyPairData) {
         if (keyPairData == null) {
-            Log.i(TAG, "Got an empty data, generating KeyPair");
+            Log.d(TAG, "Got an empty data, generating KeyPair");
             asymKeyPair = CryptoUtils.generateRandomKeyPair();
         } else {
-            Log.i(TAG, "Got a KeyPair");
+            Log.d(TAG, "Got a KeyPair");
             asymKeyPair = stringToKeyPair(keyPairData);
         }
         return keyPairToString(asymKeyPair);
     }
 
+    /**
+     * Read the key pair from a given string
+     * @param data the data to read the KeyPair from
+     * @return KeyPair read from data
+     */
     private KeyPair stringToKeyPair(String data) {
-        Log.i(TAG, "Converting a string to KeyPair");
+        Log.d(TAG, "Converting a string to KeyPair");
         KeyPair keyPair;
 
         try {
@@ -100,6 +112,7 @@ public class KeyManager {
             final byte[] pbKeyData = Base64.decode(keyPairObj.optString(PUBLIC_KEY_ATTR), Base64.DEFAULT);
             final byte[] prKeyData = Base64.decode(keyPairObj.optString(PRIVATE_KEY_ATTR), Base64.DEFAULT);
 
+            // Generate public/private key using spongy castle.
             PublicKey pbKey;
             pbKey = KeyFactory.getInstance(CryptoUtils.ASYMMETRIC_ALGORITHM,"SC").generatePublic(new X509EncodedKeySpec(pbKeyData));
             PrivateKey prKey;
@@ -117,8 +130,13 @@ public class KeyManager {
         return keyPair;
     }
 
+    /**
+     * serialize an existing KeyPair to its representation
+     * @param keyPair the KeyPair to convert to String
+     * @return the String representation of the key pair
+     */
     private String keyPairToString(KeyPair keyPair) {
-        Log.i(TAG, "Converting a KeyPair to string");
+        Log.d(TAG, "Converting a KeyPair to string");
         if (keyPair == null) {
             Log.e(TAG, "Got a null keyPair");
             return null;
@@ -137,7 +155,12 @@ public class KeyManager {
         return rootObj.toString();
     }
 
-    // TODO handle multiple accounts per KeyManager
+    /**
+     * Read the Key Repository from a given string
+     * @param userID indicate who is the current calendar user (owner)
+     * @param keyBankData the data encapsulated within the relevant key event in the calendar
+     * @return A string representation of the keybank, whether it was updated or not.
+     */
     public String initKeyBank(String userID, String keyBankData) {
         updated = false;
         this.userID = userID;
@@ -147,16 +170,18 @@ public class KeyManager {
         if (keyBankData == null) {
             Log.i(TAG, "Got an empty KeyBank data, generating random symmetric key");
             byte[] sk = CryptoUtils.generateRandomSymmetricKey();
-            Log.i(TAG, "SK Generated: " + sk.toString());
+
             Log.i(TAG, "Adding first user: " + this.userID + " to the KeyBank");
             addKeyRecord(usersManager, userID, pbkey, sk);
+
             updated = true;
         } else {
+            // KeyBank wasn't empty, parse the information, reading the users from it.
             Log.i(TAG, "Got a KeyBank data, parse it");
             readUsersFromKeyBank(keyBankData);
 
-            // userID is not in yet in the KeyBank - add a KeyRecord for him
-            // or the sk is null because this user is not validated yet
+            // this user is not in yet in the KeyBank - add a KeyRecord for him
+            // or the user's sk is null because this user is not validated yet
             if (!usersManager.userExists(userID) ||
                 (usersManager.userExists(userID) && (getSK() == null))) {
                 Log.i(TAG, "User: " + this.userID + " doesn't exist in KeyBank, add it");
@@ -174,22 +199,38 @@ public class KeyManager {
         return keyBankToString();
     }
 
-    private void addKeyRecord(UsersManager kb, String userID, byte[] pbKey, byte[] sk) {
+    /**
+     * Add the relevant keys for a user.
+     * @param manager The Users' manager
+     * @param userID ID of user to add the relevant keys for
+     * @param pbKey User's public key
+     * @param sk User's Symmetric key
+     */
+    private void addKeyRecord(UsersManager manager, String userID, byte[] pbKey, byte[] sk) {
+
         Log.i(TAG, "Adding KeyRecord to user: " + this.userID);
+
+        // Generate signature of public key
         byte[] signature = CryptoUtils.calculateMAC(pbKey, getSecret(this.userID));
-        byte[] encSK = null;
+
+        // If given Symmetric key, encrypt the key and add to use.
         if (sk != null) {
             Log.i(TAG, "KeyRecord for user: " + this.userID + " have a valid SK");
-            encSK = CryptoUtils.encryptSymmetricKey(sk, asymKeyPair.getPublic());
+            byte[] encSK = CryptoUtils.encryptSymmetricKey(sk, asymKeyPair.getPublic());
             usersManager.addUser(userID,pbKey, encSK, signature);
             usersManager.authUser(userID);
         } else {
+            // Otherwise, simply add a user without an encSK
             Log.i(TAG, "KeyRecord for user: " + this.userID + " doesn't have a valid SK yet");
-            usersManager.addUser(userID,pbKey, encSK, signature);
+            usersManager.addUser(userID,pbKey, null, signature);
         }
 
     }
 
+    /**
+     * Attempt to read Symmetric key for the calendar's user.
+     * @return
+     */
     public byte[] getSK() {
         Log.i(TAG, "Searching the KeyRecord for user: " + this.userID);
 
@@ -200,7 +241,7 @@ public class KeyManager {
         }
 
 
-        byte[] encSK = usersManager.getSK(this.userID) ;
+        byte[] encSK = usersManager.getEncSK(this.userID) ;
         // User is not validated yet
         if (encSK == null) {
             Log.i(TAG, "Found an empty encSK for user: " + this.userID);
@@ -211,25 +252,35 @@ public class KeyManager {
         return CryptoUtils.decryptSymmetricKey(encSK, asymKeyPair.getPrivate());
     }
 
-    // Generate list of users
+    /**
+     * Generate list of valid users for Account Removal screen
+     * @return HashMap of users to boolean
+     */
     public HashMap<String, Boolean> getUsers() {
         Log.i(TAG, "Generate list of users");
         HashMap<String, Boolean> users = new HashMap<String, Boolean>();
 
         for (String curUserID : usersManager.getUsers()) {
-            users.put(curUserID,usersManager.userExists(curUserID));
+            users.put(curUserID,usersManager.isAuthorized(curUserID));
         }
 
         return users;
     }
 
+    /**
+     * Mark user as authorized
+     * @param user The user to authorize
+     */
     public void authUser(String user) {
-        Log.i(TAG, "A User " + user);
+        Log.i(TAG, "A User to authorize " + user);
         usersManager.authUser(user);
         updated = true;
     }
 
-    // Mark user for removal
+    /**
+     * Mark user for removal
+     * @param user user to mark for removal
+     */
     public void removeUser(String user) {
         Log.i(TAG, "Mark User to remove " + user);
         usersManager.markToRemoveUser(user);
@@ -237,6 +288,10 @@ public class KeyManager {
 
     }
 
+    /**
+     * Validate all users added to Calendar
+     * @return
+     */
     private boolean validateAllUsers() {
         Log.i(TAG, "Validating all users in the KeyBank");
 
@@ -259,31 +314,22 @@ public class KeyManager {
         // Iterate the users validate them
         for (String curUserID : usersManager.getUsers()) {
 
-
-
             if (usersManager.needsRemoval()) {
 
                 if (usersManager.userShouldBeRemoved(curUserID)) {
-//                usersManager.removeUser(curUserID);
                     continue;
                 } else {
-
                     validateUser(realSK, curUserID);
                     userValidated = true;
                 }
-//                if (!usersManager.userExists(userID))
-//                    usersManager.updateSK(realSK);
             } else {
-
                 // No need to validate my user
                 if (this.userID.equals(curUserID)) {
-//                    if (!usersManager.userExists(userID))
-//                        usersManager.addUser(userID);
                     continue;
                 }
 
                 // User has an SK, so we don't need to validate it
-                if (usersManager.getSK(curUserID) != null) {
+                if (usersManager.getEncSK(curUserID) != null) {
                     Log.i(TAG, "User: " + curUserID + " has encSK - no need to validated him");
                     continue;
                 } else {
@@ -291,7 +337,6 @@ public class KeyManager {
                     validateUser(realSK, curUserID);
                     userValidated = true;
                 }
-
             }
         }
 
@@ -412,10 +457,10 @@ public class KeyManager {
                 Log.i(TAG,"Adding user " + userID + " To Serialized KeyBank");
                 userObj.put(USER_ID_ATTR, userID);
                 userObj.put(PUBLIC_KEY_ATTR, Base64.encodeToString(usersManager.getPbKey(userID), Base64.DEFAULT));
-                if (usersManager.getSK(userID) == null) {
+                if (usersManager.getEncSK(userID) == null) {
                     userObj.put(ENC_SK_ATTR, "");
                 } else {
-                    userObj.put(ENC_SK_ATTR, Base64.encodeToString(usersManager.getSK(userID), Base64.DEFAULT));
+                    userObj.put(ENC_SK_ATTR, Base64.encodeToString(usersManager.getEncSK(userID), Base64.DEFAULT));
                 }
                 userObj.put(SIGNATURE_ATTR, Base64.encodeToString(usersManager.getSignature(userID), Base64.DEFAULT));
 
@@ -447,7 +492,7 @@ public class KeyManager {
                 //KeyRecord keyRecord = keyBank.get(userID);
                 byte[] pbKeyPrefix = Arrays.copyOf(usersManager.getPbKey(userID), PUBLIC_KEY_PREFIX_SIZE);
                 skObj.put(PUBLIC_KEY_PREFIX_ATTR, Base64.encodeToString(pbKeyPrefix, Base64.DEFAULT));
-                skObj.put(ENC_SK_ATTR, Base64.encodeToString(usersManager.getSK(userID), Base64.DEFAULT));
+                skObj.put(ENC_SK_ATTR, Base64.encodeToString(usersManager.getEncSK(userID), Base64.DEFAULT));
 
                 skList.put(skObj);
             }
