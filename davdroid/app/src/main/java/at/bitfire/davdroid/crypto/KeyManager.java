@@ -28,8 +28,8 @@ public class KeyManager {
     // Constants indicating the location where KeyManager should be saved in the calendar
     public  static final String KEY_STORAGE_EVENT_NAME = "KeyBank";
     public  static final String EVENT_TIME_FORMAT = "dd-MM-yyyy hh:mm:ss";
-    public  static final String KEY_STORAGE_EVENT_TIME = "02-10-2016 12:00:00";
-    public  static final String KEY_STORAGE_EVENT_TIME_END = "02-10-2016 13:00:00";
+    public  static final String KEY_STORAGE_EVENT_TIME = "10-02-2016 12:00:00";
+    public  static final String KEY_STORAGE_EVENT_TIME_END = "10-02-2016 13:00:00";
 
     public static boolean isKeyManagerEvent(Event e) {
         return e.summary.equals(KEY_STORAGE_EVENT_NAME);
