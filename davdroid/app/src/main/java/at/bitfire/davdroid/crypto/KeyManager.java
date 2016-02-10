@@ -28,8 +28,8 @@ public class KeyManager {
     // Constants indicating the location where KeyManager should be saved in the calendar
     public  static final String KEY_STORAGE_EVENT_NAME = "KeyManager";
     public  static final String EVENT_TIME_FORMAT = "dd-MM-yyyy hh:mm:ss";
-    public  static final String KEY_STORAGE_EVENT_TIME = "02-01-1970 12:00:00";
-    public  static final String KEY_STORAGE_EVENT_TIME_END = "02-01-1970 13:00:00";
+    public  static final String KEY_STORAGE_EVENT_TIME = "10-02-2016 12:00:00";
+    public  static final String KEY_STORAGE_EVENT_TIME_END = "10-02-2016 13:00:00";
 
     public static boolean isKeyManagerEvent(Event e) {
         return e.summary.equals(KEY_STORAGE_EVENT_NAME);
@@ -290,7 +290,7 @@ public class KeyManager {
 
     /**
      * Validate all users added to Calendar
-     * @return
+     * @return whether any user has been validated
      */
     private boolean validateAllUsers() {
         Log.i(TAG, "Validating all users in the KeyBank");
@@ -314,6 +314,7 @@ public class KeyManager {
         // Iterate the users validate them
         for (String curUserID : usersManager.getUsers()) {
 
+            // If a user needs removal, we update the SK for all users.
             if (usersManager.needsRemoval()) {
 
                 if (usersManager.userShouldBeRemoved(curUserID)) {
@@ -344,6 +345,12 @@ public class KeyManager {
     }
 
 
+    /**
+     * Validate one user
+     * @param realSK The Symmetric key to assign the user
+     * @param userID The user to assign a new Symmetric key to
+     * @return Whether the user has been validated successfully.
+     */
     private boolean validateUser(byte[] realSK, String userID) {
 
         // Validate the user's KeyRecord
@@ -370,12 +377,22 @@ public class KeyManager {
         return false;
     }
 
+    /**
+     * Validate the signature for the user
+     * @param userID User to update signature for
+     * @return whether the signature has been updated
+     */
     private boolean validateSignature(String userID) {
         return usersManager.userExists(userID) && validateSignature(usersManager.getSignature(userID),
                                                         usersManager.getPbKey(userID),
                                                         userID);
     }
 
+    /**
+     * Validate the signature for the user
+     * @param userID User to update signature for
+     * @return whether the signature has been updated
+     */
     private boolean validateSignature(byte[] signature, byte[] pbkey, String userID) {
 
         // Get the user's secret
@@ -388,6 +405,11 @@ public class KeyManager {
         return Arrays.equals(mac, signature);
     }
 
+    /**
+     * Read the Secret for a specific user
+     * @param userID The userID whose secret whould be returned
+     * @return the user's secret
+     */
     private byte[] getSecret(String userID) {
         Log.i(TAG,"Getting Secret for " + userID);
         String secret = usersManager.getSecret(userID);
@@ -397,9 +419,14 @@ public class KeyManager {
             return null;
     }
 
+    /**
+     * Read the users stored in the Key Event
+     * @param data A string representating the Key Event.
+     */
     private void readUsersFromKeyBank(String data) {
         Log.i(TAG, "Converting a string to KeyBank");
 
+        // Mark all users to keep, and add each one out
         for (String curUserID : usersManager.getUsers()) {
             usersManager.markToRemoveUser(curUserID);
         }
@@ -435,9 +462,13 @@ public class KeyManager {
 
     }
 
-    public void setUpdated(boolean state) {
+    /**
+     * Update the usersManager and KeyManager when the local
+     * KeyManager has been updated to the remote calendar.
+     */
+    public void setUpdated() {
         usersManager.usersRemoved();
-        updated = state;
+        updated = false;
     }
 
     private String keyBankToString()  {

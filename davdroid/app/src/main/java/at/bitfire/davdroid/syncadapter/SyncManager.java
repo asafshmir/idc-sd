@@ -63,7 +63,7 @@ public class SyncManager {
                 Log.i(TAG, "Updating KeyManager event");
                 local.updateKeyManager(event);
                 local.commit();
-//                KeyManager.getInstance().setUpdated(false);
+
                 return true;
             }
 
@@ -282,7 +282,7 @@ public class SyncManager {
                             if (eTag != null)
                                 local.updateETag(res, eTag);
                             local.clearDirty(res);
-                            KeyManager.getInstance().setUpdated(false);
+                            KeyManager.getInstance().setUpdated();
                         }
                     }
                 } catch (Exception e) {
