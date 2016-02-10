@@ -121,6 +121,10 @@ public class KeyManager {
 
     private String keyPairToString(KeyPair keyPair) {
         Log.i(TAG, "Converting a KeyPair to string");
+        if (keyPair == null) {
+            Log.e(TAG, "Got a null keyPair");
+            return null;
+        }
         JSONObject rootObj = new JSONObject();
 
         try {

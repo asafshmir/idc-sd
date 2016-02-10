@@ -199,7 +199,7 @@ public class CryptoUtils {
         int size = Long.SIZE / Byte.SIZE;
         ByteBuffer buffer = ByteBuffer.allocate(size);
         buffer.put(mac, 0, size);
-
+        buffer.flip();
         return buffer.getLong();
     }
 }
