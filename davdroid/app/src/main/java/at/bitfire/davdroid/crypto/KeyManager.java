@@ -26,7 +26,7 @@ public class KeyManager {
 
     private static final String TAG = "davdroid.KeyManager";
     //TODO move constants to SyncManager
-    public static final String KEY_STORAGE_EVENT_NAME = "KeyManagerBB";
+    public static final String KEY_STORAGE_EVENT_NAME = "KeyManagerDD";
     public  static final String EVENT_TIME_FORMAT = "dd-MM-yyyy hh:mm:ss";
     public  static final String KEY_STORAGE_EVENT_TIME = "04-02-2016 00:00:00";
     public  static final String KEY_STORAGE_EVENT_TIME_END = "04-02-2016 23:00:00";
@@ -145,6 +145,7 @@ public class KeyManager {
         if (keyBankData == null) {
             Log.i(TAG, "Got an empty KeyBank data, generating random symmetric key");
             byte[] sk = CryptoUtils.generateRandomSymmetricKey();
+            Log.i(TAG, "SK Generated: " + sk.toString());
             Log.i(TAG, "Adding first user: " + this.userID + " to the KeyBank");
             addKeyRecord(usersManager, userID, pbkey, sk);
             updated = true;
@@ -167,9 +168,9 @@ public class KeyManager {
             }
         }
 
-
         // Try to validate other users
-        updated = updated || validateAllUsers();
+        boolean validate = validateAllUsers();
+        updated = updated || validate;
 
         // Return the new key-bank
         return keyBankToString();
@@ -253,7 +254,8 @@ public class KeyManager {
         // Generate new random SK since user has been removed
         if (usersManager.needsRemoval()) {
             Log.i(TAG, "All Users revalidated, a user has been removed");
-            realSK = CryptoUtils.generateRandomSymmetricKey();;
+            realSK = CryptoUtils.generateRandomSymmetricKey();
+            Log.i(TAG, "Real SK Generated: " + realSK.toString());
         }
 
         // Iterate the users validate them
