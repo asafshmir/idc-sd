@@ -26,7 +26,7 @@ public class KeyManager {
 
     private static final String TAG = "davdroid.KeyManager";
     //TODO move constants to SyncManager
-    public static final String KEY_STORAGE_EVENT_NAME = "KeyManagerDD";
+    public static final String KEY_STORAGE_EVENT_NAME = "KeyManagerPleaseWork";
     public  static final String EVENT_TIME_FORMAT = "dd-MM-yyyy hh:mm:ss";
     public  static final String KEY_STORAGE_EVENT_TIME = "04-02-2016 00:00:00";
     public  static final String KEY_STORAGE_EVENT_TIME_END = "04-02-2016 23:00:00";
@@ -169,7 +169,7 @@ public class KeyManager {
         }
 
         // Try to validate other users
-        boolean validate = validateA    llUsers();
+        boolean validate = validateAllUsers();
         updated = updated || validate;
 
         // Return the new key-bank
