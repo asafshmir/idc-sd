@@ -590,6 +590,7 @@ public class Event extends Resource {
      */
     private static String encryptAndEncode(byte[] key, String data) {
         Log.d(TAG, "encrypting data: '" + data + "'");
+        Log.d(TAG, "encrypting data with key: '" + key.toString() + "'");
         return Base64.encodeToString(CryptoUtils.encrypt(key, data.getBytes()), Base64.DEFAULT);
     }
 
