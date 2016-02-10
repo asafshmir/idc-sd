@@ -40,7 +40,7 @@ public class CryptoUtils {
     public static final String ASYMMETRIC_ALGORITHM = "ElGamal";
 
     /** The asymmetric crypto algorithm key size */
-    public static final int ASYMMETRIC_KEY_SIZE = 1024;
+    public static final int ASYMMETRIC_KEY_SIZE = 1024; 
 
     /** The symmetric crypto algorithm */
     public static final String SYMMETRIC_ALGORITHM = "AES";
