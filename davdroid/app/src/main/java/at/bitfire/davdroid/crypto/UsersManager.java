@@ -82,7 +82,7 @@ public interface UsersManager {
 
     public boolean userShouldBeRemoved(String userID);
 
-//    public KeyRecord getKeyRecord(String userID);
+//    public KeyRecord  getKeyRecord(String userID);
 
     public byte[] getSK(String userID);
     public byte[] getPbKey(String userID);
