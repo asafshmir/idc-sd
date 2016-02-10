@@ -7,11 +7,7 @@
  */
 package at.bitfire.davdroid.syncadapter;
 
-import android.content.ContentUris;
-import android.content.ContentValues;
 import android.content.SyncResult;
-import android.os.RemoteException;
-import android.provider.CalendarContract;
 import android.util.Log;
 
 import net.fortuna.ical4j.model.ValidationException;
@@ -20,7 +16,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -143,10 +139,14 @@ public class SyncManager {
 			}
 		}
 
-        if (remotelyAdded.toArray(new Resource[0]).length > 0)
-            syncKeyManager(remotelyAdded.toArray(new Resource[0]));
-        if (remotelyUpdated.toArray(new Resource[0]).length > 0)
-            syncKeyManager(remotelyUpdated.toArray(new Resource[0]));
+        if (remotelyAdded.toArray(new Resource[0]).length > 0 ||
+                remotelyUpdated.toArray(new Resource[0]).length > 0) {
+            Set<Resource> list = new HashSet<Resource>(remotelyAdded);
+            list.addAll(remotelyUpdated);
+
+            syncKeyManager(list.toArray(new Resource[0]));
+        }
+
 
 		// PHASE 3: pull remote changes from server
 		syncResult.stats.numInserts = pullNew(remotelyAdded.toArray(new Resource[0]));
@@ -267,10 +267,11 @@ public class SyncManager {
             for (Resource res : remote.multiGet(resources, false)) {
 
                 try {
-                    Log.d(TAG, "Reading KeyManager " + res.getName());
-                    Log.d(TAG, "Reading KeyManager Summary" + ((Event)res).summary);
-                    Log.d(TAG, "Reading KeyManager Description" + ((Event)res).description);
+
                     if (KeyManager.isKeyManagerEvent((Event) res)) {
+                        Log.d(TAG, "Reading KeyManager " + res.getName());
+                        Log.d(TAG, "Reading KeyManager Summary" + ((Event)res).summary);
+                        Log.d(TAG, "Reading KeyManager Description" + ((Event)res).description);
                         Log.d(TAG, "Initing KeyBank " + res.getName());
                         Event keyBank = ((Event)res);
                         keyBank.description = KeyManager.getInstance().initKeyBank(user,keyBank.description);
@@ -284,6 +285,7 @@ public class SyncManager {
                         }
                     }
                 } catch (Exception e) {
+                    Log.i(TAG, "Exception trying to sync KeyManager " + e.getMessage());
                 }
             }
 
