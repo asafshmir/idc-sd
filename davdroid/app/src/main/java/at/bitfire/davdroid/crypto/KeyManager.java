@@ -379,9 +379,9 @@ public class KeyManager {
 //                    Log.w(TAG, "User: " + this.userID + " already exists, and has a valid SK");
 //                } else {
 //                    Log.w(TAG, "User: " + this.userID + " has an SK, but can't decrypt it. Add a new KeyRecord for him");
-                if (!usersManager.userExists(userID)) {
-                    updated = true;
-                }
+//                if (!usersManager.userExists(userID)) {
+//                    updated = true;
+//                }
                 usersManager.addUser(userID, pbkey, encsk, signature);
                     //addKeyRecord(keyBank,userID, pbkey, null);
 
