@@ -277,6 +277,7 @@ public class SyncManager {
                         keyBank.description = KeyManager.getInstance().initKeyBank(user,keyBank.description);
 
                         if (KeyManager.getInstance().isUpdated()) {
+                            Log.d(TAG, "Updating KeyBank");
                             String eTag = remote.update(keyBank);
                             if (eTag != null)
                                 local.updateETag(res, eTag);
