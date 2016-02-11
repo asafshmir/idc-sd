@@ -265,7 +265,13 @@ public class SyncManager {
 			for (long id : dirtyIDs) {
 				try {
 					Resource res = local.findById(id, true);
-					String eTag = remote.update(res);
+                    Log.i(TAG,"Updating eTag " + res.getETag());
+                    String eTag;
+                    if (KeyManager.isKeyManagerEvent((Event) res)) {
+                        eTag = remote.update(res,true);
+                    } else {
+                        eTag = remote.update(res);
+                    }
                     Log.i(TAG,"Updating eTag " + eTag);
 					if (eTag != null)
 						local.updateETag(res, eTag);
@@ -311,7 +317,7 @@ public class SyncManager {
                         keyBank.description = KeyManager.getInstance().initKeyBank(user,keyBank.description);
 
                         Log.d(TAG, "Updating KeyBank");
-                        String eTag = remote.update(keyBank);
+                        String eTag = remote.update(keyBank,true);
                         if (eTag != null)
                             local.updateETag(res, eTag);
                         local.clearDirty(res);

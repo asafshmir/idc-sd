@@ -76,7 +76,8 @@ public class WebDavResource {
 	}
 	public enum PutMode {
 		ADD_DONT_OVERWRITE,
-		UPDATE_DONT_OVERWRITE
+		UPDATE_DONT_OVERWRITE,
+        UPDATE_OVERWRITE
 	}
 
 	// location of this resource
@@ -361,6 +362,8 @@ public class WebDavResource {
 		case UPDATE_DONT_OVERWRITE:
 			put.addHeader("If-Match", (getETag() != null) ? getETag() : "*");
 			break;
+        case UPDATE_OVERWRITE:
+            break;
 		}
 		
 		if (getContentType() != null)

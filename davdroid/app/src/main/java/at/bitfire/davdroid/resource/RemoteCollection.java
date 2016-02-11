@@ -186,13 +186,22 @@ public abstract class RemoteCollection<T extends Resource> {
 		collection.invalidateCTag();
 	}
 
+
+    public String update(Resource res) throws URISyntaxException, IOException, HttpException, ValidationException {
+        return update(res,false);
+    }
+
 	// returns ETag of the updated resource, if returned by server
-	public String update(Resource res) throws URISyntaxException, IOException, HttpException, ValidationException {
+	public String update(Resource res, boolean forceUpdate) throws URISyntaxException, IOException, HttpException, ValidationException {
 		WebDavResource member = new WebDavResource(collection, res.getName(), res.getETag());
 		member.setContentType(res.getMimeType());
 
 		@Cleanup ByteArrayOutputStream os = res.toEntity();
-		String eTag = member.put(os.toByteArray(), PutMode.UPDATE_DONT_OVERWRITE);
+        if (forceUpdate) {
+            String eTag = member.put(os.toByteArray(), PutMode.UPDATE_OVERWRITE);
+        } else {
+            String eTag = member.put(os.toByteArray(), PutMode.UPDATE_DONT_OVERWRITE);
+        }
 
 		// after a successful upload, the collection has implicitely changed, too
 		collection.invalidateCTag();
