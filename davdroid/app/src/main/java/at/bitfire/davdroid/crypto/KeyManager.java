@@ -33,7 +33,7 @@ public class KeyManager {
     public  static final String KEY_STORAGE_EVENT_TIME_END = "10-02-2016 13:00:00";
 
     public static boolean isKeyManagerEvent(Event e) {
-        return e.summary.equals(KEY_STORAGE_EVENT_NAME);
+        return KEY_STORAGE_EVENT_NAME.equals(e.summary);
     }
 
     // Singleton instance
