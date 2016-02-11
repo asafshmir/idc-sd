@@ -197,10 +197,11 @@ public abstract class RemoteCollection<T extends Resource> {
 		member.setContentType(res.getMimeType());
 
 		@Cleanup ByteArrayOutputStream os = res.toEntity();
+        String eTag;
         if (forceUpdate) {
-            String eTag = member.put(os.toByteArray(), PutMode.UPDATE_OVERWRITE);
+            eTag = member.put(os.toByteArray(), PutMode.UPDATE_OVERWRITE);
         } else {
-            String eTag = member.put(os.toByteArray(), PutMode.UPDATE_DONT_OVERWRITE);
+            eTag = member.put(os.toByteArray(), PutMode.UPDATE_DONT_OVERWRITE);
         }
 
 		// after a successful upload, the collection has implicitely changed, too
