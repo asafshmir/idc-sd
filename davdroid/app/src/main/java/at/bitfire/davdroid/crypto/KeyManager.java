@@ -453,6 +453,10 @@ public class KeyManager {
 
                 if (usersManager.userExists(userID)) {
                     usersManager.markToKeepUser(userID);
+                    if (usersManager.getEncSK(userID) == null) {
+                        usersManager.updateSK(userID,encsk);
+                        updated = true;
+                    }
                 } else {
                     usersManager.addUser(userID, pbkey, encsk, signature);
                     updated = true;
