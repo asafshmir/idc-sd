@@ -3,6 +3,7 @@ package at.bitfire.davdroid.crypto;
 import android.util.Log;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -139,6 +140,8 @@ public class UsersManager  {
     }
 
 
+
+
     /**
      * Mark user to keep
      * @param user the userID to mark for keeping
@@ -184,14 +187,14 @@ public class UsersManager  {
      * Returns all users, including users marked for removal
      */
     public Set<String> getUsers() {
-        return usersData.keySet();
+        return new HashSet<String>(usersData.keySet());
     }
 
     /**
      * Returns only valid users, without users marked for removal
      */
     public Set<String> getValidUsers() {
-        Set<String> usersSet = usersData.keySet();
+        Set<String> usersSet = new HashSet<String>(usersData.keySet());
         for (String userID : usersData.keySet()) {
             if (userShouldBeRemoved(userID))
                 usersSet.remove(userID);
@@ -265,7 +268,7 @@ public class UsersManager  {
     }
 
     /**
-     * Update the SK for the userID
+     * Update the SK for the userID, and authorize user
      * @param userID the UserID to look for updating his key
      * @return whether the Symmetric Key update was successful
      */
@@ -273,11 +276,12 @@ public class UsersManager  {
         if (usersData.containsKey(userID)) {
             usersData.put(userID,
                     new UserState(usersData.get(userID).secret,
-                            usersData.get(userID).state,
+                            true,
                             usersData.get(userID).toRemove,
                             usersData.get(userID).pbKey,
                             sk,
                             usersData.get(userID).signature));
+
             return true;
         }
         return false;

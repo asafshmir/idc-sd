@@ -430,9 +430,10 @@ public class KeyManager {
     private void readUsersFromKeyBank(String data) {
         Log.i(TAG, "Converting a string to KeyBank");
 
+        HashMap<String,Boolean> users = new HashMap<String,Boolean>();
         // Mark all users to keep, and add each one out
         for (String curUserID : usersManager.getUsers()) {
-            usersManager.markToRemoveUser(curUserID);
+            users.put(curUserID,true);
         }
 
         try {
@@ -452,7 +453,7 @@ public class KeyManager {
                 byte[] signature = Base64.decode(userObj.optString(SIGNATURE_ATTR), Base64.DEFAULT);
 
                 if (usersManager.userExists(userID)) {
-                    usersManager.markToKeepUser(userID);
+                    users.put(userID,false);
                     if (usersManager.getEncSK(userID) == null) {
                         usersManager.updateSK(userID,encsk);
                         updated = true;
@@ -467,7 +468,12 @@ public class KeyManager {
             }
         } catch (JSONException e) {
             Log.e(TAG, e.getMessage());
-
+        }
+        for (String userID : users.keySet()) {
+            if (users.get(userID) ||
+                    usersManager.userShouldBeRemoved(userID)) {
+                usersManager.markToRemoveUser(userID);
+            }
         }
 
     }
