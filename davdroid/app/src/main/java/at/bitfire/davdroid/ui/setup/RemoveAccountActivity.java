@@ -27,7 +27,9 @@ import java.util.HashMap;
 import at.bitfire.davdroid.R;
 import at.bitfire.davdroid.crypto.KeyManager;
 
-
+/**
+ * A simple UI enabling the removal of users
+ */
 public class RemoveAccountActivity extends Activity {
 
     MyCustomAdapter dataAdapter = null;
@@ -40,27 +42,26 @@ public class RemoveAccountActivity extends Activity {
         //Generate list View from ArrayList
         displayListView();
 
-        checkButtonClick();
-
     }
 
     private void displayListView() {
 
         //Array list of countries
-        ArrayList<Account> accountList = new ArrayList<Account>();
+        ArrayList<User> usersList = new ArrayList<User>();
         HashMap<String,Boolean> users = KeyManager.getInstance().getUsers();
 
 
         for (String userName : users.keySet())
         {
             Log.i("RemoveAccount",userName);
-            Account account = new Account(userName,userName,users.get(userName));
-            accountList.add(account);
+            Log.i("RemoveAccount","User Authorized " + users.get(userName));
+            User user = new User(userName,users.get(userName));
+            usersList.add(user);
         }
 
         //create an ArrayAdaptar from the String Array
         dataAdapter = new MyCustomAdapter(this,
-                R.layout.setup_account_info, accountList);
+                R.layout.setup_account_info, usersList);
         ListView listView = (ListView) findViewById(R.id.remove_list);
         // Assign adapter to ListView
         listView.setAdapter(dataAdapter);
@@ -70,24 +71,24 @@ public class RemoveAccountActivity extends Activity {
             public void onItemClick(AdapterView<?> parent, View view,
                                     int position, long id) {
                 // When clicked, show a toast with the TextView text
-                Account account = (Account) parent.getItemAtPosition(position);
+                User user = (User) parent.getItemAtPosition(position);
                 Toast.makeText(getApplicationContext(),
-                        "Clicked on Row: " + account.getName(),
+                        "Clicked on Row: " + user.getName(),
                         Toast.LENGTH_LONG).show();
             }
         });
 
     }
 
-    private class MyCustomAdapter extends ArrayAdapter<Account> {
+    private class MyCustomAdapter extends ArrayAdapter<User> {
 
-        private ArrayList<Account> accountList;
+        private ArrayList<User> usersList;
 
         public MyCustomAdapter(Context context, int textViewResourceId,
-                               ArrayList<Account> accountList) {
-            super(context, textViewResourceId, accountList);
-            this.accountList = new ArrayList<Account>();
-            this.accountList.addAll(accountList);
+                               ArrayList<User> usersList) {
+            super(context, textViewResourceId, usersList);
+            this.usersList = new ArrayList<User>();
+            this.usersList.addAll(usersList);
         }
 
         private class ViewHolder {
@@ -107,14 +108,14 @@ public class RemoveAccountActivity extends Activity {
                 convertView = vi.inflate(R.layout.setup_account_info, null);
 
                 holder = new ViewHolder();
-                holder.code = (TextView) convertView.findViewById(R.id.code);
+                //holder.code = (TextView) convertView.findViewById(R.id.code);
                 holder.name = (CheckBox) convertView.findViewById(R.id.checkBox1);
                 convertView.setTag(holder);
 
                 holder.name.setOnClickListener( new View.OnClickListener() {
                     public void onClick(View v) {
                         CheckBox cb = (CheckBox) v ;
-                        Account account = (Account) cb.getTag();
+                        User user = (User) cb.getTag();
                         Toast.makeText(getApplicationContext(),
                                 "Clicked on Checkbox: " + cb.getText() +
                                         " is " + cb.isChecked(),
@@ -124,7 +125,7 @@ public class RemoveAccountActivity extends Activity {
                         } else {
                             KeyManager.getInstance().removeUser(cb.getText().toString());
                         }
-                        account.setSelected(cb.isChecked());
+                        user.setSelected(cb.isChecked());
                     }
                 });
             }
@@ -132,11 +133,11 @@ public class RemoveAccountActivity extends Activity {
                 holder = (ViewHolder) convertView.getTag();
             }
 
-            Account account = accountList.get(position);
-            holder.code.setText(" (" +  account.getCode() + ")");
-            holder.name.setText(account.getName());
-            holder.name.setChecked(account.isSelected());
-            holder.name.setTag(account);
+            User user = usersList.get(position);
+
+            holder.name.setText(user.getName());
+            holder.name.setChecked(user.isSelected());
+            holder.name.setTag(user);
 
             return convertView;
 
@@ -144,53 +145,18 @@ public class RemoveAccountActivity extends Activity {
 
     }
 
-    private void checkButtonClick() {
+    public class User {
 
-//
-//        Button myButton = (Button) findViewById(R.id.findSelected);
-//        myButton.setOnClickListener(new View.OnClickListener() {
-//
-//            @Override
-//            public void onClick(View v) {
-//
-//                StringBuffer responseText = new StringBuffer();
-//                responseText.append("The following were selected...\n");
-//
-//                ArrayList<Account> countryList = dataAdapter.accountList;
-//                for (int i = 0; i < countryList.size(); i++) {
-//                    Account country = countryList.get(i);
-//                    if (country.isSelected()) {
-//                        responseText.append("\n" + country.getName());
-//                    }
-//                }
-//
-//                Toast.makeText(getApplicationContext(),
-//                        responseText, Toast.LENGTH_LONG).show();
-//
-//            }
-//        });
 
-    }
-
-    public class Account {
-
-        String code = null;
         String name = null;
         boolean selected = false;
 
-        public Account(String code, String name, boolean selected) {
+        public User(String name, boolean selected) {
             super();
-            this.code = code;
             this.name = name;
             this.selected = selected;
         }
 
-        public String getCode() {
-            return code;
-        }
-        public void setCode(String code) {
-            this.code = code;
-        }
         public String getName() {
             return name;
         }

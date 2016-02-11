@@ -1,36 +1,24 @@
 package at.bitfire.davdroid.crypto;
 
-import android.util.Base64;
 import android.util.Log;
 
-import net.fortuna.ical4j.model.PropertyList;
-
-import org.json.JSONObject;
-import org.spongycastle.crypto.engines.ElGamalEngine;
-
-import java.lang.reflect.Constructor;
 import java.nio.ByteBuffer;
-import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
-import java.security.Security;
-import java.util.Random;
 
-import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.Mac;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import ezvcard.util.org.apache.commons.codec.binary.Hex;
-
+/**
+ * Davka - A Class containing all the Crypto tools we use for the Encrypted Calendar
+ */
 public class CryptoUtils {
 
     /** Tag name */

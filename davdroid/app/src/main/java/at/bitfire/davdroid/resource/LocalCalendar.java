@@ -526,12 +526,16 @@ public class LocalCalendar extends LocalCollection<Event> {
 
 	@Override
 	protected Builder buildEntry(Builder builder, Resource resource) {
+
+        // Davka - We create a fictive "VEvent" without encrypting it,
+        // So we can decrypt the information from it, and build the relevant entry
 		Event encryptedEvent = (Event)resource;
 
         Event event = new Event(encryptedEvent.localID,encryptedEvent.name, encryptedEvent.ETag);
         try {
             event.fromVEvent(encryptedEvent.toVEvent(false));
         } catch (InvalidResourceException e) {
+            Log.e(TAG, "Invalid Resource Exception: " + e.getMessage());
         }
 
 		builder = builder

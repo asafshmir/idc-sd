@@ -92,32 +92,29 @@ import lombok.Setter;
 public class Event extends Resource {
 	private final static String TAG = "davdroid.Event";
 
-    // Using fields in the DAV format that are reserved for future use for the SK list
+    // Davka - Using fields in the DAV format that are reserved for future use for the SK list
     // and the signature for data validation
     private final static String SKLIST_PROPERTY = Property.EXPERIMENTAL_PREFIX + "SKLIST";
     private final static String SIGNATURE_PROPERTY = Property.EXPERIMENTAL_PREFIX + "SIGNATURE";
-
     private final static long ENCRYPTED_DATE_TIMEFRAME = 2592000000L; // = one month
 
-    private final static TimeZoneRegistry tzRegistry = new DefaultTimeZoneRegistryFactory().createRegistry();
 
+    private final static TimeZoneRegistry tzRegistry = new DefaultTimeZoneRegistryFactory().createRegistry();
 
 	@Getter @Setter protected RecurrenceId recurrenceId;
 
     @Getter @Setter public String summary;
-
 	@Getter @Setter public String  description;
     @Getter @Setter public String  location;
-	
 	@Getter protected DtStart dtStart;
 	@Getter protected DtEnd dtEnd;
 	@Getter @Setter protected Duration duration;
+
 	@Getter @Setter protected RDate rdate;
 	@Getter @Setter protected RRule rrule;
 	@Getter @Setter protected ExDate exdate;
 	@Getter @Setter protected ExRule exrule;
-    @Getter @Setter protected String sklist;
-    @Getter @Setter protected String signature;
+
 	@Getter protected List<Event> exceptions = new LinkedList<>();
 
 	@Getter @Setter protected Boolean forPublic;
@@ -130,7 +127,14 @@ public class Event extends Resource {
 
 	@Getter protected List<VAlarm> alarms = new LinkedList<VAlarm>();
 
-	static {
+    // Davka - Symmetric Key List
+    @Getter @Setter protected String sklist;
+
+    // Davka - signature for public key
+    @Getter @Setter protected String signature;
+
+
+    static {
 		CompatibilityHints.setHintEnabled(CompatibilityHints.KEY_RELAXED_UNFOLDING, true);
 		CompatibilityHints.setHintEnabled(CompatibilityHints.KEY_RELAXED_PARSING, true);
 		CompatibilityHints.setHintEnabled(CompatibilityHints.KEY_OUTLOOK_COMPATIBILITY, true);
@@ -190,7 +194,7 @@ public class Event extends Resource {
 		}
 		if (master == null)
 			throw new InvalidResourceException("No VEVENT without RECURRENCE-ID found");
-		// set event data from master VEVENT
+		// Davka - set event data from master VEVENT, decrypt if flagged
 		fromVEvent(master, shouldDecrypt);
 
 		// find and process exceptions
@@ -198,16 +202,24 @@ public class Event extends Resource {
 			VEvent event = (VEvent)objEvent;
 			if (event.getRecurrenceId() != null) {
 				Event exception = new Event(name, null);
+                // Davka - set event data from VEVENT, decrypt if flagged
 				exception.fromVEvent(event, shouldDecrypt);
 				exceptions.add(exception);
 			}
 		}
 	}
 
+    // Decrypt VEvent by default
     protected void fromVEvent(VEvent event) throws InvalidResourceException {
         fromVEvent(event,true);
     }
 
+    /**
+     * Initialize this event with data from VEvent. Decrypt the information if flagged
+     * @param event the source VEvent to read the field from
+     * @param shouldDecrypt whether we should decrypt or not.
+     * @throws InvalidResourceException
+     */
     protected void fromVEvent(VEvent event, boolean shouldDecrypt) throws InvalidResourceException {
 
         if (event.getSummary() != null)
@@ -216,6 +228,9 @@ public class Event extends Resource {
 			location = event.getLocation().getValue();
 		if (event.getDescription() != null)
 			description = event.getDescription().getValue();
+
+        // Davka - new fields added to save crypto information in event
+        // Information includes Symmetric Keys and signature of public key
         if (event.getProperty(SKLIST_PROPERTY) != null)
             sklist = event.getProperty(SKLIST_PROPERTY).getValue();
         if (event.getProperty(SIGNATURE_PROPERTY) != null)
@@ -271,12 +286,13 @@ public class Event extends Resource {
 
         this.alarms = event.getAlarms();
 
+
+        // Davka - Decrypt the event if flagged to decrypt and this isn't the KeyManager event
         if (shouldDecrypt &&
                 !KeyManager.isKeyManagerEvent(this)) {
             decryptVEvent(event);
         }
 
-        Log.i(TAG,"MintSummary " + summary);
     }
 
     /**
@@ -387,10 +403,17 @@ public class Event extends Resource {
 		}
 		return os;
 	}
+
+    // Davka - encrypt a VEvent by default
     protected VEvent toVEvent() {
         return toVEvent(true);
     }
 
+    /**
+     * Convert this event to a VEvent object. Encrypt if flagged
+     * @param shouldEncrypt a flag indicating whether to encrypt the data or not.
+     * @return
+     */
     protected VEvent toVEvent(boolean shouldEncrypt) {
 
         Log.i(TAG,"toVEvent: start");
@@ -424,6 +447,7 @@ public class Event extends Resource {
 
         Log.i(TAG,"Should Encrypt: " + shouldEncrypt);
 
+        // Encrypt field in the event if required
         if (shouldEncrypt &&
                 !KeyManager.isKeyManagerEvent(this) &&
                 encryptVEvent(event)) {
@@ -600,7 +624,7 @@ public class Event extends Resource {
 	}
 
     /**
-     * Encrypt the given data with the given key and encode it in Base64 format in order to be
+     * Davka - Encrypt the given data with the given key and encode it in Base64 format in order to be
      * legal readable text
      * @param key The encryption key
      * @param data The plain data
@@ -613,7 +637,7 @@ public class Event extends Resource {
     }
 
     /**
-     * Decode the given Base64 data and decrypt it with the given key
+     * Davka - Decode the given Base64 data and decrypt it with the given key
      * @param key The decryption key
      * @param data The encoded and encrypted data
      * @return The plain data
@@ -627,7 +651,7 @@ public class Event extends Resource {
     }
 
     /**
-     * Encrypt the given event's date.
+     * Davka - Encrypt the given event's date.
      * The event's duration should stay as it was for consistency reasons, so only the start
      * date&time are encrypted and the end date&time is calculated accordingly.
      * @param event The event
@@ -659,7 +683,7 @@ public class Event extends Resource {
     }
 
     /**
-     * Decrypt the given event's date.
+     * Davka - Decrypt the given event's date.
      * The event's duration wasn't encrypted for consistency reasons, so only the start
      * date&time are decrypted and the end date&time is calculated accordingly.
      * @param event The event
@@ -691,7 +715,7 @@ public class Event extends Resource {
     }
 
     /**
-     * Mark the event as unauthorized
+     * Davka - Mark the event as unauthorized
      * @param reason The reason
      */
     private void markUnauthorized(String reason) {

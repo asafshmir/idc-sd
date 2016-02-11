@@ -81,6 +81,7 @@ public abstract class DavSyncAdapter extends AbstractThreadedSyncAdapter impleme
 
 		this.context = context;
 
+        // Davka - Generate and Store the KeyPair in the LocalStorage - SharedPreferences
         SharedPreferences preferences = context.getSharedPreferences("caldavkeys", Context.MODE_PRIVATE);
 
         KeyManager keyManager = KeyManager.getInstance();
@@ -157,6 +158,9 @@ public abstract class DavSyncAdapter extends AbstractThreadedSyncAdapter impleme
 					for (Map.Entry<LocalCollection<?>, RemoteCollection<?>> entry : syncCollections.entrySet()) {
                         SyncManager mn = new SyncManager(entry.getKey(), entry.getValue(), account.name);
 
+                        // Davka - Read Keys, try to synchronize events
+                        // Read keys again after sync, so we have updated keys in case they changed
+                        // Or we create new keys and synchronize them again in case needed
                         mn.synchronizeKeys(false);
                         if (syncCollections != null) {
                             mn.synchronize(extras.containsKey(ContentResolver.SYNC_EXTRAS_MANUAL), syncResult);

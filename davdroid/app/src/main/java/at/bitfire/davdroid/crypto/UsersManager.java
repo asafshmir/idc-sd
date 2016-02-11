@@ -1,5 +1,7 @@
 package at.bitfire.davdroid.crypto;
 
+import android.util.Log;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -10,6 +12,7 @@ import java.util.Set;
  * Used for managing information regarding the users of the application.
  */
 public class UsersManager  {
+    private static final String TAG = "davdroid.UsersManager";
 
     // A Map indicating all of the users sharing the calendar
     private Map<String, UserState> usersData;
@@ -101,6 +104,7 @@ public class UsersManager  {
      * @param user the userID to authorize
      */
     public void authUser(String user) {
+        Log.i(TAG,"Authorising User " + user);
         if (usersData.containsKey(user))
             usersData.put(user,new UserState(usersData.get(user).secret,
                     true,

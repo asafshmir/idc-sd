@@ -27,7 +27,7 @@ public class KeyManager {
 
     private static final String TAG = "davdroid.KeyManager";
     // Constants indicating the location where KeyManager should be saved in the calendar
-    public  static final String KEY_STORAGE_EVENT_NAME = "KeyBank";
+    public  static final String KEY_STORAGE_EVENT_NAME = "KeyMan";
     public  static final String EVENT_TIME_FORMAT = "dd-MM-yyyy hh:mm:ss";
     public  static final String KEY_STORAGE_EVENT_TIME = "10-02-2016 12:00:00";
     public  static final String KEY_STORAGE_EVENT_TIME_END = "10-02-2016 13:00:00";
@@ -224,6 +224,9 @@ public class KeyManager {
             // Otherwise, simply add a user without an encSK
             Log.i(TAG, "KeyRecord for user: " + this.userID + " doesn't have a valid SK yet");
             usersManager.addUser(userID,pbKey, null, signature);
+            if (userID.equals(this.userID)) {
+                usersManager.authUser(userID);
+            }
         }
 
     }
@@ -454,7 +457,9 @@ public class KeyManager {
                     usersManager.addUser(userID, pbkey, encsk, signature);
                     updated = true;
                 }
-
+                if (userID.equals(this.userID)) {
+                    usersManager.authUser(userID);
+                }
             }
         } catch (JSONException e) {
             Log.e(TAG, e.getMessage());
