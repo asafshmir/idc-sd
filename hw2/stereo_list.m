@@ -29,8 +29,11 @@ for i = 1: size(p1, 2)
     B = cop1-cop2;
     lambdas = mldivide(A,B);
    
-    in_P(:,i) = lambdas(1)*Pl + (1-lambdas(1))*cop1;
+    in_P1 = lambdas(1)*Pl + (1-lambdas(1))*cop1;
+    in_P2 = lambdas(2)*Pr + (1-lambdas(2))*cop2;
+    A = [in_P1, in_P2];
     
+    in_P(:,i) = mean(A,2);
 end
 P = to_homo(in_P);
 
@@ -39,7 +42,7 @@ end
 function out_P = to_homo(P)
     out_P = zeros(3,size(P,2));
     for i = 1:size(P,2)
-        out_P(:,i) = [P(1)/P(4) P(2)/P(4) P(3)/P(4)];
+        out_P(:,i) = [P(1,i)/P(4,i) P(2,i)/P(4,i) P(3,i)/P(4,i)];
     end
 end
 
