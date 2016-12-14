@@ -49,52 +49,27 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Compute intrinsic projection matrices: Mint1 and Mint2
-    Mint1 = zeros(3,4);
-    Mint1(1:3,1:3) = diag([f1*Sx1,f1*Sy1,1]);
-    Mint1(1,3) = ox1;
-    Mint1(2,3) = oy1;
-%     =diag([Sx1,Sy1,1])*temp_mat1;
-    
-    Mint2 = zeros(3,4);
-    Mint2(1:3,1:3) = diag([f2*Sx2,f2*Sy2,1]);
-    Mint2(1,3) = ox2;
-    Mint2(2,3) = oy2;
-%     Mint2=diag([Sx2,Sy2,1])*temp_mat2;
-    
+    Mint1 = [
+            Sx1*f1  0       ox1
+            0       Sy1*f1  oy1
+            0       0       1];
 
+    Mint2 = [
+            Sx2*f2  0       ox2
+            0       Sy2*f2  oy2
+            0       0       1];     
+        
 % Compute the projection matrices
-
-%      M1 = R1*(Mint1-diag(T1));
-
-%      M1_2=zeros(3,4);
-%      M1_2(1:3,1:3)=Mint1;
-%      M1_2(1:3,4:4)=[0,0,0];
-%      M1_2(4,4) = 1;
-     Mext1 = zeros(4,4);
-     Mext1(1:3,1:3)=R1;
-     Mext1(1:3,4:4)=R1*-T1;
-     Mext1(4,4) = 1;
-     M1=Mint1*Mext1;
+    M1 = Mint1*[R1 -R1*T1];
+    M2 = Mint2*[R2 -R2*T2];
     
- 
-%      M2 = R2*(Mint2-diag(T2));
-     
-%      M2_2=zeros(3,4);
-%      M2_2(1:3,1:3)=Mint2;
-%      M2_2(1:3,4:4)=[0,0,0]
-     Mext2 = zeros(4,4);
-     Mext2(1:3,1:3)=R2;
-     Mext2(1:3,4:4)=-R2*T2;
-     Mext2(4,4) = 1;
-     M2=Mint2*Mext2;
-      
-       
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % (4) Verify that the null space of M is indeed the COP     %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 cop1 = null(M1);
 cop2 = null(M2);
 
+% These should be zero vectors (or almost zero)
 test1 = M1*cop1;
 test2 = M2*cop2;
 
@@ -112,8 +87,6 @@ test2 = M2*cop2;
     Q=[30,100,2000]'; 
     q1=proj(Q,M1);
     q2=proj(Q,M2);
-      
-    
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Read the images into im1 and im2,  and dispaly them.      %
@@ -137,11 +110,10 @@ test2 = M2*cop2;
 
 %     display the projection on the two images
     figure(f1);
-%     plot(p1(1),p1(2),'*r');
+    plot(p1(1),p1(2),'*r');
     
     figure(f2);
-%     plot(p2(1),p2(2),'*r');
-    
+    plot(p2(1),p2(2),'*r');
     
     figure;
     imshow(im1,[])
@@ -154,12 +126,10 @@ test2 = M2*cop2;
     f4=gcf;
     
     figure(f3);
-%     plot(q1(1),q1(2),'*r');
+    plot(q1(1),q1(2),'*r');
     
     figure(f4);
-%     plot(q2(1),q2(2),'*r');
-
-    
+    plot(q2(1),q2(2),'*r');
      
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -167,64 +137,64 @@ test2 = M2*cop2;
 % and er, and Fel erF                                       %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-      M1_trans = M1'*inv((M1*(M1')));
-      M2_trans = M2'*inv((M2*(M2')));
+    el = M2*cop1;
+    er = M1*cop2;
+
+    M1_trans = M1'*inv((M1*(M1')));
+    M2_trans = M2'*inv((M2*(M2')));
+
+    %       P = proj(cop2,M1);
+
+%     P2 = zeros(1,4);
+%     P2(1:3) = P;
+%     P2(4) = 1;
+
+    ert = M1*cop2;
+    erx = [
+            0       -ert(3) ert(2)
+            ert(3)  0       -ert(1)
+            -ert(2) ert(1)  0];
+
+    F = erx*M1*M2_trans;
       
-%       P = proj(cop2,M1);
+    Fel = F*el;
+    erF = er'*F;
       
-      P2 = zeros(1,4);
-      P2(1:3) = P;
-      P2(4) = 1;
-      
-      ert = M1*cop2;
-      erx = [0 -ert(3) ert(2)
-             ert(3) 0 -ert(1)
-             -ert(2) ert(1) 0];
-      
-      F = erx*M1*M2_trans;
-      
-      el = M2*cop1;
-      er = M1*cop2;
-      
-      
-      Fel = F*el;
-      erF = er'*F;
-      
-      F = F.*(1/F(3,3));
- % Please normalize F by F(3,3).
+    % Please normalize F by F(3,3).
+    F = F.*(1/F(3,3));
  
+    % Check that the computed epipoles are consistent with F
+    testl = F*el;
+    testr = er'*F;
    
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- % (11) Draw epipolar lines                           
- % You have to write the function
- % [f1,f2]=draw_epipolar_lines(im1,im2,F,p,f1,f2) (f1 and f2 are the figures on
- % which im1 and im2 are already dispalyed, the value of f1 and f2 are 0 if the images
- % are note displayed yet. In this case, the f1 and f2 are the output of
- % the function for later use of the figures
- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% (11) Draw epipolar lines                           
+% You have to write the function
+% [f1,f2]=draw_epipolar_lines(im1,im2,F,p,f1,f2) (f1 and f2 are the figures on
+% which im1 and im2 are already dispalyed, the value of f1 and f2 are 0 if the images
+% are note displayed yet. In this case, the f1 and f2 are the output of
+% the function for later use of the figures
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
- p=[283,348]';% the selected point
- 
- draw_epipolar_lines(im1,im2,F,p,f1,f2)
+    p=[283,348]';% the selected point
 
- figure(f1);
- 
- % Choose points from image 1 (look at help getpts)
- figure(f1);
- [Px,Py]=getpts
- 
-% Display the  set of pipolar lines which corresponds to the chosen points
+    draw_epipolar_lines(im1,im2,F,p,f1,f2)
 
-for i=1:length(Px)
-    draw_epipolar_lines(im1,im2,F,[Px(i),Py(i)]',f1,f2)
-end
-    
-% (12) Corner detector + matching removal by Sampson distance
+    figure(f1);
 
-
-ps1 = [q1(1:2)'; q2(1:2)'];
-ps2 = [q2(1:2)';q1(1:2)'];
-P = stereo_list(ps1,ps2,M1,M2);
-
-disp(P);
+%      % Choose points from image 1 (look at help getpts)
+%     figure(f1);
+%     [Px,Py]=getpts
+% 
+%     % Display the  set of pipolar lines which corresponds to the chosen points
+%     for i=1:length(Px)
+%         draw_epipolar_lines(im1,im2,F,[Px(i),Py(i)]',f1,f2)
+%     end
+% 
+%     % (12) Corner detector + matching removal by Sampson distance
+%     ps1 = [q1(1:2)'; q2(1:2)'];
+%     ps2 = [q2(1:2)';q1(1:2)'];
+%     P = stereo_list(ps1,ps2,M1,M2);
+% 
+%     disp(P);
  
