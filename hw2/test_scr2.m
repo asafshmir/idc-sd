@@ -110,10 +110,10 @@ test2 = M2*cop2;
 
 %     display the projection on the two images
     figure(f1);
-    plot(p1(1),p1(2),'*r');
+%     plot(p1(1),p1(2),'*r');
     
     figure(f2);
-    plot(p2(1),p2(2),'*r');
+%     plot(p2(1),p2(2),'*r');
     
     figure;
     imshow(im1,[])
@@ -126,10 +126,10 @@ test2 = M2*cop2;
     f4=gcf;
     
     figure(f3);
-    plot(q1(1),q1(2),'*r');
+%     plot(q1(1),q1(2),'*r');
     
     figure(f4);
-    plot(q2(1),q2(2),'*r');
+%     plot(q2(1),q2(2),'*r');
      
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -176,25 +176,26 @@ test2 = M2*cop2;
 % the function for later use of the figures
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    p=[283,348]';% the selected point
-
+    p=[283,348];% the selected point
+%     testp = F*p;
+    
     draw_epipolar_lines(im1,im2,F,p,f1,f2)
 
     figure(f1);
 
-%      % Choose points from image 1 (look at help getpts)
+     % Choose points from image 1 (look at help getpts)
 %     figure(f1);
 %     [Px,Py]=getpts
-% 
-%     % Display the  set of pipolar lines which corresponds to the chosen points
+%     
+%     % Display the  set of epipolar lines which corresponds to the chosen points
 %     for i=1:length(Px)
 %         draw_epipolar_lines(im1,im2,F,[Px(i),Py(i)]',f1,f2)
 %     end
-% 
+
 %     % (12) Corner detector + matching removal by Sampson distance
-%     ps1 = [q1(1:2)'; q2(1:2)'];
-%     ps2 = [q2(1:2)';q1(1:2)'];
-%     P = stereo_list(ps1,ps2,M1,M2);
-% 
-%     disp(P);
+    ps1 = [q1(1:2)'; q2(1:2)'];
+    ps2 = [q2(1:2)';q1(1:2)'];
+    P = stereo_list(ps1,ps2,M1,M2);
+
+    disp(P);
  
