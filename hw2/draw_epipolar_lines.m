@@ -1,11 +1,13 @@
 function draw_epipolar_lines = draw_epipolar_lines(im1,im2,F,p,f1,f2)
-    P = [p(1) p(2) 1];
-    P = P';
-    l1 = F*P;
-    figure(f1);
-    plot(l1(1),l1(2),'*r');
+    P = [p(1) p(2) 1]';
     
-    l2 = F'*P;
+    figure(f1);
+    plot(p(1),p(2),'*r');
+    
+    l = F*P;
     figure(f2);
-    plot(l2(1),l2(2),'*r');
+    plot(l(1),l(2),'*r');
+    
+    points = lineToBorderPoints(l',size(im1)); 
+    line(points(:,[1,3])',points(:,[2,4])');
 end
