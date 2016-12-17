@@ -7,48 +7,50 @@ function [ P ] = stereo_list( p1, p2, M1, M2 )
 % Outputs:
 % P - N*3 matrix with the corresponding 3D points
 
-M1_trans = M1'*inv((M1*(M1')));
-M2_trans = M2'*inv((M2*(M2')));
-cop1 = null(M1);
-cop2 = null(M2);
+M1pinv = pinv(M1);
+M2pinv = pinv(M2);
+cop1 = null(M1, 'r');
+cop2 = null(M2, 'r');
 
-in_P = zeros(4, size(p1,2));
+% in_P = zeros(4, size(p1,2));
+in_P = [];
 
-for i = 1: size(p1, 2)
+for i = 1: size(p1, 1)
     
-    p1t = [p1(1,i) p1(2,i) 1]
-    p2t = [p2(1,i) p2(2,i) 1]
+    p1i = [p1(i,1:2) 1];
+    p2i = [p2(i,1:2) 1];
     
-    Pl = M1_trans*p1t';
-    Pr = M2_trans*p2t';
-    
-    ul = Pl-cop1;
-    ur = Pr-cop2;
+    Pl = to_inhomo(M1pinv*p1i');
+    Pr = to_inhomo(M2pinv*p2i');
+    cL = to_inhomo(cop1);
+    cR = to_inhomo(cop2);
+    ul = Pl-cL;
+    ur = Pr-cR;
     
     A = [-ul ur];
-    B = cop1-cop2;
-    lambdas = mldivide(A,B);
+    b = cL - cR;
+    lambdas = A\b;
    
-    in_P1 = lambdas(1)*Pl + (1-lambdas(1))*cop1;
-    in_P2 = lambdas(2)*Pr + (1-lambdas(2))*cop2;
+    in_P1 = cL + lambdas(1)*ul;
+    in_P2 = cR + lambdas(2)*ur;
     A = [in_P1, in_P2];
-    
-    in_P(:,i) = mean(A,2);
+    meanA = mean(A,2);
+
+    in_P = [in_P ; meanA'];
 end
-P = to_homo(in_P);
+% P = to_homo(in_P);
+P = in_P;
 
 end
 
-function out_P = to_homo(P)
+function out_P = to_inhomo(P)
     out_P = zeros(3,size(P,2));
     for i = 1:size(P,2)
-        out_P(:,i) = [P(1,i)/P(4,i) P(2,i)/P(4,i) P(3,i)/P(4,i)];
+        if (P(4,i) ~= 0)
+            out_P(:,i) = [P(1,i)/P(4,i) P(2,i)/P(4,i) P(3,i)/P(4,i)];
+        else
+            out_P(:,i) = [P(1,i) P(2,i) P(3,i)];
+        end
     end
-end
-
-function Y = convert(X)
-Y = [0 X(3) -X(2);
-       -X(3) 0 X(1);
-       X(2) -X(1) 0];
 end
 
