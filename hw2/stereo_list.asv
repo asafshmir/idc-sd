@@ -1,0 +1,93 @@
+function [ P ] = stereo_list( p1, p2, M1, M2 )
+% Triangulate a set of 2D coordinates in the image to a set of 3D points
+% with the signature
+% Inputs:
+% M1, M2 - 3*4 camera matrices
+% p1, p2 - N*2 matrices with the 2D image coordinates
+% Outputs:
+% P - N*3 matrix with the corresponding 3D points
+
+M1pinv = pinv(M1);
+M2pinv = pinv(M2);
+cop1 = null(M1, 'r');
+cop2 = null(M2, 'r');
+
+% in_P = zeros(4, size(p1,2));
+in_P = [];
+
+for i = 1: size(p1, 1)
+    
+    p1i = [p1(i,1:2) 1];
+    p2i = [p2(i,1:2) 1];
+    
+    Pl = M1pinv*p1i';
+    Pl = 
+    Pr = M2pinv*p2i';  
+    
+%     ul = Pl-cop1;
+%     ur = Pr-cop2;
+    cL = to_homo(cop1);
+    cR = to_homo(cop2);
+    ul = Pl'-cL;
+    ur = Pr'-cR;
+    
+    A = [-ul ur];
+    b = cL - cR;
+    lambdas = A\b;
+   
+    in_P1 = cL + lambdas(1)*ul;
+    in_P2 = cR + lambdas(2)*ur;
+    A = [in_P1, in_P2];
+    meanA = mean(A,2);
+    
+
+    Q = Pl;
+    P = cL';
+    S = Pr;
+    R = cR';         
+    u = 1;
+    v = 1;
+    
+    N = null(P-Q);
+    
+    r = (R-P)*N;
+    s = (S-P)*N
+    
+    n = (s - r)*[0 -1;1 0];
+    n = n/norm(n);
+    
+    d = dot(n,r);
+    
+    u = (Q-P)'\((S - (S*N)*N') - P)';
+    v = dot(s-r,d*n-r)/dot(s-r,s-r);
+    P1 = P + u*(Q-P);
+    P2 = R + v*(S-R);
+    
+    meanP1P2 = mean([P1;P2]);
+    
+
+    in_P = [in_P ; meanA'];
+end
+% P = to_homo(in_P);
+P = in_P;
+
+end
+
+function out_P = to_homo(P)
+    out_P = zeros(3,size(P,2));
+    for i = 1:size(P,2)
+        out_P(:,i) = [P(1,i)/P(4,i) P(2,i)/P(4,i) P(3,i)/P(4,i)];
+    end
+end
+
+function inh = inhomo(H)
+    a = H ./ H(4);
+    inh = a(1:3);
+end
+
+function Y = convert(X)
+Y = [   0       X(3)    -X(2);
+        -X(3)   0       X(1);
+        X(2)    -X(1)   0];
+end
+
