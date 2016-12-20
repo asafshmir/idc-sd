@@ -163,11 +163,6 @@ test2 = M2*cop2;
 % the function for later use of the figures
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%     p=[283,348];% the selected point
-%     testp = F*p;
-    
-%     draw_epipolar_lines(im1,im2,F,p,f1,f2)
-
      % Choose points from image 1 (look at help getpts)
     figure(f1);
     [Px,Py]=getpts

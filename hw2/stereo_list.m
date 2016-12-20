@@ -19,13 +19,13 @@ for i = 1: size(p1, 1)
     
     p1i = [p1(i,1:2) 1];
     p2i = [p2(i,1:2) 1];
-    
-    Pl = to_inhomo(M1pinv*p1i');
-    Pr = to_inhomo(M2pinv*p2i');
+
+    Sl = to_inhomo(M1pinv*p1i');
+    Sr = to_inhomo(M2pinv*p2i');
     cL = to_inhomo(cop1);
     cR = to_inhomo(cop2);
-    ul = Pl-cL;
-    ur = Pr-cR;
+    ul = Sl-cL;
+    ur = Sr-cR;
     
     A = [-ul ur];
     b = cL - cR;
@@ -38,7 +38,6 @@ for i = 1: size(p1, 1)
 
     in_P = [in_P ; meanA'];
 end
-% P = to_homo(in_P);
 P = in_P;
 
 end
