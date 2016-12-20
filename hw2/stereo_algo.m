@@ -4,14 +4,16 @@ function stereo_algo
     
     patch_width = 3;
     patch_height = 3;
-
+    T = 160;
+    f = 1;
     disparityRange = [10 140];
 %     disparityMap = disparity(im1, im2, 'Method', 'SemiGlobal', 'BlockSize', 5, 'DisparityRange', disparityRange);
     disparityMap = ComputeDisparityMap(im1, im2, disparityRange, 1, 1);
-
+    depthMap = COmputeDepthMap(disparityMap);
    
     figure
     imshow(disparityMap, disparityRange);
+    imshow(depthMap,[]);
     colorbar
     hold on
 end
@@ -40,6 +42,15 @@ function D = ComputeDisparityMap(im1, im2, disparityRange, patch_height, patch_w
            D(h, l) = min_disparity;
        end
    end
+end
+
+function depthMap = ComputeDepthMap(T, f, disparityMap)
+    depthMap = zeros(size(disparityMap,1), size(disparityMap,2))
+    for i = 1:size(disparityMap,1)
+        for j = 1:size(disparityMap,2)
+            depthMap(i,j) = f*T/D(i,j) + 100;
+        end
+    end
 end
 
 function dist = ComputeRectDistance(im1, im2, p1, p2, patch_height, patch_width)
