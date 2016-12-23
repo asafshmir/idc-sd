@@ -7,8 +7,7 @@ function stereo_algo
     T = 160;
     f = 1;
     disparityRange = [10 140];
-%     disparityMap = disparity(im1, im2, 'Method', 'SemiGlobal', 'BlockSize', 5, 'DisparityRange', disparityRange);
-    disparityMap = ComputeDisparityMap(im1, im2, disparityRange, 1, 1);
+    disparityMap = ComputeDisparityMap(im1, im2, disparityRange, patch_width, patch_height);
     depthMap = ComputeDepthMap(disparityMap);
     figure
     imshow(disparityMap, disparityRange);
@@ -75,7 +74,6 @@ function dist = ComputeRectDistance(im1, im2, p1, p2, patch_height, patch_width)
     % The mininmal value is 1, which means that the vectors have the same
     % direction
     dist = -dist;
-    dist = cosine_distance(vec1, vec2);
 end
 
 function result = cosine_distance(vec1,vec2)
