@@ -1,9 +1,7 @@
 % Find the corners of two images and match them using 'MatchGrayPatch'
 function matching = match_corners(im1,im2,sig_smooth, sig_neighb, lth, density_size, patch_size)
-    im1_corners = corners_list(im1, sig_smooth, ...
-                                    sig_neighb, lth, density_size, false);
-    im2_corners = corners_list(im2, sig_smooth, ...
-                                    sig_neighb, lth, density_size, false);
+    im1_corners = corners_list(im1, sig_smooth, sig_neighb, lth, density_size, false);
+    im2_corners = corners_list(im2, sig_smooth, sig_neighb, lth, density_size, false);
     matching = MatchGrayPatch(im1, im2, im1_corners, im2_corners, patch_size);
 end
 
