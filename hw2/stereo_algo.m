@@ -2,13 +2,14 @@ function stereo_algo
     im1=readImage('view5.tif');
     im2=readImage('view1.tif');
     
-    patch_width = 3;
-    patch_height = 3;
+    patch_width = 1;
+    patch_height = patch_width;
     T = 160;
     f = 1;
     disparityRange = [10 140];
     disparityMap = ComputeDisparityMap(im1, im2, disparityRange, patch_width, patch_height);
-    depthMap = ComputeDepthMap(disparityMap);
+    title(['Disparity Map with ', num2str(patch_width*2 + 1),'X', num2str(patch_height*2 + 1), ' patch'])
+    depthMap = ComputeDepthMap(T, f, disparityMap);
     figure
     imshow(disparityMap, disparityRange);
     imshow(depthMap,[]);
@@ -42,15 +43,6 @@ function D = ComputeDisparityMap(im1, im2, disparityRange, patch_height, patch_w
    end
 end
 
-function depthMap = ComputeDepthMap(T, f, disparityMap)
-    depthMap = zeros(size(disparityMap,1), size(disparityMap,2))
-    for i = 1:size(disparityMap,1)
-        for j = 1:size(disparityMap,2)
-            depthMap(i,j) = f*T/D(i,j) + 100;
-        end
-    end
-end
-
 function dist = ComputeRectDistance(im1, im2, p1, p2, patch_height, patch_width)
 
     x1start = (p1(1)-patch_height);
@@ -78,4 +70,13 @@ end
 
 function result = cosine_distance(vec1,vec2)
     result = dot(vec1/norm(vec1), vec2/norm(vec2));
+end
+
+function depthMap = ComputeDepthMap(T, f, disparityMap)
+    depthMap = zeros(size(disparityMap,1), size(disparityMap,2))
+    for i = 1:size(disparityMap,1)
+        for j = 1:size(disparityMap,2)
+            depthMap(i,j) = f*T/D(i,j) + 100;
+        end
+    end
 end

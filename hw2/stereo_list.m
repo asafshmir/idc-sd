@@ -12,7 +12,6 @@ M2pinv = pinv(M2);
 cop1 = null(M1, 'r');
 cop2 = null(M2, 'r');
 
-% in_P = zeros(4, size(p1,2));
 in_P = [];
 
 for i = 1: size(p1, 1)
