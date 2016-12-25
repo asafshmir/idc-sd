@@ -65,6 +65,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 cop1 = null(M1, 'r');
 cop2 = null(M2, 'r');
+cam_dist = pdist([cop1, cop2]', 'euclidean');
 
 % These should be zero vectors (or almost zero)
 test1 = M1*cop1;
@@ -106,9 +107,11 @@ test2 = M2*cop2;
 
     % display the projection on the two images
     figure(f1);
+    title(['Projected P=', mat2str(P),' on the left image']);
     plot(p1(1),p1(2),'*r');
     
     figure(f2);
+    title(['Projected P=', mat2str(P),' on the right image']);
     plot(p2(1),p2(2),'*r');
     
     figure;
@@ -122,9 +125,11 @@ test2 = M2*cop2;
     f4=gcf;
     
     figure(f3);
+    title(['Projected Q=', mat2str(Q),' on the left image']);
     plot(q1(1),q1(2),'*r');
     
     figure(f4);
+    title(['Projected Q=', mat2str(Q),' on the left image']);
     plot(q2(1),q2(2),'*r');
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -165,19 +170,49 @@ test2 = M2*cop2;
 
      % Choose points from image 1 (look at help getpts)
     figure(f1);
-    [Px,Py]=getpts
+%     [Px,Py]=getpts
+    Px = [55;515;286;290;283];
+    Py = [330;325;163;202;87];
     
     % Display the  set of epipolar lines which corresponds to the chosen points
     for i=1:length(Px)
-        draw_epipolar_lines(im1,im2,F,[Px(i),Py(i)]',f1,f2)
+        draw_epipolar_lines(im1,im2,F,[Px(i),Py(i)]',f1,f2);
     end
 
     % (12) Corner detector + matching removal by Sampson distance
+    matching = match_corners(im1, im2, 1.2, 0.8, 50000, 20, 50);
+    im1_matching = matching(:,1:2);
+    im2_matching = matching(:,3:4);
+    im1_matching( ~any(im1_matching,2), : ) = [];
+    im2_matching( ~any(im2_matching,2), : ) = [];
+    
+    distVec = sampsonDistance(F, im1_matching', im2_matching');
+    
+    sampson_threshold = 10;
+    Lc = zeros(size(distVec,2),4);
+    for i = 1: size(distVec,2)
+        if(distVec(i) < sampson_threshold)
+            Lc(i,:) = [im1_matching(i,1),im1_matching(i,2) ... 
+                   im2_matching(i,1),im2_matching(i,2)];
+        end
+    end
+    
+    plot_correspondence(im1, im2, Lc);
+    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Part B: Hands on Triangulation
+% Stereo function receives a matrix with a set of points location 
+% in the left image, p_L, and its corresponding points in the right image, p_R. 
+% The function returns a set of points, P, in 3D.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
     ps1 = (p1(1:2));
     ps2 = (p2(1:2));
     P = stereo_list(ps1,ps2,M1,M2);
     
 %     Pgood = triangulate(ps1,ps2,M1',M2'); % Validation of stereo_list
+
+    % TODO project p1 and p2
 
     disp(P);
  
