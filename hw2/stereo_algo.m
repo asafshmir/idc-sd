@@ -7,7 +7,9 @@ function stereo_algo
     T = 160;
     f = 1;
     disparityRange = [10 140];
-    disparityMap = ComputeDisparityMap(im1, im2, disparityRange, patch_width, patch_height);
+%     disparityMap = ComputeDisparityMap(im1, im2, disparityRange, patch_width, patch_height);
+    disparityMap = ComputeOrderedDisparityMap(im1, im2, disparityRange, patch_width, patch_height);
+    
     title(['Disparity Map with ', num2str(patch_width*2 + 1),'X', num2str(patch_height*2 + 1), ' patch'])
     depthMap = ComputeDepthMap(T, f, disparityMap);
     figure
@@ -16,6 +18,54 @@ function stereo_algo
     colorbar
     hold on
 end
+
+function D = ComputeOrderedDisparityMap(im1, im2, disparityRange, patch_height, patch_width)
+
+    im_width = size(im1,2);
+
+    D = zeros(size(im1,1), size(im1,2));
+    avg_to_disparity = min(im_width-patch_width+1,disparityRange(2));
+    avg_from_disparity = max(patch_width+1,1+ disparityRange(1));
+    dist_count = 1;
+    for h = patch_height+1:(size(im1, 1)-patch_height) 
+
+        
+        
+        for l = patch_width+1:(size(im1, 2)-patch_width)
+           min_dist = 1;
+           min_disparity = im_width;
+           
+           from_x = max(patch_width+1, l + int16(avg_from_disparity/2));
+           to_x = min(im_width-patch_width, l +patch_width+1+int16(avg_to_disparity*1.25));
+            
+           for r = from_x:(to_x)
+               
+               p1 = [h, l];
+               p2 = [h, r];
+               dist = ComputeRectDistance(im1, im2, p1, p2, patch_height, patch_width);       
+               
+               if (dist < min_dist)
+                   min_dist = dist;
+                    
+                   min_disparity = r - l;
+                   dist_count = dist_count + 1;
+                   avg_to_disparity = int16((avg_to_disparity * ((dist_count - 1)/dist_count)) + (min_disparity/dist_count));
+                   avg_from_disparity = int16((avg_from_disparity * ((dist_count - 1)/dist_count)) + (min_disparity/dist_count));
+                   
+                   if (min_disparity > 100)
+                    disp(avg_from_disparity);
+                    disp(min_disparity);
+                   end
+                   
+               end
+           end
+           
+%            disp(avg_disparity);
+           D(h, l) = min_disparity;
+       end
+   end
+end
+
 
 function D = ComputeDisparityMap(im1, im2, disparityRange, patch_height, patch_width)
 
