@@ -1,8 +1,22 @@
 function main()
-    MOV = VideoReader('./SLIDE.avi');
-    seq = read(MOV);
-    imshow(seq(:,:,:,100));
+    %MOV = VideoReader('./SLIDE.avi');
+    %seq = read(MOV);
+    %imshow(seq(:,:,:,100));
   
+    im1 = zeros(100,100);
+    im1(20:30,20:30) = 200;
+    im1(70:80,70:80) = 200;
+    
+    im2 = zeros(100,100);
+    im2(22:32,21:31) = 200;
+    im2(78:88,85:95) = 200;
+    
+    Smooth = 1;
+    Region = 5;
+    [U,V] = OF(im1, im2, Smooth, Region);
+    
+    showQuiver(im1,U,V);
+    
 %     writeVid();
 end
 
