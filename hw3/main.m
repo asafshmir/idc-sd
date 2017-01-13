@@ -1,13 +1,30 @@
 function main()
  
-    testOFDemo();
+%     [U, V] = testOFDemo(true);
 %     testOFPeople();
 %     testOFSlide();
-%     writeVid();
+%     segsOfSize();
+      segOfDirection();
+
 end
 
-function testOFDemo() 
- im1 = zeros(100,100);
+function segOfDirection()
+    [U, V] = testOFDemo(false);
+    segs = seg_OF_direction(U,V,[1 20 40]);
+    figure
+    imshow(segs,[]);
+    
+end
+function segsOfSize() 
+    [U, V] = testOFDemo(false);
+    [background, foreground] = seg_OF_size(U,V,0.01);
+    figure;
+    imshow(background,[1 256]);
+    imshow(foreground,[1 256]);
+end
+
+function [U, V] = testOFDemo(shouldPlot) 
+    im1 = zeros(100,100);
     im1(20:30,20:30) = 200;
     im1(50:60,50:60) = 200;
     
@@ -19,8 +36,9 @@ function testOFDemo()
     Region = 5;
     
     [U,V] = OF(im1, im2, Smooth, Region);
-    
-    showQuiver(im1,U,V,Region);
+    if shouldPlot == true
+        showQuiver(im1,U,V,Region);
+    end
 
 end
 

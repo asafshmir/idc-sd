@@ -1,4 +1,3 @@
-
 function [U,V] = OF(F1, F2, Smooth, Region)
     %OF Summary of this function goes here
     %   Detailed explanation goes here
@@ -16,7 +15,6 @@ function [U,V] = OF(F1, F2, Smooth, Region)
     
     XWindow = -Region:Region;
     YWindow = -Region:Region;
-%     A = [Ix, Iy];    
     
     for i = 1+Region:size(F1, 1)-Region
         for j = 1+Region:size(F1, 2)-Region
@@ -41,15 +39,6 @@ function [U,V] = OF(F1, F2, Smooth, Region)
                 U(i,j) = 0;
                 V(i,j) = 0;  
             end
-% 
-%             A(i,1) = Ix(i,1);
-%             A(i,2) = Iy(i,2);
-%             b = -It(i,j);
-%             G = A'*A;
-%             r = rank(G);
-% 
-%             if r >= 1
-%                 Ainv = pinv(A);
 
         end
     end
