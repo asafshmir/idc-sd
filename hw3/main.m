@@ -1,12 +1,16 @@
 function main()
- 
-%     [U, V] = testOFDemo(true);
+    video = 'C:\Users\Baruch\Documents\git\idc-sd\hw3\DATA\SLIDE.avi';
+    Smooth = 1;
+    Region = 5;
+
+    
+    % [U, V] = testOFDemo(Smooth, Region, true);
     
 %     testOFPeople();
-%     testOFSlide();
+     testOFSlide(video, Smooth, Region);
 %     segsOfSize();
 %       segOfDirection();
-    segmentationChangeDetection();
+    %segmentationChangeDetection(video);
 end
 
 function segOfDirection()
@@ -24,18 +28,17 @@ function segsOfSize()
     imshow(foreground,[1 256]);
 end
 
-function [U, V] = testOFDemo(shouldPlot) 
-    im1 = zeros(100,100);
+function [U, V] = testOFDemo(Smooth, Region, shouldPlot) 
+    im1 = zeros(200,200);
     im1(20:30,20:30) = 200;
     im1(50:60,50:60) = 200;
+    im1(100:130,100:130) = 200;  
     
-    im2 = zeros(100,100);
+    im2 = zeros(200,200);
     im2(22:32,21:31) = 200;
     im2(58:68,58:68) = 200;
-    
-    Smooth = 1;
-    Region = 5;
-    
+    im2(150:180,150:180) = 200;  
+        
     [U,V] = OF(im1, im2, Smooth, Region);
     if shouldPlot == true
         showQuiver(im1,U,V,Region);
@@ -43,16 +46,29 @@ function [U, V] = testOFDemo(shouldPlot)
 
 end
 
-function testOFSlide() 
-   
-    MOV = VideoReader('./SLIDE.avi');
-    seq = readframe(MOV);
-    im1 = rgb2gray(seq(:,:,:,1));
-    im2 = rgb2gray(seq(:,:,:,2));
+function testOFSlide(video, Smooth, Region) 
 
-    [U,V] = OF(im1, im2, Smooth, Region);
+    seq = video2grey_seq(video);
+    
+    jump = 1;
+    start = 1;
+    frames = 5;
+    
+    for i=1:frames
 
-    showQuiver(im1,U,V,Region);
+        im1 = seq(:,:,start);
+        im2 = seq(:,:,start+jump);
+
+        im1 = imresize(im1, 0.5);
+        im2 = imresize(im2, 0.5);
+
+        [U,V] = OF(im1, im2, Smooth, Region);
+
+        showQuiver(im1,U,V,Region);
+        
+        start = start + jump;
+    end
+    
 end
 
 function testOFPeople()
@@ -98,12 +114,12 @@ function showQuiver(im1, u, v, region)
            nv12(1:region:end,1:region:end),region);
 end
 
-
-function segmentationChangeDetection() 
-  vr = VideoReader('SLIDE.avi');
+function seq = video2grey_seq(video)
+   
+   vr = VideoReader(video);
    
    nFrames = vr.NumberOfFrames;
-   vr = VideoReader('SLIDE.avi');
+   vr = VideoReader(video);
    vidHeight = vr.Height;
    vidWidth = vr.Width;
    
@@ -115,10 +131,12 @@ function segmentationChangeDetection()
        seq(:,:,k) = frame;
        k = k+1;
    end
-   
-   %imshow(seq(:,:,1),[]);
-   disp('HI');
-   
+end
+
+function segmentationChangeDetection(video) 
+    
+   seq = video2grey_seq(video); 
+
    threshold = 20;
    [B, CD] = segmentation_change_detection(seq,threshold);
    %imshow(CD(:,:,50),[]);
