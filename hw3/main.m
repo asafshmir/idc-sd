@@ -13,6 +13,9 @@ function main()
     
     Smooth = 1;
     Region = 5;
+    im1 = rgb2gray(imread('people/people2_1.jpg')); 
+    im2 = rgb2gray(imread('people/people2_2.jpg')); 
+
     [U,V] = OF(im1, im2, Smooth, Region);
     
     showQuiver(im1,U,V);
