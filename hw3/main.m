@@ -1,11 +1,12 @@
 function main()
  
 %     [U, V] = testOFDemo(true);
+    
 %     testOFPeople();
 %     testOFSlide();
 %     segsOfSize();
-      segOfDirection();
-
+%       segOfDirection();
+    segmentationChangeDetection();
 end
 
 function segOfDirection()
@@ -95,4 +96,32 @@ function showQuiver(im1, u, v, region)
            Y(1:region:end,1:region:end), ...
            nu12(1:region:end,1:region:end), ...
            nv12(1:region:end,1:region:end),region);
+end
+
+
+function segmentationChangeDetection() 
+  vr = VideoReader('SLIDE.avi');
+   
+   nFrames = vr.NumberOfFrames;
+   vr = VideoReader('SLIDE.avi');
+   vidHeight = vr.Height;
+   vidWidth = vr.Width;
+   
+   seq = zeros(vidHeight,vidWidth,nFrames);
+   
+   k = 1;
+   while hasFrame(vr)
+       frame = rgb2gray(readFrame(vr));
+       seq(:,:,k) = frame;
+       k = k+1;
+   end
+   
+   %imshow(seq(:,:,1),[]);
+   disp('HI');
+   
+   threshold = 20;
+   [B, CD] = segmentation_change_detection(seq,threshold);
+   %imshow(CD(:,:,50),[]);
+   imshow(B,[]);
+   
 end
