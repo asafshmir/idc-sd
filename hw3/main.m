@@ -1,5 +1,6 @@
 function main()
     video = 'C:\Users\Baruch\Documents\git\idc-sd\hw3\DATA\SLIDE.avi';
+    images = 'C:\Users\Baruch\Documents\git\idc-sd\hw3\DATA\people\people2_';
     Smooth = 1;
     Region = 5;
 
@@ -7,7 +8,7 @@ function main()
     % [U, V] = testOFDemo(Smooth, Region, true);
     
 %     testOFPeople();
-     testOFSlide(video, Smooth, Region);
+     testOFSlide(video, images, Smooth, Region);
 %     segsOfSize();
 %       segOfDirection();
     %segmentationChangeDetection(video);
@@ -46,29 +47,85 @@ function [U, V] = testOFDemo(Smooth, Region, shouldPlot)
 
 end
 
-function testOFSlide(video, Smooth, Region) 
-
-    seq = video2grey_seq(video);
+function testOFSlide(video, images, Smooth, Region) 
     
-    jump = 1;
-    start = 1;
-    frames = 5;
+    % 5(a) - several pairs of frames from each of the sequences
+    % slide video
+%     seq = video2grey_seq(video);
+% 
+%     im1 = seq(:,:,1);
+%     im2 = seq(:,:,2);
+%     [U,V] = OF(im1, im2, Smooth, Region);
+%     showQuiver(im1,U,V,Region);
+%     
+%     im1 = seq(:,:,1);
+%     im2 = seq(:,:,100);
+%     [U,V] = OF(im1, im2, Smooth, Region);
+%     showQuiver(im1,U,V,Region);
+%     
+%    
+    % people images
+%     im1 = rgb2gray(imread(strcat(images,'1.jpg')));
+%     im2 = rgb2gray(imread(strcat(images,'2.jpg')));
+%     [U,V] = OF(im1, im2, Smooth, Region);
+%     showQuiver(im1,U,V,Region);
+%     
+%     im1 = rgb2gray(imread(strcat(images,'1.jpg')));
+%     im2 = rgb2gray(imread(strcat(images,'30.jpg')));
+%     [U,V] = OF(im1, im2, Smooth, Region);
+%     showQuiver(im1,U,V,Region);
+%     
+%     im1 = rgb2gray(imread(strcat(images,'1.jpg')));
+%     im2 = rgb2gray(imread(strcat(images,'9.jpg')));
+%     [U,V] = OF(im1, im2, Smooth, Region);
+%     showQuiver(im1,U,V,Region);
+%     
+%     im1 = rgb2gray(imread(strcat(images,'9.jpg')));
+%     im2 = rgb2gray(imread(strcat(images,'17.jpg')));
+%     [U,V] = OF(im1, im2, Smooth, Region);
+%     showQuiver(im1,U,V,Region);
+%     
+%     im1 = rgb2gray(imread(strcat(images,'17.jpg')));
+%     im2 = rgb2gray(imread(strcat(images,'26.jpg')));
+%     [U,V] = OF(im1, im2, Smooth, Region);
+%     showQuiver(im1,U,V,Region);
     
-    for i=1:frames
-
-        im1 = seq(:,:,start);
-        im2 = seq(:,:,start+jump);
-
-        im1 = imresize(im1, 0.5);
-        im2 = imresize(im2, 0.5);
-
-        [U,V] = OF(im1, im2, Smooth, Region);
-
-        showQuiver(im1,U,V,Region);
-        
-        start = start + jump;
-    end
+    % 5(b) - Play with the algorithm parameters
+%      im1 = rgb2gray(imread(strcat(images,'9.jpg')));
+%      im2 = rgb2gray(imread(strcat(images,'17.jpg')));
+%      [U,V] = OF(im1, im2, Smooth, Region);
+%      showQuiver(im1,U,V,Region);
+%     
+%      im1 = rgb2gray(imread(strcat(images,'9.jpg')));
+%      im2 = rgb2gray(imread(strcat(images,'17.jpg')));
+%      [U,V] = OF(im1, im2, 20, Region);
+%      showQuiver(im1,U,V,Region);
+%     
+%      im1 = rgb2gray(imread(strcat(images,'9.jpg')));
+%      im2 = rgb2gray(imread(strcat(images,'17.jpg')));
+%      [U,V] = OF(im1, im2, Smooth, 30);
+%      showQuiver(im1,U,V,Region);
     
+    % 5(c) - Play with the distance between the pair of frames
+%     seq = video2grey_seq(video);
+%     jump = 10;
+%     start = 1;
+%     frames = 5;
+%     
+%     for i=1:frames
+%         im1 = seq(:,:,start);
+%         im2 = seq(:,:,start+jump);
+%         [U,V] = OF(im1, im2, Smooth, Region);
+%         showQuiver(im1,U,V,Region);
+%         start = start + jump;
+%     end
+
+
+% 7 - resize the image to see if you obtain different optical flow for different scales
+%         im1 = imresize(im1, 0.5);
+ %       im2 = imresize(im2, 0.5);
+
+
 end
 
 function testOFPeople()
