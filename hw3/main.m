@@ -1,26 +1,52 @@
 function main()
-    %MOV = VideoReader('./SLIDE.avi');
-    %seq = read(MOV);
-    %imshow(seq(:,:,:,100));
-  
-    im1 = zeros(100,100);
+ 
+    testOFDemo();
+%     testOFPeople();
+%     testOFSlide();
+%     writeVid();
+end
+
+function testOFDemo() 
+ im1 = zeros(100,100);
     im1(20:30,20:30) = 200;
-    im1(70:80,70:80) = 200;
+    im1(50:60,50:60) = 200;
     
     im2 = zeros(100,100);
     im2(22:32,21:31) = 200;
-    im2(78:88,85:95) = 200;
+    im2(58:68,58:68) = 200;
     
     Smooth = 1;
     Region = 5;
-    im1 = rgb2gray(imread('people/people2_1.jpg')); 
-    im2 = rgb2gray(imread('people/people2_2.jpg')); 
-
+    
     [U,V] = OF(im1, im2, Smooth, Region);
     
-    showQuiver(im1,U,V);
-    
-%     writeVid();
+    showQuiver(im1,U,V,Region);
+
+end
+
+function testOFSlide() 
+   
+    MOV = VideoReader('./SLIDE.avi');
+    seq = readframe(MOV);
+    im1 = rgb2gray(seq(:,:,:,1));
+    im2 = rgb2gray(seq(:,:,:,2));
+
+    [U,V] = OF(im1, im2, Smooth, Region);
+
+    showQuiver(im1,U,V,Region);
+end
+
+function testOFPeople()
+    Smooth = 1;
+    Region = 5;
+       
+    im1 = rgb2gray(imread('people/people2_1.jpg')); 
+    im2 = rgb2gray(imread('people/people2_2.jpg')); 
+   
+    [U,V] = OF(im1, im2, Smooth, Region);
+
+    showQuiver(im1,U,V,Region);
+
 end
 
 function writeVid() 
@@ -40,15 +66,15 @@ function result = findResult(A,th)
     result = find(A>th);
 end
 
-function showQuiver(im1, u, v)
+function showQuiver(im1, u, v, region)
     [X,Y]=meshgrid(1:size(im1,2),1:size(im1,1)); 
-    nu12=medfilt2(u,[5 5]);
-    nv12=medfilt2(v,[5 5]);
+    nu12=medfilt2(u,[region region]);
+    nv12=medfilt2(v,[region region]);
     figure; 
     imshow(im1,[]);
     hold on;
-    quiver(X(1:5:end,1:5:end), ...
-           Y(1:5:end,1:5:end), ...
-           nu12(1:5:end,1:5:end), ...
-           nv12(1:5:end,1:5:end),5);
+    quiver(X(1:region:end,1:region:end), ...
+           Y(1:region:end,1:region:end), ...
+           nu12(1:region:end,1:region:end), ...
+           nv12(1:region:end,1:region:end),region);
 end
