@@ -1,3 +1,4 @@
+
 function [U,V] = OF(F1, F2, Smooth, Region)
     %OF Summary of this function goes here
     %   Detailed explanation goes here
@@ -13,16 +14,34 @@ function [U,V] = OF(F1, F2, Smooth, Region)
     U = zeros(size(F1,1),size(F1,2));
     V = zeros(size(F1,1),size(F1,2));
     
+    XWindow = -Region:Region;
+    YWindow = -Region:Region;
 %     A = [Ix, Iy];    
-    b = -It;
-    msize = size(b,1)*size(b,2)
-    b = reshape(b,msize,1);
-    Ix = reshape(Ix,msize,1);
-    Iy = reshape(Iy,msize,1);
-    A = [Ix Iy];
-%   
-%     for i = 1:msize
-%         
+    
+    for i = 1+Region:size(F1, 1)-Region
+        for j = 1+Region:size(F1, 2)-Region
+
+            b = -It(i+XWindow, j+YWindow);
+            msize = size(b,1)*size(b,2);
+            b = reshape(b,msize,1);
+            Ixnew = Ix(i+XWindow, j+YWindow);
+            Iynew = Iy(i+XWindow, j+YWindow);
+
+            Ixnew = reshape(Ixnew,msize,1);
+            Iynew = reshape(Iynew,msize,1);
+            A = [Ixnew Iynew];
+
+            G = A'*A;
+            if rank(G) >= 2
+                Ainv = pinv(A);
+                result = Ainv * b;
+                U(i,j) = result(1);
+                V(i,j) = result(2);
+            else
+                U(i,j) = 0;
+                V(i,j) = 0;  
+            end
+% 
 %             A(i,1) = Ix(i,1);
 %             A(i,2) = Iy(i,2);
 %             b = -It(i,j);
@@ -31,21 +50,9 @@ function [U,V] = OF(F1, F2, Smooth, Region)
 % 
 %             if r >= 1
 %                 Ainv = pinv(A);
-%                 U(i,j) = b*Ainv;
-%                 V(i,j) = b*Ainv*b(2);
-%             else
-%                 U(i,j) = 0;
-%                 V(i,j) = 0;
-%             end  
-        
-%     end
-    
-    G = A'*A;
-    if rank(G) >= 2
-        Ainv = pinv(A);
-        result = Ainv * b;
-    end
 
+        end
+    end
 end
 
 
