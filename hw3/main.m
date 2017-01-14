@@ -4,14 +4,17 @@ function main()
     Smooth = 1;
     Region = 5;
 
+    % Question 3
+    %testOFDemo(Smooth, Region);
     
-    % [U, V] = testOFDemo(Smooth, Region, true);
+    % Questions 4-8
+    %testOF(video, images, Smooth, Region);
+         
+    %testSegmentationChangeDetection(video);
     
-%     testOFPeople();
-     testOFSlide(video, images, Smooth, Region);
-%     segsOfSize();
+    %     segsOfSize();
 %       segOfDirection();
-    %segmentationChangeDetection(video);
+
 end
 
 function segOfDirection()
@@ -29,7 +32,7 @@ function segsOfSize()
     imshow(foreground,[1 256]);
 end
 
-function [U, V] = testOFDemo(Smooth, Region, shouldPlot) 
+function [U, V] = testOFDemo(Smooth, Region) 
     im1 = zeros(200,200);
     im1(20:30,20:30) = 200;
     im1(50:60,50:60) = 200;
@@ -41,102 +44,103 @@ function [U, V] = testOFDemo(Smooth, Region, shouldPlot)
     im2(150:180,150:180) = 200;  
         
     [U,V] = OF(im1, im2, Smooth, Region);
-    if shouldPlot == true
-        showQuiver(im1,U,V,Region);
-    end
-
+    showQuiver(im1,U,V,Region);
+    
 end
 
-function testOFSlide(video, images, Smooth, Region) 
+function testOF(video, images, Smooth, Region) 
     
     % 5(a) - several pairs of frames from each of the sequences
     % slide video
-%     seq = video2grey_seq(video);
-% 
-%     im1 = seq(:,:,1);
-%     im2 = seq(:,:,2);
-%     [U,V] = OF(im1, im2, Smooth, Region);
-%     showQuiver(im1,U,V,Region);
-%     
-%     im1 = seq(:,:,1);
-%     im2 = seq(:,:,100);
-%     [U,V] = OF(im1, im2, Smooth, Region);
-%     showQuiver(im1,U,V,Region);
-%     
-%    
+    seq = video2grey_seq(video);
+
+    im1 = seq(:,:,1);
+    im2 = seq(:,:,2);
+    [U,V] = OF(im1, im2, Smooth, Region);
+    showQuiver(im1,U,V,Region);
+    
+    im1 = seq(:,:,1);
+    im2 = seq(:,:,100);
+    [U,V] = OF(im1, im2, Smooth, Region);
+    showQuiver(im1,U,V,Region);    
+   
     % people images
-%     im1 = rgb2gray(imread(strcat(images,'1.jpg')));
-%     im2 = rgb2gray(imread(strcat(images,'2.jpg')));
-%     [U,V] = OF(im1, im2, Smooth, Region);
-%     showQuiver(im1,U,V,Region);
-%     
-%     im1 = rgb2gray(imread(strcat(images,'1.jpg')));
-%     im2 = rgb2gray(imread(strcat(images,'30.jpg')));
-%     [U,V] = OF(im1, im2, Smooth, Region);
-%     showQuiver(im1,U,V,Region);
-%     
-%     im1 = rgb2gray(imread(strcat(images,'1.jpg')));
-%     im2 = rgb2gray(imread(strcat(images,'9.jpg')));
-%     [U,V] = OF(im1, im2, Smooth, Region);
-%     showQuiver(im1,U,V,Region);
-%     
-%     im1 = rgb2gray(imread(strcat(images,'9.jpg')));
-%     im2 = rgb2gray(imread(strcat(images,'17.jpg')));
-%     [U,V] = OF(im1, im2, Smooth, Region);
-%     showQuiver(im1,U,V,Region);
-%     
-%     im1 = rgb2gray(imread(strcat(images,'17.jpg')));
-%     im2 = rgb2gray(imread(strcat(images,'26.jpg')));
-%     [U,V] = OF(im1, im2, Smooth, Region);
-%     showQuiver(im1,U,V,Region);
+    im1 = rgb2gray(imread(strcat(images,'1.jpg')));
+    im2 = rgb2gray(imread(strcat(images,'2.jpg')));
+    [U,V] = OF(im1, im2, Smooth, Region);
+    showQuiver(im1,U,V,Region);
+    
+    im1 = rgb2gray(imread(strcat(images,'1.jpg')));
+    im2 = rgb2gray(imread(strcat(images,'30.jpg')));
+    [U,V] = OF(im1, im2, Smooth, Region);
+    showQuiver(im1,U,V,Region);
+    
+    im1 = rgb2gray(imread(strcat(images,'1.jpg')));
+    im2 = rgb2gray(imread(strcat(images,'9.jpg')));
+    [U,V] = OF(im1, im2, Smooth, Region);
+    showQuiver(im1,U,V,Region);
+    
+    im1 = rgb2gray(imread(strcat(images,'9.jpg')));
+    im2 = rgb2gray(imread(strcat(images,'17.jpg')));
+    [U,V] = OF(im1, im2, Smooth, Region);
+    showQuiver(im1,U,V,Region);
+    
+    im1 = rgb2gray(imread(strcat(images,'17.jpg')));
+    im2 = rgb2gray(imread(strcat(images,'26.jpg')));
+    [U,V] = OF(im1, im2, Smooth, Region);
+    showQuiver(im1,U,V,Region);
     
     % 5(b) - Play with the algorithm parameters
-%      im1 = rgb2gray(imread(strcat(images,'9.jpg')));
-%      im2 = rgb2gray(imread(strcat(images,'17.jpg')));
-%      [U,V] = OF(im1, im2, Smooth, Region);
-%      showQuiver(im1,U,V,Region);
-%     
-%      im1 = rgb2gray(imread(strcat(images,'9.jpg')));
-%      im2 = rgb2gray(imread(strcat(images,'17.jpg')));
-%      [U,V] = OF(im1, im2, 20, Region);
-%      showQuiver(im1,U,V,Region);
-%     
-%      im1 = rgb2gray(imread(strcat(images,'9.jpg')));
-%      im2 = rgb2gray(imread(strcat(images,'17.jpg')));
-%      [U,V] = OF(im1, im2, Smooth, 30);
-%      showQuiver(im1,U,V,Region);
+    im1 = rgb2gray(imread(strcat(images,'9.jpg')));
+    im2 = rgb2gray(imread(strcat(images,'17.jpg')));
+    [U,V] = OF(im1, im2, Smooth, Region);
+    showQuiver(im1,U,V,Region);
+
+    im1 = rgb2gray(imread(strcat(images,'9.jpg')));
+    im2 = rgb2gray(imread(strcat(images,'17.jpg')));
+    [U,V] = OF(im1, im2, 20, Region);
+    showQuiver(im1,U,V,Region);
+
+    im1 = rgb2gray(imread(strcat(images,'9.jpg')));
+    im2 = rgb2gray(imread(strcat(images,'17.jpg')));
+    [U,V] = OF(im1, im2, Smooth, 30);
+    showQuiver(im1,U,V,Region);
     
     % 5(c) - Play with the distance between the pair of frames
-%     seq = video2grey_seq(video);
-%     jump = 10;
-%     start = 1;
-%     frames = 5;
-%     
-%     for i=1:frames
-%         im1 = seq(:,:,start);
-%         im2 = seq(:,:,start+jump);
-%         [U,V] = OF(im1, im2, Smooth, Region);
-%         showQuiver(im1,U,V,Region);
-%         start = start + jump;
-%     end
+    seq = video2grey_seq(video);
+    jump = 10;
+    start = 1;
+    frames = 5;
+    
+    for i=1:frames
+        im1 = seq(:,:,start);
+        im2 = seq(:,:,start+jump);
+        [U,V] = OF(im1, im2, Smooth, Region);
+        showQuiver(im1,U,V,Region);
+        start = start + jump;
+    end
 
-
-% 7 - resize the image to see if you obtain different optical flow for different scales
-%         im1 = imresize(im1, 0.5);
- %       im2 = imresize(im2, 0.5);
-
-
-end
-
-function testOFPeople()
-    Smooth = 1;
-    Region = 5;
-       
-    im1 = rgb2gray(imread('people/people2_1.jpg')); 
-    im2 = rgb2gray(imread('people/people2_2.jpg')); 
-   
+    % 7 - resize the image to see if you obtain different optical flow for different scales
+    seq = video2grey_seq(video);
+ 
+    im1 = seq(:,:,40);
+    im2 = seq(:,:,50);
     [U,V] = OF(im1, im2, Smooth, Region);
+    showQuiver(im1,U,V,Region);
 
+    im1 = imresize(seq(:,:,40), 1.5);
+    im2 = imresize(seq(:,:,50), 1.5);
+    [U,V] = OF(im1, im2, Smooth, Region);
+    showQuiver(im1,U,V,Region);
+
+    im1 = imresize(seq(:,:,40), 0.5);
+    im2 = imresize(seq(:,:,50), 0.5);
+    [U,V] = OF(im1, im2, Smooth, Region);
+    showQuiver(im1,U,V,Region);
+
+    im1 = imresize(seq(:,:,40), 0.25);
+    im2 = imresize(seq(:,:,50), 0.25);
+    [U,V] = OF(im1, im2, Smooth, Region);
     showQuiver(im1,U,V,Region);
 
 end
@@ -190,7 +194,7 @@ function seq = video2grey_seq(video)
    end
 end
 
-function segmentationChangeDetection(video) 
+function testSegmentationChangeDetection(video) 
     
    seq = video2grey_seq(video); 
 
