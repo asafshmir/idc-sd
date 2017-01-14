@@ -9,30 +9,13 @@ function main()
     
     % Questions 4-8
     %testOF(video, images, Smooth, Region);
-         
-    %testSegmentationChangeDetection(video);
     
-    %     segsOfSize();
-%       segOfDirection();
+    % Question 14
+    testSegmentationMethods(video, Smooth, Region);
 
 end
 
-function segOfDirection()
-    [U, V] = testOFDemo(false);
-    segs = seg_OF_direction(U,V,[1 20 40]);
-    figure
-    imshow(segs,[]);
-    
-end
-function segsOfSize() 
-    [U, V] = testOFDemo(false);
-    [background, foreground] = seg_OF_size(U,V,0.01);
-    figure;
-    imshow(background,[1 256]);
-    imshow(foreground,[1 256]);
-end
-
-function [U, V] = testOFDemo(Smooth, Region) 
+function testOFDemo(Smooth, Region) 
     im1 = zeros(200,200);
     im1(20:30,20:30) = 200;
     im1(50:60,50:60) = 200;
@@ -194,13 +177,50 @@ function seq = video2grey_seq(video)
    end
 end
 
-function testSegmentationChangeDetection(video) 
+function testSegmentationMethods(video, Smooth, Region)
     
-   seq = video2grey_seq(video); 
+    seq = video2grey_seq(video); 
+    frame = 2;
+    
+    % Segmentation OF size
+    threshold = 0.1;
+    segOFSize(seq(:,:,frame-1),seq(:,:,frame),Smooth,Region,threshold);
+    
+    % Segmentation OF direction
+    thresholds = [1 20 40];
+    segOFDirection(seq(:,:,frame-1),seq(:,:,frame),Smooth,Region,thresholds);
+    
+    % Segmentation Change Detection
+    threshold = 20;
+    segChangeDetection(seq, frame, threshold);
+    
+end
 
-   threshold = 20;
-   [B, CD] = segmentation_change_detection(seq,threshold);
-   %imshow(CD(:,:,50),[]);
-   imshow(B,[]);
-   
+function segOFSize(im1, im2, Smooth, Region, th) 
+    [U,V] = OF(im1, im2, Smooth, Region);
+    [background, foreground] = seg_OF_size(U,V,th);
+    figure;
+    imshow(background,[1 256]);
+    hold on;
+    figure;
+    imshow(foreground,[1 256]);
+    hold on;
+end
+
+function segOFDirection(im1, im2, Smooth, Region, ths)
+    [U,V] = OF(im1, im2, Smooth, Region);
+    segs = seg_OF_direction(U,V,ths);
+    figure;
+    imshow(segs,[]);
+    hold on;
+end
+
+function segChangeDetection(seq, frame, th) 
+    [B, CD] = segmentation_change_detection(seq,th);
+    figure;
+    imshow(B,[]);
+    hold on;
+    figure;
+    imshow(CD(:,:,frame),[]);
+    hold on;
 end
