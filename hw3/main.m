@@ -184,15 +184,15 @@ function testSegmentationMethods(video, Smooth, Region)
     
     % Segmentation OF size
     threshold = 0.1;
-    segOFSize(seq(:,:,frame-1),seq(:,:,frame),Smooth,Region,threshold);
+    %segOFSize(seq(:,:,frame-1),seq(:,:,frame),Smooth,Region,threshold);
     
     % Segmentation OF direction
-    thresholds = [1 20 40];
+    thresholds = [0 45 90 135 180 225 270 315 355];
     segOFDirection(seq(:,:,frame-1),seq(:,:,frame),Smooth,Region,thresholds);
     
     % Segmentation Change Detection
     threshold = 20;
-    segChangeDetection(seq, frame, threshold);
+    %segChangeDetection(seq, frame, threshold);
     
 end
 
