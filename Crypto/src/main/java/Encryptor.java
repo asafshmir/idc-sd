@@ -1,7 +1,7 @@
-import crypt.CryptoConfiguration;
-import crypt.CryptoStorage;
-import crypt.CryptoUtils;
-import crypt.Utils;
+import crypto.CryptoVariables;
+import crypto.CryptoStorage;
+import crypto.CryptoUtils;
+import crypto.Utils;
 
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
@@ -11,7 +11,7 @@ import java.io.ObjectOutputStream;
 import java.security.*;
 import java.security.cert.CertificateException;
 
-import static crypt.CryptoConsts.*;
+import static crypto.CryptoConsts.*;
 
 /**
  * Created by shmir on 1/14/2017.
@@ -25,9 +25,8 @@ public class Encryptor {
 
     private CryptoStorage storage;
     private PrivateKey privateKey;
-    private Signature asymSign;
 
-    static private final String CONF_PREFIX = ".conf";
+    static private final String VARS_PREFIX = ".vars";
     static private final String ENC_PREFIX = ".enc";
 
     public Encryptor(String keystorePath, String keystorePassword, String privateKeyAlias)
@@ -40,6 +39,7 @@ public class Encryptor {
 
         // Randomized symmetric keys
         secretKey = CryptoUtils.getSecretKey();
+        System.out.println("Using symmetric key: " + Utils.getHexDump(secretKey.getEncoded()));
 
         // Init dataCipher object with random iv
         dataCipher = Cipher.getInstance(DATA_CIPHER_GENERATOR);
@@ -47,61 +47,51 @@ public class Encryptor {
         IvParameterSpec ivspec = new IvParameterSpec(iv);
         dataCipher.init(Cipher.ENCRYPT_MODE, secretKey, ivspec);
 
-        // Init a signature object
-        asymSign = Signature.getInstance(ASYM_ALGORITHM);
-        asymSign.initSign(privateKey);
+
     }
 
-    private void encryptAndSign(String dataFilePath, String certificateAlias) throws IOException, BadPaddingException, IllegalBlockSizeException, SignatureException, InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, UnrecoverableKeyException, KeyStoreException {
+    public void encryptAndSign(String dataFilePath, String certificateAlias) throws IOException, BadPaddingException, IllegalBlockSizeException, SignatureException, InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, UnrecoverableEntryException, KeyStoreException {
 
         // Encrypt and write the encrypted file
+        System.out.println("Working on file: " + dataFilePath);
         byte[] plainData = Utils.readFile(dataFilePath);
         FileOutputStream dataOutputStream;
         ObjectOutputStream encOos = null;
         try {
-            dataOutputStream = new FileOutputStream(dataFilePath + ENC_PREFIX);
+            String encryptedFilePath = dataFilePath + ENC_PREFIX;
+            dataOutputStream = new FileOutputStream(encryptedFilePath);
             dataCipherOs = new CipherOutputStream(dataOutputStream, dataCipher);
             encOos = new ObjectOutputStream(dataCipherOs);
             encOos.writeObject(plainData);
+            System.out.println("Writing encrypted data to file: " + encryptedFilePath);
             dataCipherOs.write(plainData);
         } finally {
             encOos.close();
         }
 
-        // Init cipher object for encrypting the symmetric key
-        PublicKey publicKey = storage.getPublicKeyForCertificate(certificateAlias);
-        Cipher asymCipher = Cipher.getInstance(ASYM_ALGORITHM);
-        asymCipher.init(Cipher.ENCRYPT_MODE, publicKey);
+        // Get the public key for the given alias
+        PublicKey aliasPublicKey = storage.getPublicKeyForCertificate(certificateAlias);
 
-        // Encrypt the symmetric key with the proper private key
-        byte[] encSymmetricKey = asymCipher.doFinal(secretKey.getEncoded());
+        // Create a CryptoVariables object
+        CryptoVariables vars = new CryptoVariables(secretKey, iv, aliasPublicKey, privateKey, plainData);
 
-        // Sign the plain data
-        asymSign.update(plainData);
-
-        // Create a CryptoConfiguration
-        CryptoConfiguration cryptoConfig = new CryptoConfiguration();
-        cryptoConfig.encSymmetricKey = encSymmetricKey;
-        cryptoConfig.signature = asymSign.sign();
-
-        // Write the CryptoConfiguration file
-        writeConfigurationFile(cryptoConfig, dataFilePath + CONF_PREFIX);
+        // Write the CryptoVariables file
+        String varsFilePath = dataFilePath + VARS_PREFIX;
+        System.out.println("Writing crypto variables file: " + varsFilePath);
+        CryptoVariables.writeVariablesFile(vars, varsFilePath);
+        System.out.println("Done!");
     }
 
-    private static void writeConfigurationFile(CryptoConfiguration cryptoConf, String outputFilePath) throws IOException {
-        FileOutputStream fileOut = new FileOutputStream(outputFilePath);
-        ObjectOutputStream out = new ObjectOutputStream(fileOut);
-        out.writeObject(cryptoConf);
-        out.close();
-        fileOut.close();
-    }
 
-    public static void main(String[] args) throws NoSuchAlgorithmException, CertificateException, KeyStoreException, IOException, UnrecoverableEntryException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, BadPaddingException, SignatureException, IllegalBlockSizeException {
+
+    public static void main(String[] args) throws NoSuchAlgorithmException, CertificateException, KeyStoreException,
+            IOException, UnrecoverableEntryException, NoSuchPaddingException, InvalidKeyException,
+            InvalidAlgorithmParameterException, BadPaddingException, SignatureException, IllegalBlockSizeException {
 
         // Read arguments from user
-        if (args.length != 4) {
+        if (args.length != 5) {
             System.out.println("Usage: Encryptor " +
-                    "<data_file> <keystore_path> <keystore_password>" +
+                    "<data_file> <keystore_file> <keystore_password> " +
                     "<private_key_alias> <public_key_alias>");
             return;
         }

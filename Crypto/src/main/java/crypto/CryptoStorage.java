@@ -1,4 +1,4 @@
-package crypt;
+package crypto;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -6,7 +6,7 @@ import java.security.cert.Certificate;
 import java.security.*;
 import java.security.cert.CertificateException;
 
-import static crypt.CryptoConsts.*;
+import static crypto.CryptoConsts.*;
 
 /**
  * Created by shmir on 1/14/2017.
@@ -14,6 +14,8 @@ import static crypt.CryptoConsts.*;
 public class CryptoStorage {
 
     private KeyStore keyStore;
+
+
 
     /** The password used both for protecting the keystore file and the keys inside **/
     private String password;
@@ -32,16 +34,17 @@ public class CryptoStorage {
         return keyEntry.getPrivateKey();
     }
 
-    public PublicKey getPublicKeyForCertificate(String certificateAlias) throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException {
-        Key key = keyStore.getKey(certificateAlias, password.toCharArray());
-        PublicKey publicKey = null;
-        if (key instanceof PrivateKey) {
-            // Get certificate for given alias
-            Certificate cert = keyStore.getCertificate(certificateAlias);
+    public PublicKey getPublicKeyForCertificate(String certificateAlias) throws NoSuchAlgorithmException, KeyStoreException {
 
-            // Get public key for certificate
+        // Get certificate for given alias
+        Certificate cert = keyStore.getCertificate(certificateAlias);
+
+        // Get public key for certificate
+        PublicKey publicKey = null;
+        if (cert != null) {
             publicKey = cert.getPublicKey();
         }
+
         return publicKey;
     }
 }

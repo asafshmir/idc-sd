@@ -1,11 +1,11 @@
-package crypt;
+package crypto;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 
-import static crypt.CryptoConsts.*;
+import static crypto.CryptoConsts.*;
 
 /**
  * Created by shmir on 1/14/2017.
