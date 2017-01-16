@@ -8,14 +8,17 @@ import java.security.*;
 import static crypto.CryptoConsts.*;
 
 /**
- * Created by shmir on 1/14/2017.
+ * Represents the set of cryptographic variables used for encrypting and decrypting.
+ * Supply methods for encrypting and decrypting the symmetric key which is encrypted by
+ * an asymmetric encryption.
+ * {@link CryptoVariables} is also {@link Serializable} which allows to read and write from\to file.
  */
 public class CryptoVariables implements java.io.Serializable {
 
     private static final long serialVersionUID = 8102302223781025809L;
 
     public byte[] signature;
-    public byte[] encryptedKeyEncoded;
+    public byte[] encryptedKeyBytes;
     public byte[] iv;
 
     /**
@@ -32,7 +35,7 @@ public class CryptoVariables implements java.io.Serializable {
             throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException,
             IllegalBlockSizeException, BadPaddingException, SignatureException {
 
-        this.encryptedKeyEncoded = encryptKey(secretKey, publicKey);
+        this.encryptedKeyBytes = encryptKey(secretKey, publicKey);
         this.iv = iv;
         this.signature = signData(privateKey, plainData);
     }
@@ -50,7 +53,7 @@ public class CryptoVariables implements java.io.Serializable {
             InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
         Cipher keyDecryptor = Cipher.getInstance(KEY_ENCRYPTION_ALGORITHM);
         keyDecryptor.init(Cipher.DECRYPT_MODE, privateKey);
-        byte[] decryptedEncodedKey = keyDecryptor.doFinal(encryptedKeyEncoded);
+        byte[] decryptedEncodedKey = keyDecryptor.doFinal(encryptedKeyBytes);
         return new SecretKeySpec(decryptedEncodedKey, KEY_GENERATOR_ALGORITHM);
     }
 
@@ -82,6 +85,12 @@ public class CryptoVariables implements java.io.Serializable {
         return signature.sign();
     }
 
+    /**
+     * Verify the read signature with the given data and public key
+     * @param publicKey the public key corresponded with the private key used for signing the data
+     * @param data the signed data
+     * @return true if the signature is verified, and false otherwise
+     */
     public boolean verifySignature(PublicKey publicKey, byte[] data) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
         Signature signature = Signature.getInstance(SIGNING_ALGORITHM);
         signature.initVerify(publicKey);
@@ -90,13 +99,18 @@ public class CryptoVariables implements java.io.Serializable {
         return verifies;
     }
 
-    public static void writeVariablesFile(CryptoVariables cryptoConf, String configFilePath) throws IOException {
+    /**
+     * Write the {@link CryptoVariables} object to a file
+     * @param cryptoVars The {@link CryptoVariables} object to write
+     * @param varsFilePath The path to write the object
+     */
+    public static void writeVariablesFile(CryptoVariables cryptoVars, String varsFilePath) throws IOException {
         ObjectOutputStream out = null;
         FileOutputStream fileOut = null;
         try {
-            fileOut = new FileOutputStream(configFilePath);
+            fileOut = new FileOutputStream(varsFilePath);
             out = new ObjectOutputStream(fileOut);
-            out.writeObject(cryptoConf);
+            out.writeObject(cryptoVars);
             out.flush();
         } finally {
             out.close();
@@ -104,11 +118,16 @@ public class CryptoVariables implements java.io.Serializable {
         }
     }
 
-    public static CryptoVariables readVariablesFile(String configFilePath) throws IOException, ClassNotFoundException {
+    /**
+     * Reads a {@link CryptoVariables} from a given file
+     * @param varsFilePath The file where the {@link CryptoVariables} object is stored
+     * @return The read {@link CryptoVariables} object
+     */
+    public static CryptoVariables readVariablesFile(String varsFilePath) throws IOException, ClassNotFoundException {
         ObjectInputStream in = null;
         FileInputStream fileIn = null;
         try {
-            fileIn = new FileInputStream(configFilePath);
+            fileIn = new FileInputStream(varsFilePath);
             in = new ObjectInputStream(fileIn);
             return (CryptoVariables) in.readObject();
         } finally {
