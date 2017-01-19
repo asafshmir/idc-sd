@@ -1,12 +1,9 @@
 package crypto;
 
 /**
- * Created by shmir on 1/14/2017.
+ * Cryptographic consts used by the crypto package.
  */
 public class CryptoConsts {
-
-    /** The default provider */
-    //public static final String CRYPTO_PROVIDER = "SUNJCE";
 
     /** The algorithm for creating secure random */
     public static final String SECURE_RANDOM_ALGORITHM = "SHA1PRNG";

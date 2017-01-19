@@ -17,8 +17,11 @@ public class CryptoVariables implements java.io.Serializable {
 
     private static final long serialVersionUID = 8102302223781025809L;
 
+    /** The digital signature of the data file */
     public byte[] signature;
+    /** The encrypted symmetric key using a trusted public key */
     public byte[] encryptedKeyBytes;
+    /** A random IV used for encryption */
     public byte[] iv;
 
     /**
@@ -42,7 +45,7 @@ public class CryptoVariables implements java.io.Serializable {
 
     /**
      * Decrypt the encoded secret key's bytes by RSA using the argument
-     * RSAPrivateKey.<br>
+     * RSAPrivateKey.
      *
      * @param privateKey The public key to use when decrypting the secret key
      * @return the decrypted SecretKeySpec which consists of the decrypted bytes

@@ -3,9 +3,11 @@ package crypto;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
- * Created by shmir on 1/14/2017.
+ * Usefull utils used by the crypto package.
  */
 public class Utils {
 
@@ -45,5 +47,39 @@ public class Utils {
             hexChars[j * 2 + 1] = hexArray[v & 0x0F];
         }
         return new String(hexChars);
+    }
+
+    /**
+     * Rename a given file path to a new extension.
+     * @param source the source file path
+     * @param newExtension the new extension
+     * @return the new file path
+     */
+    public static String renameFileExtensionString (String source, String newExtension) {
+        String target;
+        String currentExtension = getFileExtension(source);
+
+        if (currentExtension.equals("")){
+            target = source + "." + newExtension;
+        }
+        else {
+            target = source.replaceFirst(Pattern.quote("." +
+                    currentExtension) + "$", Matcher.quoteReplacement("." + newExtension));
+        }
+        return target;
+    }
+
+    /**
+     * Return a file extension
+     * @param f the file path
+     * @return the file extension
+     */
+    public static String getFileExtension(String f) {
+        String ext = "";
+        int i = f.lastIndexOf('.');
+        if (i > 0 &&  i < f.length() - 1) {
+            ext = f.substring(i + 1).toLowerCase();
+        }
+        return ext;
     }
 }
