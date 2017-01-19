@@ -1,0 +1,101 @@
+
+## Generate a keystore and self-signed certificate ## 
+keytool -genkey -keyalg RSA -alias side-a -keystore keystore.jks -storepass SuperDog -validity 360 -keysize 2048
+What is your first and last name?
+  [Unknown]:  Asaf Shamir
+What is the name of your organizational unit?
+  [Unknown]:
+What is the name of your organization?
+  [Unknown]:
+What is the name of your City or Locality?
+  [Unknown]:
+What is the name of your State or Province?
+  [Unknown]:
+What is the two-letter country code for this unit?
+  [Unknown]:
+Is CN=Asaf Shamir, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown correct?
+  [no]:  Yes
+
+Enter key password for <side-a>
+        (RETURN if same as keystore password):
+
+## Export a certificate from a keystore ##
+keytool -export -alias side-a -file side-a.crt -keystore keystore.jks
+
+## Import a signed primary certificate to an existing Java keystore ##
+keytool -import -trustcacerts -alias side-b -file side-b.crt -keystore keystore.jks
+
+## Check which certificates are in a Java keystore ##
+keytool -list -v -keystore keystore.jks
+Enter keystore password:
+
+Keystore type: JKS
+Keystore provider: SUN
+
+Your keystore contains 2 entries
+
+Alias name: side-b
+Creation date: Jan 13, 2017
+Entry type: trustedCertEntry
+
+Owner: CN=Baruch Segal, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown
+Issuer: CN=Baruch Segal, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown
+Serial number: 8b76f7
+Valid from: Fri Jan 13 10:40:52 GMT 2017 until: Mon Jan 08 10:40:52 GMT 2018
+Certificate fingerprints:
+         MD5:  5C:B2:BE:ED:D1:4B:A1:B4:78:3A:19:2C:6A:CD:20:1E
+         SHA1: AC:A4:AE:32:4D:B3:04:25:4B:59:02:3D:CB:50:11:C4:6B:F2:90:62
+         SHA256: 53:C2:EE:2E:E0:36:DF:EE:F3:02:50:1C:42:A9:BF:C4:BD:1D:25:76:FA:DA:FA:AB:1C:E0:B3:19:D0:C6:10:69
+         Signature algorithm name: SHA256withRSA
+         Version: 3
+
+Extensions:
+
+#1: ObjectId: 2.5.29.14 Criticality=false
+SubjectKeyIdentifier [
+KeyIdentifier [
+0000: 3B E8 E4 4B 44 F8 68 AA   26 13 D2 7A 13 17 77 45  ;..KD.h.&..z..wE
+0010: 43 09 DE FE                                        C...
+]
+]
+
+
+
+*******************************************
+*******************************************
+
+
+Alias name: side-a
+Creation date: Jan 13, 2017
+Entry type: PrivateKeyEntry
+Certificate chain length: 1
+Certificate[1]:
+Owner: CN=Asaf Shamir, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown
+Issuer: CN=Asaf Shamir, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown
+Serial number: 30738d01
+Valid from: Fri Jan 13 10:37:10 GMT 2017 until: Mon Jan 08 10:37:10 GMT 2018
+Certificate fingerprints:
+         MD5:  54:7E:53:85:97:10:CB:93:08:15:5B:0E:7A:82:A2:D8
+         SHA1: 9C:DC:B1:AF:86:A1:1B:8E:27:2B:E2:99:30:A5:EE:F3:17:E5:B1:D6
+         SHA256: C8:EF:5F:A8:AC:59:06:9D:CC:F4:44:F6:92:B4:10:FB:1B:85:1F:A6:53:99:42:74:97:B7:52:72:B5:9C:8E:73
+         Signature algorithm name: SHA256withRSA
+         Version: 3
+
+Extensions:
+
+#1: ObjectId: 2.5.29.14 Criticality=false
+SubjectKeyIdentifier [
+KeyIdentifier [
+0000: 6D BF 75 2A 3C 16 97 2D   FC B4 1E 64 E9 C0 A3 0B  m.u*<..-...d....
+0010: 75 B4 5E 6F                                        u.^o
+]
+]
+
+
+
+*******************************************
+*******************************************
+
+
+
+		

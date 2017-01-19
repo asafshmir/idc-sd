@@ -1,0 +1,2 @@
+java -cp target/Crypto-1.0-SNAPSHOT.jar Encryptor "plaintext.txt" "keystore/keystore-a.jks" "SuperDog" "side-a" "side-b"
+java -cp target/Crypto-1.0-SNAPSHOT.jar Decryptor "plaintext.enc" "plaintext.vars" "keystore/keystore-b.jks" "SuperDog" "side-b" "side-a" "decrypted.txt"
