@@ -39,3 +39,7 @@ Crypto/data/plain.txt.enc
 Crypto/data/plain.txt.vars
 Crypto/keystore-a-change-name-to-keystore.jks
 Crypto/keystore-b-change-name-to-keystore.jks
+Crypto/decrypted.txt
+Crypto/plaintext.enc
+Crypto/plaintext.txt
+Crypto/plaintext.vars
