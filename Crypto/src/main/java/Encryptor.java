@@ -101,8 +101,8 @@ public class Encryptor {
 
 
     /**
-     * Encrypt a given file using a symmetric key encryption,
-     * create a var file with the symmetric key encrypted with a trusted public key,
+     * Encrypt a given file using a symmetric key encryption and output it to <yourfile>.enc,
+     * create a var file (<yourfile>.var) with the symmetric key encrypted with a trusted public key,
      * computes a digital signature on the given file using a private key.
      * Usage: Encryptor <data_file> <keystore_file> <keystore_password> <private_key_alias> <public_key_alias>
      * data_file – the file to encrypt
